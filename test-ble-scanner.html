@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLE Scanner Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0A0A0F;
+            color: #00FFFF;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #141420;
+            padding: 30px;
+            border: 2px solid #00FFFF;
+            box-shadow: 0 0 20px #00FFFF80;
+        }
+        h1 {
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00FFFF;
+        }
+        button {
+            background: linear-gradient(135deg, #00FFFF, #00E5FF);
+            color: #0A0A0F;
+            border: none;
+            padding: 15px 30px;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 0 15px #00FFFF80;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 25px #00FFFF80;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #00FFFF;
+        }
+        .device {
+            background: rgba(0, 255, 255, 0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #00FFFF33;
+        }
+        .error {
+            background: rgba(255, 107, 53, 0.2);
+            color: #FF6B35;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #FF6B35;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 BLE Scanner Test</h1>
+        
+        <div class="status" id="status">
+            Ready to scan for BLE devices...
+        </div>
+        
+        <button id="scanBtn">⚡ Scan for BLE Devices</button>
+        <button id="clearBtn">🗑️ Clear Results</button>
+        
+        <div id="devices"></div>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const devicesDiv = document.getElementById('devices');
+        const errorDiv = document.getElementById('error');
+        const scanBtn = document.getElementById('scanBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            errorDiv.style.display = 'none';
+        }
+
+        function updateStatus(message) {
+            statusDiv.textContent = message;
+        }
+
+        function addDevice(device) {
+            const deviceDiv = document.createElement('div');
+            deviceDiv.className = 'device';
+            deviceDiv.innerHTML = `
+                <strong>📡 ${device.name || 'Unknown Device'}</strong><br>
+                <small>ID: ${device.id}</small><br>
+                <small>RSSI: ${device.rssi || 'N/A'} dBm</small>
+            `;
+            devicesDiv.appendChild(deviceDiv);
+        }
+
+        async function scanForDevices() {
+            hideError();
+            
+            if (!navigator.bluetooth) {
+                showError('❌ Web Bluetooth is not supported in this browser. Try Chrome/Edge on desktop or Android.');
+                return;
+            }
+
+            scanBtn.disabled = true;
+            updateStatus('🔍 Scanning for BLE devices...');
+            devicesDiv.innerHTML = '';
+
+            try {
+                // First, try scanning for BLE Improv devices specifically
+                updateStatus('🔍 Looking for BLE Improv devices...');
+                
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { services: ['00467768-6228-2272-4663-277478268000'] }, // BLE Improv Service
+                        { namePrefix: 'LAIKA' },
+                        { namePrefix: 'ESP32' },
+                        { namePrefix: 'Improv' }
+                    ],
+                    optionalServices: ['00467768-6228-2272-4663-277478268000']
+                });
+
+                addDevice(device);
+                updateStatus(`✅ Found device: ${device.name || device.id}`);
+                
+                // Try to connect
+                updateStatus('🔗 Attempting to connect...');
+                const server = await device.gatt.connect();
+                updateStatus('✅ Connected! Looking for BLE Improv service...');
+                
+                const service = await server.getPrimaryService('00467768-6228-2272-4663-277478268000');
+                updateStatus('🎯 Found BLE Improv service!');
+                
+                const characteristics = await service.getCharacteristics();
+                updateStatus(`📋 Found ${characteristics.length} characteristics`);
+                
+                characteristics.forEach((char, index) => {
+                    const charDiv = document.createElement('div');
+                    charDiv.className = 'device';
+                    charDiv.innerHTML = `
+                        <strong>📊 Characteristic ${index + 1}</strong><br>
+                        <small>UUID: ${char.uuid}</small><br>
+                        <small>Properties: ${Object.keys(char.properties).filter(p => char.properties[p]).join(', ')}</small>
+                    `;
+                    devicesDiv.appendChild(charDiv);
+                });
+
+            } catch (error) {
+                if (error.name === 'NotFoundError') {
+                    showError('❌ No BLE Improv devices found. Make sure LAIKA is powered on and in pairing mode.');
+                } else if (error.name === 'SecurityError') {
+                    showError('❌ Bluetooth access denied. Make sure you\'re using HTTPS and have granted permissions.');
+                } else {
+                    showError(`❌ Error: ${error.message}`);
+                }
+                updateStatus('❌ Scan failed');
+            } finally {
+                scanBtn.disabled = false;
+            }
+        }
+
+        function clearResults() {
+            devicesDiv.innerHTML = '';
+            hideError();
+            updateStatus('Ready to scan for BLE devices...');
+        }
+
+        scanBtn.addEventListener('click', scanForDevices);
+        clearBtn.addEventListener('click', clearResults);
+
+        // Check if we're on HTTPS
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            showError('⚠️ Web Bluetooth requires HTTPS. Please use https:// or localhost');
+        }
+    </script>
+</body>
+</html>

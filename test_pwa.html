@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA PWA Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #00ffff;
+        }
+        .test-section {
+            border: 2px solid #00ffff;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 255, 255, 0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: rgba(0, 255, 0, 0.2); color: #00ff00; }
+        .error { background: rgba(255, 0, 0, 0.2); color: #ff0000; }
+        .warning { background: rgba(255, 255, 0, 0.2); color: #ffff00; }
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cccc;
+        }
+        .camera-feed {
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+            border: 2px solid #00ffff;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .slam-map {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            border: 2px solid #00ffff;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 LAIKA PWA Test Page</h1>
+    
+    <div class="test-section">
+        <h2>📡 Server Connection Test</h2>
+        <div id="serverStatus" class="status">Testing server connection...</div>
+        <button onclick="testServerConnection()">Test Server</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📹 Camera Test</h2>
+        <div id="cameraStatus" class="status">Camera not tested</div>
+        <button onclick="testCamera()">Test Camera</button>
+        <button onclick="startCamera()">Start Camera</button>
+        <button onclick="stopCamera()">Stop Camera</button>
+        <div class="camera-feed" id="cameraFeed">
+            <p>Camera feed will appear here</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🗺️ SLAM Map Test</h2>
+        <div id="slamStatus" class="status">SLAM not tested</div>
+        <button onclick="testSLAM()">Test SLAM</button>
+        <button onclick="refreshMap()">Refresh Map</button>
+        <div class="slam-map" id="slamMap">
+            <p>SLAM map will appear here</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🤖 Robot Control Test</h2>
+        <div id="robotStatus" class="status">Robot control not tested</div>
+        <button onclick="testRobotControl()">Test Robot Control</button>
+        <button onclick="sendCommand('stand')">Stand</button>
+        <button onclick="sendCommand('sit')">Sit</button>
+        <button onclick="sendCommand('forward')">Forward</button>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://localhost:5000';
+        let cameraActive = false;
+
+        async function testServerConnection() {
+            const statusDiv = document.getElementById('serverStatus');
+            try {
+                const response = await fetch(`${SERVER_URL}/api/status`);
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `✅ Server connected! Camera: ${data.camera_available}, ROS2: ${data.ros2_available}`;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `❌ Server connection failed: ${error.message}`;
+            }
+        }
+
+        async function testCamera() {
+            const statusDiv = document.getElementById('cameraStatus');
+            try {
+                const response = await fetch(`${SERVER_URL}/api/camera/start`);
+                if (response.ok) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = '✅ Camera test successful';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `❌ Camera test failed: ${error.message}`;
+            }
+        }
+
+        function startCamera() {
+            const feedDiv = document.getElementById('cameraFeed');
+            const img = document.createElement('img');
+            img.src = `${SERVER_URL}/api/camera/stream`;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+            
+            feedDiv.innerHTML = '';
+            feedDiv.appendChild(img);
+            cameraActive = true;
+            
+            document.getElementById('cameraStatus').className = 'status success';
+            document.getElementById('cameraStatus').innerHTML = '✅ Camera started';
+        }
+
+        function stopCamera() {
+            const feedDiv = document.getElementById('cameraFeed');
+            feedDiv.innerHTML = '<p>Camera feed will appear here</p>';
+            cameraActive = false;
+            
+            document.getElementById('cameraStatus').className = 'status warning';
+            document.getElementById('cameraStatus').innerHTML = '⏹️ Camera stopped';
+        }
+
+        async function testSLAM() {
+            const statusDiv = document.getElementById('slamStatus');
+            try {
+                const response = await fetch(`${SERVER_URL}/api/slam/map`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = `✅ SLAM test successful! Map size: ${data.width}x${data.height}`;
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `❌ SLAM test failed: ${error.message}`;
+            }
+        }
+
+        async function refreshMap() {
+            const mapDiv = document.getElementById('slamMap');
+            try {
+                const response = await fetch(`${SERVER_URL}/api/slam/map`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const img = document.createElement('img');
+                        img.src = `data:image/png;base64,${data.map_data}`;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'contain';
+                        
+                        mapDiv.innerHTML = '';
+                        mapDiv.appendChild(img);
+                        
+                        document.getElementById('slamStatus').className = 'status success';
+                        document.getElementById('slamStatus').innerHTML = `✅ Map refreshed! Resolution: ${data.resolution} m/pixel`;
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('slamStatus').className = 'status error';
+                document.getElementById('slamStatus').innerHTML = `❌ Map refresh failed: ${error.message}`;
+            }
+        }
+
+        async function testRobotControl() {
+            const statusDiv = document.getElementById('robotStatus');
+            try {
+                const response = await fetch(`${SERVER_URL}/api/robot/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: 'test',
+                        params: {}
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `✅ Robot control test successful: ${data.message}`;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `❌ Robot control test failed: ${error.message}`;
+            }
+        }
+
+        async function sendCommand(command) {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/robot/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        params: {}
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('robotStatus').className = 'status success';
+                    document.getElementById('robotStatus').innerHTML = `✅ Command '${command}' sent: ${data.message}`;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('robotStatus').className = 'status error';
+                document.getElementById('robotStatus').innerHTML = `❌ Command '${command}' failed: ${error.message}`;
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testServerConnection, 1000);
+        });
+    </script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2196F3">
+    <title>LAIKA Controller</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LAIKA Controller">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 20px,
+                    var(--grid-color) 20px,
+                    var(--grid-color) 21px
+                );
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header {
+            background: 
+                linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
+                linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
+            color: var(--atomic-bg);
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            border-bottom: 2px solid var(--atomic-cyan);
+            box-shadow: 
+                0 4px 20px var(--glow-cyan),
+                inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255, 255, 255, 0.1) 10px,
+                    rgba(255, 255, 255, 0.1) 11px
+                );
+            pointer-events: none;
+        }
+
+        .robot-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            display: block;
+            text-shadow: 
+                0 0 10px var(--atomic-bg),
+                0 0 20px var(--atomic-bg),
+                0 0 30px var(--atomic-bg);
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+            animation: atomicPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes atomicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .app-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 
+                0 0 10px var(--atomic-bg),
+                0 0 20px var(--atomic-bg);
+        }
+
+        .app-subtitle {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 12px;
+            font-weight: 300;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--atomic-bg);
+        }
+
+        .main-content {
+            padding: 25px 20px;
+            padding-bottom: 120px;
+            position: relative;
+        }
+
+        .status-card {
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30),
+                radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 0 20px var(--glow-cyan),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .status-card.disconnected {
+            border-color: var(--atomic-orange);
+            box-shadow: 
+                0 0 20px rgba(255, 107, 53, 0.5),
+                inset 0 0 20px rgba(255, 107, 53, 0.1);
+        }
+
+        .status-card.connected {
+            border-color: var(--atomic-cyan);
+            animation: connectedGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes connectedGlow {
+            from { box-shadow: 0 0 20px var(--glow-cyan), inset 0 0 20px rgba(0, 255, 255, 0.1); }
+            to { box-shadow: 0 0 30px var(--atomic-cyan), inset 0 0 30px rgba(0, 255, 255, 0.2); }
+        }
+
+        .status-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.5;
+            font-weight: 300;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 18px 20px;
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            background: var(--panel-bg);
+            color: var(--atomic-cyan);
+        }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .action-button:hover::before {
+            left: 100%;
+        }
+
+        .action-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: var(--text-dim);
+            color: var(--text-dim);
+        }
+
+        .primary-button {
+            background: 
+                linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
+                linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            color: var(--atomic-bg);
+            border-color: var(--atomic-cyan);
+            box-shadow: 
+                0 0 15px var(--glow-cyan),
+                inset 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+
+        .primary-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 5px 25px var(--glow-cyan),
+                inset 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .secondary-button {
+            background: transparent;
+            color: var(--atomic-cyan);
+            border-color: var(--atomic-cyan);
+        }
+
+        .secondary-button:hover:not(:disabled) {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .success-button {
+            background: 
+                linear-gradient(135deg, var(--atomic-cyan), var(--electric-blue));
+            color: var(--atomic-bg);
+            border-color: var(--atomic-cyan);
+        }
+
+        .danger-button {
+            background: 
+                linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
+            color: white;
+            border-color: var(--atomic-orange);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        }
+
+        .wifi-form {
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 0 25px var(--glow-cyan),
+                inset 0 0 25px rgba(0, 255, 255, 0.1);
+            display: none;
+            position: relative;
+        }
+
+        .wifi-form.show {
+            display: block;
+            animation: atomicSlideIn 0.5s ease;
+        }
+
+        @keyframes atomicSlideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px var(--glow-cyan);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            font-family: 'Exo 2', monospace;
+            font-size: 14px;
+            background: var(--atomic-bg);
+            color: var(--text-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--tron-cyan);
+            box-shadow: 
+                0 0 15px var(--glow-cyan),
+                inset 0 0 10px rgba(0, 255, 255, 0.1);
+        }
+
+        .networks-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            margin-bottom: 20px;
+            background: var(--atomic-bg);
+        }
+
+        .network-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--grid-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .network-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .network-item:last-child {
+            border-bottom: none;
+        }
+
+        .network-name {
+            font-family: 'Exo 2', monospace;
+            font-weight: 600;
+            color: var(--text-cyan);
+        }
+
+        .network-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid transparent;
+            border-top: 3px solid var(--atomic-cyan);
+            border-radius: 50%;
+            animation: atomicSpin 1s linear infinite;
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        @keyframes atomicSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            padding: 20px;
+            box-shadow: 
+                0 -4px 20px var(--glow-cyan),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            border-top: 2px solid var(--atomic-cyan);
+            z-index: 10;
+        }
+
+        .install-banner {
+            background: 
+                linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
+            color: white;
+            padding: 15px 20px;
+            border: 2px solid var(--atomic-orange);
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            font-size: 12px;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .install-banner.show {
+            display: flex;
+            animation: atomicGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes atomicGlow {
+            from { box-shadow: 0 0 15px rgba(255, 107, 53, 0.5); }
+            to { box-shadow: 0 0 25px rgba(255, 107, 53, 0.8); }
+        }
+
+        .install-button {
+            background: white;
+            color: var(--atomic-orange);
+            border: none;
+            padding: 8px 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error-message {
+            background: 
+                linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 27, 141, 0.2));
+            color: var(--atomic-orange);
+            padding: 15px;
+            border: 2px solid var(--atomic-orange);
+            margin-bottom: 20px;
+            border-left: 6px solid var(--atomic-orange);
+            display: none;
+            font-family: 'Exo 2', monospace;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .error-message.show {
+            display: block;
+            animation: atomicSlideIn 0.5s ease;
+        }
+
+        .success-message {
+            background: 
+                linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 229, 255, 0.2));
+            color: var(--atomic-cyan);
+            padding: 15px;
+            border: 2px solid var(--atomic-cyan);
+            margin-bottom: 20px;
+            border-left: 6px solid var(--atomic-cyan);
+            display: none;
+            font-family: 'Exo 2', monospace;
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .success-message.show {
+            display: block;
+            animation: atomicSlideIn 0.5s ease;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .main-content {
+                padding: 20px 15px;
+            }
+            
+            .robot-icon {
+                font-size: 56px;
+            }
+            
+            .app-title {
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+        }
+
+        /* Atomic Age animations */
+        @keyframes atomicOrbit {
+            0% { transform: rotate(0deg) translateX(20px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
+        }
+
+        /* Additional TRON-style elements */
+        .status-card h3:after,
+        .wifi-form h3:after {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--atomic-cyan), transparent);
+            margin-top: 8px;
+            animation: scanLine 3s linear infinite;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--atomic-bg);
+            border: 1px solid var(--atomic-cyan);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--atomic-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--tron-cyan);
+        }
+
+        /* Control Page Styles */
+        .control-page {
+            padding: 20px;
+            padding-bottom: 100px;
+            background: var(--atomic-bg);
+            min-height: 100vh;
+        }
+
+        .control-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid var(--atomic-cyan);
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            box-shadow: 0 0 20px var(--glow-cyan);
+        }
+
+        .control-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--glow-cyan);
+            margin-bottom: 8px;
+        }
+
+        .control-subtitle {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            padding: 20px;
+            box-shadow: 0 0 15px var(--glow-cyan);
+            position: relative;
+        }
+
+        .control-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px var(--glow-cyan);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--grid-color);
+            padding-bottom: 8px;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .emergency-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .control-button {
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--atomic-cyan);
+            padding: 15px 10px;
+            font-family: 'Exo 2', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .control-button:hover::before {
+            left: 100%;
+        }
+
+        .control-button:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 15px var(--glow-cyan);
+            transform: translateY(-2px);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+            box-shadow: 0 0 20px var(--atomic-cyan);
+        }
+
+        .control-icon {
+            font-size: 24px;
+            filter: drop-shadow(0 0 5px var(--glow-cyan));
+        }
+
+        .control-label {
+            font-size: 10px;
+            text-align: center;
+        }
+
+        /* Button Type Variations */
+        .movement-btn:hover {
+            border-color: var(--tron-cyan);
+            color: var(--tron-cyan);
+        }
+
+        .direction-btn:hover {
+            border-color: var(--electric-blue);
+            color: var(--electric-blue);
+        }
+
+        .interactive-btn:hover {
+            border-color: var(--atomic-cyan);
+            color: var(--atomic-cyan);
+        }
+
+        .performance-btn:hover {
+            border-color: var(--atomic-pink);
+            color: var(--atomic-pink);
+        }
+
+        .sports-btn:hover {
+            border-color: var(--atomic-orange);
+            color: var(--atomic-orange);
+        }
+
+        .led-btn:hover {
+            border-color: var(--tron-cyan);
+            color: var(--tron-cyan);
+        }
+
+        .emergency-btn {
+            background: linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
+            color: white;
+            border-color: var(--atomic-orange);
+            font-weight: 700;
+        }
+
+        .emergency-btn:hover {
+            background: linear-gradient(135deg, var(--atomic-pink), var(--atomic-orange));
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+        }
+
+        /* Pose Controls */
+        .pose-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .pose-slider {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .pose-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 60px;
+        }
+
+        .pose-range {
+            flex: 1;
+            height: 6px;
+            background: var(--atomic-bg);
+            border: 1px solid var(--atomic-cyan);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .pose-range::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--atomic-cyan);
+            border: 2px solid var(--atomic-bg);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .pose-range::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--atomic-cyan);
+            border: 2px solid var(--atomic-bg);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .pose-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-cyan);
+            min-width: 40px;
+            text-align: center;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 4px 8px;
+            border: 1px solid var(--atomic-cyan);
+        }
+
+        /* Responsive adjustments for control page */
+        @media (max-width: 480px) {
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-title {
+                font-size: 20px;
+                letter-spacing: 1px;
+            }
+            
+            .control-button {
+                padding: 20px 15px;
+            }
+            
+            .control-icon {
+                font-size: 28px;
+            }
+            
+            .control-label {
+                font-size: 11px;
+            }
+            
+            .pose-slider {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .pose-label {
+                min-width: auto;
+                text-align: center;
+            }
+        }
+
+        /* Control page animations */
+        @keyframes controlGlow {
+            0%, 100% { box-shadow: 0 0 15px var(--glow-cyan); }
+            50% { box-shadow: 0 0 25px var(--atomic-cyan); }
+        }
+
+        .control-section:nth-child(even) {
+            animation: controlGlow 4s ease-in-out infinite;
+        }
+
+        /* Page transition animations */
+        .control-page.show {
+            display: block;
+            animation: atomicSlideIn 0.5s ease;
+        }
+
+        /* WiFi Status and Advanced Features */
+        .wifi-status {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 0;
+            margin-bottom: 15px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-indicator.connected {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 229, 255, 0.2));
+            color: var(--atomic-cyan);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .status-indicator.disconnected {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 27, 141, 0.2));
+            color: var(--atomic-orange);
+            border-color: var(--atomic-orange);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .status-description {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin: 0;
+        }
+
+        .advanced-features {
+            margin-top: 20px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .feature-button {
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--atomic-cyan);
+            padding: 20px 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .feature-button:hover::before {
+            left: 100%;
+        }
+
+        .feature-button:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--glow-cyan);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            filter: drop-shadow(0 0 8px var(--glow-cyan));
+        }
+
+        .feature-label {
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* Camera and SLAM Sections */
+        .camera-container, .slam-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .camera-controls, .slam-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .camera-feed, .slam-map {
+            position: relative;
+            min-height: 300px;
+            border: 2px solid var(--atomic-cyan);
+            background: var(--atomic-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .camera-placeholder, .slam-placeholder {
+            text-align: center;
+            color: var(--text-dim);
+            padding: 40px;
+        }
+
+        .placeholder-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .camera-placeholder p, .slam-placeholder p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .slam-info {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid var(--grid-color);
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-value {
+            font-family: 'Exo 2', monospace;
+            font-size: 12px;
+            color: var(--text-cyan);
+            font-weight: 600;
+        }
+
+        /* Responsive adjustments for new features */
+        @media (max-width: 480px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-button {
+                padding: 25px 20px;
+            }
+            
+            .feature-icon {
+                font-size: 36px;
+            }
+            
+            .feature-label {
+                font-size: 12px;
+            }
+            
+            .camera-controls, .slam-controls {
+                flex-direction: column;
+            }
+            
+            .slam-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <span class="robot-icon">🐕</span>
+            <h1 class="app-title">LAIKA Controller</h1>
+            <p class="app-subtitle">BLE WiFi Provisioning</p>
+        </div>
+
+        <!-- Install Banner -->
+        <div class="install-banner" id="installBanner">
+            <span>📱</span>
+            <span>Install LAIKA Controller for the best experience</span>
+            <button class="install-button" id="installButton">Install</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Status Card -->
+            <div class="status-card" id="statusCard">
+                <div class="status-title" id="statusTitle">
+                    <span id="statusIcon">📡</span>
+                    <span>Connection Status</span>
+                </div>
+                <div class="status-text" id="statusText">
+                    Ready to connect to LAIKA
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage"></div>
+            
+            <!-- Success Message -->
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- Action Buttons -->
+            <button class="action-button primary-button" id="connectButton">
+                <span>⚡</span>
+                <span>Find LAIKA</span>
+            </button>
+
+            <button class="action-button secondary-button" id="identifyButton" style="display: none;">
+                <span>🎯</span>
+                <span>Identify LAIKA</span>
+            </button>
+
+            <button class="action-button success-button" id="configureWifiButton" style="display: none;">
+                <span>📡</span>
+                <span>Configure WiFi</span>
+            </button>
+
+            <button class="action-button primary-button" id="controlPageButton" style="display: none;">
+                <span>🎮</span>
+                <span>Control LAIKA</span>
+            </button>
+
+            <button class="action-button danger-button" id="disconnectButton" style="display: none;">
+                <span>⚠️</span>
+                <span>Disconnect</span>
+            </button>
+
+            <!-- WiFi Configuration Form -->
+            <div class="wifi-form" id="wifiForm">
+                <h3 style="margin-bottom: 20px; color: var(--atomic-cyan); font-family: 'Orbitron', monospace; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--glow-cyan);">⚛️ WiFi Configuration</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">Available Networks</label>
+                    <div class="networks-list" id="networksList">
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <button class="action-button secondary-button" onclick="scanNetworks()" style="margin: 0; padding: 8px 16px; width: auto;">
+                                Scan Networks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="ssidInput">Network Name (SSID)</label>
+                    <input type="text" class="form-input" id="ssidInput" placeholder="Enter WiFi network name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="passwordInput">Password</label>
+                    <input type="password" class="form-input" id="passwordInput" placeholder="Enter WiFi password" required>
+                </div>
+
+                <button class="action-button primary-button" id="submitWifiButton">
+                    <span>⚛️</span>
+                    <span>Configure WiFi</span>
+                </button>
+
+                <button class="action-button secondary-button" id="cancelWifiButton">
+                    <span>⭕</span>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Control Page -->
+        <div class="control-page" id="controlPage" style="display: none;">
+            <div class="control-header">
+                <h2 class="control-title">🤖 LAIKA Control Center</h2>
+                <p class="control-subtitle">Atomic-Age Robot Command Interface</p>
+            </div>
+
+            <!-- WiFi Status and Advanced Features -->
+            <div class="control-section">
+                <h3 class="section-title">📡 WiFi Status & Advanced Features</h3>
+                <div id="wifiStatus" class="wifi-status">
+                    <div class="status-indicator disconnected">
+                        <span class="status-icon">📡</span>
+                        <span class="status-text">WiFi: Not Connected</span>
+                    </div>
+                    <p class="status-description">Connect to WiFi to enable camera feed and SLAM mapping</p>
+                </div>
+                
+                <div id="advancedFeatures" class="advanced-features" style="display: none;">
+                    <div class="feature-grid">
+                        <button class="feature-button" id="cameraButton">
+                            <span class="feature-icon">📹</span>
+                            <span class="feature-label">Camera Feed</span>
+                        </button>
+                        <button class="feature-button" id="slamButton">
+                            <span class="feature-icon">🗺️</span>
+                            <span class="feature-label">SLAM Map</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Feed Section -->
+            <div class="control-section" id="cameraSection" style="display: none;">
+                <h3 class="section-title">📹 Live Camera Feed</h3>
+                <div class="camera-container">
+                    <div class="camera-controls">
+                        <button class="control-button" id="startCameraBtn">
+                            <span class="control-icon">▶️</span>
+                            <span class="control-label">Start Camera</span>
+                        </button>
+                        <button class="control-button" id="stopCameraBtn">
+                            <span class="control-icon">⏹️</span>
+                            <span class="control-label">Stop Camera</span>
+                        </button>
+                    </div>
+                    <div class="camera-feed">
+                        <img id="cameraStream" src="" alt="Camera Feed" style="display: none; width: 100%; height: auto; border: 2px solid var(--atomic-cyan);">
+                        <div id="cameraPlaceholder" class="camera-placeholder">
+                            <span class="placeholder-icon">📹</span>
+                            <p>Camera feed will appear here</p>
+                            <p>Click "Start Camera" to begin streaming</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLAM Map Section -->
+            <div class="control-section" id="slamSection" style="display: none;">
+                <h3 class="section-title">🗺️ SLAM Navigation Map</h3>
+                <div class="slam-container">
+                    <div class="slam-controls">
+                        <button class="control-button" id="refreshMapBtn">
+                            <span class="control-icon">🔄</span>
+                            <span class="control-label">Refresh Map</span>
+                        </button>
+                        <button class="control-button" id="autoRefreshBtn">
+                            <span class="control-icon">⚡</span>
+                            <span class="control-label">Auto Refresh</span>
+                        </button>
+                    </div>
+                    <div class="slam-map">
+                        <img id="slamMap" src="" alt="SLAM Map" style="display: none; width: 100%; height: auto; border: 2px solid var(--atomic-cyan);">
+                        <div id="slamPlaceholder" class="slam-placeholder">
+                            <span class="placeholder-icon">🗺️</span>
+                            <p>SLAM map will appear here</p>
+                            <p>Click "Refresh Map" to load current map</p>
+                        </div>
+                    </div>
+                    <div class="slam-info">
+                        <div class="info-item">
+                            <span class="info-label">Robot Position:</span>
+                            <span id="robotPosition" class="info-value">Unknown</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Map Resolution:</span>
+                            <span id="mapResolution" class="info-value">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Movement Controls -->
+            <div class="control-section">
+                <h3 class="section-title">⚡ Basic Movements</h3>
+                <div class="control-grid">
+                    <button class="control-button movement-btn" data-action="stand">
+                        <span class="control-icon">🦴</span>
+                        <span class="control-label">Stand</span>
+                    </button>
+                    <button class="control-button movement-btn" data-action="sit">
+                        <span class="control-icon">🪑</span>
+                        <span class="control-label">Sit</span>
+                    </button>
+                    <button class="control-button movement-btn" data-action="lie_down">
+                        <span class="control-icon">🛌</span>
+                        <span class="control-label">Lie Down</span>
+                    </button>
+                    <button class="control-button movement-btn" data-action="go_home">
+                        <span class="control-icon">🏠</span>
+                        <span class="control-label">Home</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Directional Controls -->
+            <div class="control-section">
+                <h3 class="section-title">🧭 Movement Direction</h3>
+                <div class="control-grid">
+                    <button class="control-button direction-btn" data-action="forward">
+                        <span class="control-icon">⬆️</span>
+                        <span class="control-label">Forward</span>
+                    </button>
+                    <button class="control-button direction-btn" data-action="back">
+                        <span class="control-icon">⬇️</span>
+                        <span class="control-label">Back</span>
+                    </button>
+                    <button class="control-button direction-btn" data-action="turn_left">
+                        <span class="control-icon">⬅️</span>
+                        <span class="control-label">Turn Left</span>
+                    </button>
+                    <button class="control-button direction-btn" data-action="turn_right">
+                        <span class="control-icon">➡️</span>
+                        <span class="control-label">Turn Right</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Actions -->
+            <div class="control-section">
+                <h3 class="section-title">🎭 Interactive Actions</h3>
+                <div class="control-grid">
+                    <button class="control-button interactive-btn" data-action="bow">
+                        <span class="control-icon">🎩</span>
+                        <span class="control-label">Bow</span>
+                    </button>
+                    <button class="control-button interactive-btn" data-action="wave">
+                        <span class="control-icon">👋</span>
+                        <span class="control-label">Wave</span>
+                    </button>
+                    <button class="control-button interactive-btn" data-action="shake_hands">
+                        <span class="control-icon">🤝</span>
+                        <span class="control-label">Shake Hands</span>
+                    </button>
+                    <button class="control-button interactive-btn" data-action="nod">
+                        <span class="control-icon">✅</span>
+                        <span class="control-label">Nod</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Performance Actions -->
+            <div class="control-section">
+                <h3 class="section-title">🎪 Performance Mode</h3>
+                <div class="control-grid">
+                    <button class="control-button performance-btn" data-action="dance">
+                        <span class="control-icon">💃</span>
+                        <span class="control-label">Dance</span>
+                    </button>
+                    <button class="control-button performance-btn" data-action="moonwalk">
+                        <span class="control-icon">🌙</span>
+                        <span class="control-label">Moonwalk</span>
+                    </button>
+                    <button class="control-button performance-btn" data-action="boxing">
+                        <span class="control-icon">🥊</span>
+                        <span class="control-label">Boxing</span>
+                    </button>
+                    <button class="control-button performance-btn" data-action="push_up">
+                        <span class="control-icon">💪</span>
+                        <span class="control-label">Push-ups</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sports Actions -->
+            <div class="control-section">
+                <h3 class="section-title">⚽ Sports Mode</h3>
+                <div class="control-grid">
+                    <button class="control-button sports-btn" data-action="kick_ball_left">
+                        <span class="control-icon">🦵</span>
+                        <span class="control-label">Kick Left</span>
+                    </button>
+                    <button class="control-button sports-btn" data-action="kick_ball_right">
+                        <span class="control-icon">🦵</span>
+                        <span class="control-label">Kick Right</span>
+                    </button>
+                    <button class="control-button sports-btn" data-action="stretch">
+                        <span class="control-icon">🧘</span>
+                        <span class="control-label">Stretch</span>
+                    </button>
+                    <button class="control-button sports-btn" data-action="greeting">
+                        <span class="control-icon">🙏</span>
+                        <span class="control-label">Greet</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pose Controls -->
+            <div class="control-section">
+                <h3 class="section-title">🎯 Pose Controls</h3>
+                <div class="pose-controls">
+                    <div class="pose-slider">
+                        <label class="pose-label">Height</label>
+                        <input type="range" class="pose-range" id="heightSlider" min="-15" max="-5" value="-10" step="0.5">
+                        <span class="pose-value" id="heightValue">-10</span>
+                    </div>
+                    <div class="pose-slider">
+                        <label class="pose-label">Pitch</label>
+                        <input type="range" class="pose-range" id="pitchSlider" min="-30" max="30" value="0" step="1">
+                        <span class="pose-value" id="pitchValue">0°</span>
+                    </div>
+                    <div class="pose-slider">
+                        <label class="pose-label">Roll</label>
+                        <input type="range" class="pose-range" id="rollSlider" min="-30" max="30" value="0" step="1">
+                        <span class="pose-value" id="rollValue">0°</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LED Controls -->
+            <div class="control-section">
+                <h3 class="section-title">💡 LED Lights</h3>
+                <div class="control-grid">
+                    <button class="control-button led-btn" data-action="red_light">
+                        <span class="control-icon" style="color: #FF0000;">🔴</span>
+                        <span class="control-label">Red Light</span>
+                    </button>
+                    <button class="control-button led-btn" data-action="green_light">
+                        <span class="control-icon" style="color: #00FF00;">🟢</span>
+                        <span class="control-label">Green Light</span>
+                    </button>
+                    <button class="control-button led-btn" data-action="blue_light">
+                        <span class="control-icon" style="color: #0000FF;">🔵</span>
+                        <span class="control-label">Blue Light</span>
+                    </button>
+                    <button class="control-button led-btn" data-action="lights_off">
+                        <span class="control-icon">⚫</span>
+                        <span class="control-label">Lights Off</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Emergency Controls -->
+            <div class="control-section">
+                <h3 class="section-title">🚨 Emergency Controls</h3>
+                <div class="control-grid emergency-grid">
+                    <button class="control-button emergency-btn" data-action="stop">
+                        <span class="control-icon">🛑</span>
+                        <span class="control-label">Emergency Stop</span>
+                    </button>
+                    <button class="control-button emergency-btn" data-action="reset">
+                        <span class="control-icon">🔄</span>
+                        <span class="control-label">Reset</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="control-section">
+                <button class="action-button secondary-button" id="backToMainButton">
+                    <span>⬅️</span>
+                    <span>Back to WiFi Setup</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div style="text-align: center; font-size: 12px; color: #666;">
+                <span id="connectionInfo">Not connected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/ble-improv.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
