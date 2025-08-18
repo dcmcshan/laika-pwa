@@ -1,14 +1,12 @@
 // LAIKA Controller Service Worker
-const CACHE_NAME = 'laika-controller-v1.0.1';
+const CACHE_NAME = 'laika-controller-v1.0.2';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './js/app.js',
   './js/ble-improv.js',
-  './version.js',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png'
+  './version.js'
 ];
 
 // Install Service Worker
@@ -16,9 +14,16 @@ self.addEventListener('install', event => {
   console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then(async (cache) => {
         console.log('Service Worker: Caching files');
-        return cache.addAll(urlsToCache);
+        const results = await Promise.allSettled(
+          urlsToCache.map((url) => cache.add(url))
+        );
+        results.forEach((res, idx) => {
+          if (res.status !== 'fulfilled') {
+            console.warn('SW cache skip:', urlsToCache[idx], res.reason);
+          }
+        });
       })
       .then(() => {
         console.log('Service Worker: Installation complete');
