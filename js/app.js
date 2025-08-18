@@ -950,5 +950,10 @@ function scanNetworks() {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new LAIKAController();
+    try {
+        if (window.LAIKA_BUILD_INFO) {
+            console.log(`LAIKA PWA build: ${window.LAIKA_BUILD_INFO.commit} @ ${window.LAIKA_BUILD_INFO.timestamp}`);
+        }
+    } catch (e) {}
     console.log('LAIKA Controller PWA loaded');
 });

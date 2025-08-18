@@ -1,13 +1,14 @@
 // LAIKA Controller Service Worker
-const CACHE_NAME = 'laika-controller-v1.0.0';
+const CACHE_NAME = 'laika-controller-v1.0.1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/js/app.js',
-  '/js/ble-improv.js',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './js/app.js',
+  './js/ble-improv.js',
+  './version.js',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
 // Install Service Worker
