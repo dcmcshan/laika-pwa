@@ -45,9 +45,24 @@ demo_state = {
     "last_command": None,
     "command_history": [],
     "system_logs": [
-        {"timestamp": "2024-01-20T10:30:00Z", "level": "INFO", "message": "LAIKA Demo API started"},
-        {"timestamp": "2024-01-20T10:29:45Z", "level": "INFO", "message": "WiFi connected to Demo Network"},
-        {"timestamp": "2024-01-20T10:29:30Z", "level": "INFO", "message": "System initialization complete"},
+        {"timestamp": "2024-01-20T10:30:00Z", "level": "INFO", "message": "LAIKA Demo API started", "category": "system"},
+        {"timestamp": "2024-01-20T10:29:45Z", "level": "INFO", "message": "WiFi connected to Demo Network", "category": "network"},
+        {"timestamp": "2024-01-20T10:29:30Z", "level": "INFO", "message": "System initialization complete", "category": "system"},
+        {"timestamp": "2024-01-20T10:29:15Z", "level": "INFO", "message": "Camera module initialized", "category": "camera"},
+        {"timestamp": "2024-01-20T10:29:10Z", "level": "INFO", "message": "SLAM service started", "category": "slam"},
+        {"timestamp": "2024-01-20T10:29:05Z", "level": "INFO", "message": "Robot controller ready", "category": "robot"},
+        {"timestamp": "2024-01-20T10:29:00Z", "level": "INFO", "message": "PWA registration service started", "category": "pwa"},
+        {"timestamp": "2024-01-20T10:28:55Z", "level": "DEBUG", "message": "Loading robot action definitions", "category": "robot"},
+        {"timestamp": "2024-01-20T10:28:50Z", "level": "INFO", "message": "WebSocket server listening on port 8765", "category": "network"},
+        {"timestamp": "2024-01-20T10:28:45Z", "level": "INFO", "message": "HTTP API server listening on port 5000", "category": "network"},
+        {"timestamp": "2024-01-20T10:28:40Z", "level": "WARN", "message": "Battery level below 90%, currently at 85%", "category": "power"},
+        {"timestamp": "2024-01-20T10:28:35Z", "level": "INFO", "message": "Servo calibration complete", "category": "robot"},
+        {"timestamp": "2024-01-20T10:28:30Z", "level": "DEBUG", "message": "IMU sensor calibrated", "category": "sensors"},
+        {"timestamp": "2024-01-20T10:28:25Z", "level": "INFO", "message": "LIDAR sensor initialized", "category": "sensors"},
+        {"timestamp": "2024-01-20T10:28:20Z", "level": "ERROR", "message": "Failed to connect to voice service, retrying...", "category": "voice"},
+        {"timestamp": "2024-01-20T10:28:15Z", "level": "INFO", "message": "Voice recognition service started", "category": "voice"},
+        {"timestamp": "2024-01-20T10:28:10Z", "level": "DEBUG", "message": "Loading neural network models", "category": "ai"},
+        {"timestamp": "2024-01-20T10:28:05Z", "level": "INFO", "message": "Boot sequence completed successfully", "category": "system"}
     ]
 }
 
@@ -182,6 +197,14 @@ def robot_command():
     demo_state["command_history"].insert(0, demo_state["last_command"])
     if len(demo_state["command_history"]) > 50:
         demo_state["command_history"] = demo_state["command_history"][:50]
+    
+    # Add command execution to system logs
+    demo_state["system_logs"].insert(0, {
+        "timestamp": datetime.now().isoformat(),
+        "level": "INFO",
+        "message": f"Executed command: {command}",
+        "category": "robot"
+    })
     
     # Simulate different command effects
     if command in ['sit', 'stand', 'lie_down', 'dance', 'wave', 'bow']:
@@ -363,14 +386,75 @@ def navigate_to():
 # System API
 @app.route('/api/system/logs', methods=['GET'])
 def get_system_logs():
-    """Get system logs"""
-    limit = request.args.get('limit', 50, type=int)
-    logs = demo_state["system_logs"][:limit]
+    """Get system logs with filtering"""
+    limit = request.args.get('limit', 100, type=int)
+    level_filter = request.args.get('level', None)  # INFO, DEBUG, WARN, ERROR
+    category_filter = request.args.get('category', None)  # system, robot, camera, etc.
+    search = request.args.get('search', None)
+    
+    logs = demo_state["system_logs"]
+    
+    # Apply filters
+    if level_filter:
+        logs = [log for log in logs if log.get('level', '').upper() == level_filter.upper()]
+    
+    if category_filter:
+        logs = [log for log in logs if log.get('category', '') == category_filter]
+    
+    if search:
+        logs = [log for log in logs if search.lower() in log.get('message', '').lower()]
+    
+    # Apply limit
+    logs = logs[:limit]
+    
+    # Get available categories and levels for UI
+    all_categories = list(set([log.get('category', 'unknown') for log in demo_state["system_logs"]]))
+    all_levels = list(set([log.get('level', 'INFO') for log in demo_state["system_logs"]]))
     
     return jsonify({
         "success": True,
         "logs": logs,
-        "count": len(logs)
+        "count": len(logs),
+        "total_logs": len(demo_state["system_logs"]),
+        "filters": {
+            "available_categories": sorted(all_categories),
+            "available_levels": sorted(all_levels),
+            "applied_filters": {
+                "level": level_filter,
+                "category": category_filter,
+                "search": search,
+                "limit": limit
+            }
+        }
+    })
+
+@app.route('/api/system/logs/live', methods=['GET'])
+def get_live_logs():
+    """Get live log stream (Server-Sent Events)"""
+    def generate_log_stream():
+        last_count = len(demo_state["system_logs"])
+        while True:
+            current_count = len(demo_state["system_logs"])
+            if current_count > last_count:
+                # New logs available
+                new_logs = demo_state["system_logs"][:current_count - last_count]
+                for log in reversed(new_logs):  # Send newest first
+                    yield f"data: {json.dumps(log)}\n\n"
+                last_count = current_count
+            time.sleep(1)  # Check for new logs every second
+    
+    return Response(generate_log_stream(), mimetype='text/event-stream')
+
+@app.route('/api/system/command-history', methods=['GET'])
+def get_command_history():
+    """Get command execution history"""
+    limit = request.args.get('limit', 50, type=int)
+    commands = demo_state["command_history"][:limit]
+    
+    return jsonify({
+        "success": True,
+        "commands": commands,
+        "count": len(commands)
     })
 
 @app.route('/api/system/diagnostics', methods=['GET'])

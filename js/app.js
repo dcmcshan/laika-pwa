@@ -7,6 +7,7 @@ class LAIKAController {
         this.bleImprov = new BLEImprov();
         this.networkScanner = new NetworkScanner();
         this.laikaActions = new LAIKAActions();
+        this.logViewer = new LAIKALogViewer();
         this.isConnected = false;
         this.currentDevice = null;
         this.connectionType = null; // 'ble' or 'network'
@@ -123,6 +124,9 @@ class LAIKAController {
         
         // Set up action controls
         this.setupActionControls();
+        
+        // Initialize log viewer
+        this.initializeLogViewer();
         
         // Start device registry monitoring
         this.startRegistryMonitoring();
@@ -1230,6 +1234,16 @@ class LAIKAController {
         // This will be called to set up the comprehensive action controls
         console.log('Setting up LAIKA action controls...');
         this.renderActionPanels();
+    }
+    
+    initializeLogViewer() {
+        // Initialize the log viewer when connected
+        console.log('Initializing LAIKA log viewer...');
+        try {
+            this.logViewer.initialize();
+        } catch (error) {
+            console.warn('Log viewer initialization failed:', error);
+        }
     }
     
     renderActionPanels() {
