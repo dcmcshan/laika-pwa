@@ -16,7 +16,7 @@ class LAIKAWebRTCConnection {
         // Configuration - Cloud signaling servers with fallback
         this.signalingServers = [
             // Primary: Cloud signaling server for worldwide access
-            'wss://laika-webrtc-signaling.onrender.com/socket.io/',
+            'wss://srv-d2i8v5jipnbc738sta8g.onrender.com/socket.io/',
             
             // Fallback: Local network signaling server
             'ws://192.168.86.29:9999/socket.io/',

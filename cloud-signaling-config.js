@@ -3,10 +3,10 @@
  * This will be updated with the actual deployed URL
  */
 
-// Temporary public signaling server (replace with your own)
+// Production cloud signaling server
 const CLOUD_SIGNALING_SERVERS = [
-    // Primary: Your deployed signaling server (update this)
-    'wss://laika-webrtc-signaling.onrender.com/socket.io/',
+    // Primary: Your deployed Render signaling server
+    'wss://srv-d2i8v5jipnbc738sta8g.onrender.com/socket.io/',
     
     // Fallback: Local development server
     'ws://192.168.86.29:9999/socket.io/',
