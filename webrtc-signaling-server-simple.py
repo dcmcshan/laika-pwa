@@ -445,7 +445,7 @@ if __name__ == '__main__':
     logger.info("CORS enabled for worldwide PWA access")
     
     # Start cleanup thread
-#     start_cleanup_thread()
+    start_cleanup_thread()
     
     # Get port from environment (for cloud deployment) or default to 9999
     port = int(os.environ.get('PORT', 9999))
