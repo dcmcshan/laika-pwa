@@ -447,5 +447,11 @@ if __name__ == '__main__':
     # Start cleanup thread
     start_cleanup_thread()
     
+    # Get port from environment (for cloud deployment) or default to 9999
+    port = int(os.environ.get('PORT', 9999))
+    logger.info(f"Starting server on port {port}")
+    
     # Run with SocketIO
-    socketio.run(app, host='0.0.0.0', port=9999, debug=False)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+
+

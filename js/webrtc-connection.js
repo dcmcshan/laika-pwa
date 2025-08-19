@@ -13,8 +13,18 @@ class LAIKAWebRTCConnection {
         this.currentRoomId = null;
         this.iceServers = [];
         
-        // Configuration
-        this.signalingServerUrl = 'ws://localhost:9999/socket.io/';
+        // Configuration - Cloud signaling servers with fallback
+        this.signalingServers = [
+            // Primary: Cloud signaling server for worldwide access
+            'wss://laika-webrtc-signaling.onrender.com/socket.io/',
+            
+            // Fallback: Local network signaling server
+            'ws://192.168.86.29:9999/socket.io/',
+            
+            // Fallback: localhost for development
+            'ws://localhost:9999/socket.io/'
+        ];
+        this.currentSignalingServerIndex = 0;
         this.connectionTimeout = 30000; // 30 seconds
         
         // Event handlers
@@ -49,19 +59,51 @@ class LAIKAWebRTCConnection {
     
     connectToSignalingServer() {
         return new Promise((resolve, reject) => {
-            try {
-                // Use Socket.IO for signaling
-                this.socket = io(this.signalingServerUrl.replace('/socket.io/', ''), {
-                    transports: ['websocket', 'polling'],
-                    timeout: 10000
-                });
-                
-                this.socket.on('connect', () => {
-                    console.log('✅ Connected to signaling server');
-                    this.registerClient();
-                });
-                
-                this.socket.on('connected', (data) => {
+            this.tryNextSignalingServer(resolve, reject);
+        });
+    }
+    
+    tryNextSignalingServer(resolve, reject) {
+        if (this.currentSignalingServerIndex >= this.signalingServers.length) {
+            reject(new Error('All signaling servers failed'));
+            return;
+        }
+        
+        const serverUrl = this.signalingServers[this.currentSignalingServerIndex];
+        console.log(`🔄 Trying signaling server ${this.currentSignalingServerIndex + 1}/${this.signalingServers.length}: ${serverUrl}`);
+        
+        try {
+            // Use Socket.IO for signaling
+            this.socket = io(serverUrl.replace('/socket.io/', ''), {
+                transports: ['websocket', 'polling'],
+                timeout: 10000
+            });
+            
+            // Set connection timeout
+            const connectionTimeout = setTimeout(() => {
+                if (this.socket) {
+                    this.socket.disconnect();
+                    console.warn(`⏰ Timeout connecting to ${serverUrl}, trying next...`);
+                    this.currentSignalingServerIndex++;
+                    this.tryNextSignalingServer(resolve, reject);
+                }
+            }, 10000);
+            
+            this.socket.on('connect', () => {
+                clearTimeout(connectionTimeout);
+                console.log(`✅ Connected to signaling server: ${serverUrl}`);
+                this.registerClient();
+                resolve();
+            });
+            
+            this.socket.on('connect_error', (error) => {
+                clearTimeout(connectionTimeout);
+                console.warn(`❌ Failed to connect to ${serverUrl}:`, error.message);
+                this.currentSignalingServerIndex++;
+                this.tryNextSignalingServer(resolve, reject);
+            });
+            
+            this.socket.on('connected', (data) => {
                     console.log('Signaling server ready:', data.sid);
                     this.iceServers = data.ice_servers || [];
                     resolve();
@@ -442,3 +484,5 @@ class LAIKAWebRTCConnection {
 
 // Export for use in other modules
 window.LAIKAWebRTCConnection = LAIKAWebRTCConnection;
+
+

@@ -60,3 +60,5 @@ while true; do
     fi
     echo "✅ Services running - $(date)"
 done
+
+

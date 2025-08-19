@@ -230,3 +230,5 @@ class LAIKABLEChat {
 
 // Export for use in other modules
 window.LAIKABLEChat = LAIKABLEChat;
+
+
