@@ -268,6 +268,31 @@ def camera_stream():
 def get_slam_map():
     """Get SLAM map as image"""
     try:
+        # First try to load the real LAIKA SLAM map
+        laika_map_path = '/home/pi/LAIKA/maps/latest_map_pwa.json'
+        
+        if os.path.exists(laika_map_path):
+            with open(laika_map_path, 'r') as f:
+                map_data = json.load(f)
+            
+            # Extract base64 image data
+            image_b64 = map_data.get('image_base64', '')
+            if image_b64.startswith('data:image/png;base64,'):
+                img_base64 = image_b64.split(',')[1]
+            else:
+                img_base64 = image_b64
+            
+            return jsonify({
+                'success': True,
+                'map_data': img_base64,
+                'resolution': map_data['metadata'].get('resolution', 0.05),
+                'width': map_data['metadata'].get('width', 0),
+                'height': map_data['metadata'].get('height', 0),
+                'map_name': map_data.get('map_name', 'LAIKA SLAM Map'),
+                'timestamp': map_data.get('timestamp', 0)
+            })
+        
+        # Fallback to mock map
         map_img = slam_manager.get_map_image()
         ret, buffer = cv2.imencode('.png', map_img)
         if ret:
@@ -278,7 +303,9 @@ def get_slam_map():
                 'map_data': img_base64,
                 'resolution': slam_manager.map_resolution,
                 'width': slam_manager.map_width,
-                'height': slam_manager.map_height
+                'height': slam_manager.map_height,
+                'map_name': 'Mock SLAM Map',
+                'timestamp': int(time.time())
             })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})

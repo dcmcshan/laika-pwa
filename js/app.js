@@ -5,8 +5,15 @@
 class LAIKAController {
     constructor() {
         this.bleImprov = new BLEImprov();
+        this.networkScanner = new NetworkScanner();
+        this.laikaActions = new LAIKAActions();
         this.isConnected = false;
         this.currentDevice = null;
+        this.connectionType = null; // 'ble' or 'network'
+        this.networkDevices = [];
+        
+        // Override the sendActionCommand method
+        this.laikaActions.sendActionCommand = this.sendRobotCommand.bind(this);
         
         // UI Elements
         this.elements = {
@@ -81,6 +88,14 @@ class LAIKAController {
         this.cameraStreamInterval = null;
         this.slamRefreshInterval = null;
         
+        // Action execution state
+        this.isExecutingAction = false;
+        this.currentActionQueue = [];
+        
+        // Device registry for global discovery
+        this.deviceRegistry = new Map();
+        this.registryCheckInterval = null;
+        
         this.init();
     }
 
@@ -97,11 +112,20 @@ class LAIKAController {
         // Set up BLE event handlers
         this.setupBLEHandlers();
         
+        // Set up Network Scanner event handlers
+        this.setupNetworkHandlers();
+        
         // Set up UI event listeners
         this.setupEventListeners();
         
         // Set up PWA install prompt
         this.setupPWAInstall();
+        
+        // Set up action controls
+        this.setupActionControls();
+        
+        // Start device registry monitoring
+        this.startRegistryMonitoring();
         
         // Check for URL parameters
         this.handleURLParams();
@@ -132,6 +156,52 @@ class LAIKAController {
             console.log('Device disconnected');
             this.handleDisconnection();
         };
+    }
+
+    setupNetworkHandlers() {
+        this.networkScanner.onDeviceFound = (device) => {
+            console.log('Network device found:', device);
+            this.networkDevices.push(device);
+            this.updateNetworkDevicesList();
+        };
+
+        this.networkScanner.onScanComplete = (devices) => {
+            console.log(`Network scan complete. Found ${devices.length} devices`);
+            this.networkDevices = devices;
+            this.updateNetworkDevicesList();
+            
+            if (devices.length > 0) {
+                this.showNetworkConnectionOptions();
+            } else {
+                this.showError('No PuppyPi devices found on network. Try BLE connection.');
+            }
+        };
+
+        this.networkScanner.onConnectionEstablished = (device) => {
+            console.log('Network connection established:', device);
+            this.isConnected = true;
+            this.connectionType = 'network';
+            this.currentDevice = device;
+            this.updateStatus('connected', '🌐', `Connected to ${device.name}`, 'Network Connected');
+            this.showConnectedButtons();
+            this.showSuccess(`Successfully connected to ${device.name} via network!`);
+            this.handleWiFiConnected();
+        };
+
+        this.networkScanner.onConnectionLost = (event) => {
+            console.log('Network connection lost:', event);
+            this.handleDisconnection();
+        };
+
+        this.networkScanner.onError = (error) => {
+            console.error('Network scanner error:', error);
+            this.showError(`Network Error: ${error.message}`);
+        };
+
+        // Listen for PuppyPi messages
+        window.addEventListener('puppypi-message', (event) => {
+            this.handlePuppyPiMessage(event.detail);
+        });
     }
 
     setupEventListeners() {
@@ -238,19 +308,74 @@ class LAIKAController {
             this.setButtonLoading(this.elements.connectButton, true);
             this.hideMessages();
             
-            console.log('Starting device scan...');
+            // PRIORITY 1: Check registered devices first
+            console.log('🌍 Checking global device registry...');
+            this.updateStatus('connecting', '🌍', 'Checking registered LAIKA devices...', 'Registry Search');
+            
+            const registeredDevices = Array.from(this.deviceRegistry.values());
+            const onlineDevices = registeredDevices.filter(d => {
+                if (!d.network || !d.network.wifi_connected) return false;
+                const lastSeen = new Date(d.location.last_seen);
+                const timeDiff = (new Date() - lastSeen) / 1000;
+                return timeDiff < 300; // Online if seen within 5 minutes
+            });
+            
+            if (onlineDevices.length > 0) {
+                // Try to connect to the most recently seen registered device
+                onlineDevices.sort((a, b) => new Date(b.location.last_seen) - new Date(a.location.last_seen));
+                const bestRegisteredDevice = onlineDevices[0];
+                
+                console.log('🎯 Found registered LAIKA:', bestRegisteredDevice.device_name);
+                this.updateStatus('connecting', '🔄', `Connecting to registered ${bestRegisteredDevice.device_name}...`, 'Registry Connection');
+                
+                try {
+                    await this.connectToRegistryDevice(bestRegisteredDevice.device_id);
+                    return; // Success - registry connection established
+                } catch (registryError) {
+                    console.warn('Registry device connection failed:', registryError);
+                    this.showError(`Failed to connect to registered device: ${registryError.message}`);
+                }
+            }
+            
+            // PRIORITY 2: Try local network discovery
+            console.log('🔍 Starting local network discovery...');
+            this.updateStatus('connecting', '🔍', 'Scanning local network for LAIKA...', 'Network Discovery');
+            
+            try {
+                await this.networkScanner.startScan();
+                
+                if (this.networkDevices.length > 0) {
+                    // Found local network devices - try to connect to best one
+                    const bestDevice = this.networkScanner.getBestDevice();
+                    if (bestDevice && bestDevice.websocketUrl) {
+                        console.log('🌐 Connecting via local network to:', bestDevice.name);
+                        this.updateStatus('connecting', '🔄', `Connecting to ${bestDevice.name}...`, 'Network Connection');
+                        
+                        await this.networkScanner.connectToDevice(bestDevice);
+                        return; // Success - network connection established
+                    }
+                }
+            } catch (networkError) {
+                console.warn('Local network discovery failed:', networkError);
+            }
+            
+            // PRIORITY 3: Fall back to BLE discovery as last resort
+            console.log('📡 Falling back to BLE discovery...');
+            this.updateStatus('connecting', '📡', 'No network devices found. Trying BLE...', 'BLE Discovery');
+            
             const device = await this.bleImprov.scan();
             
             if (device) {
                 this.currentDevice = device;
-                this.updateStatus('connecting', '🔄', 'Connecting to LAIKA...', device.name || 'Unknown Device');
+                this.connectionType = 'ble';
+                this.updateStatus('connecting', '🔄', 'Connecting to LAIKA via BLE...', device.name || 'Unknown Device');
                 
                 await this.bleImprov.connect();
                 
                 this.isConnected = true;
-                this.updateStatus('connected', '✅', 'Connected to LAIKA', device.name || 'Connected Device');
+                this.updateStatus('connected', '✅', 'Connected to LAIKA via BLE', device.name || 'Connected Device');
                 this.showConnectedButtons();
-                this.showSuccess('Successfully connected to LAIKA!');
+                this.showSuccess('Successfully connected to LAIKA via BLE!');
                 
                 // Get initial state
                 try {
@@ -263,7 +388,7 @@ class LAIKAController {
             
         } catch (error) {
             console.error('Connection failed:', error);
-            this.showError(`Connection failed: ${error.message}`);
+            this.showError(`Connection failed: ${error.message}. Make sure LAIKA is powered on and nearby.`);
             this.updateStatus('disconnected', '❌', 'Connection failed', 'Not connected');
         } finally {
             this.setButtonLoading(this.elements.connectButton, false);
@@ -274,7 +399,12 @@ class LAIKAController {
         try {
             this.setButtonLoading(this.elements.disconnectButton, true);
             
-            await this.bleImprov.disconnect();
+            if (this.connectionType === 'ble') {
+                await this.bleImprov.disconnect();
+            } else if (this.connectionType === 'network') {
+                this.networkScanner.disconnect();
+            }
+            
             this.handleDisconnection();
             this.showSuccess('Disconnected from LAIKA');
             
@@ -289,6 +419,7 @@ class LAIKAController {
     handleDisconnection() {
         this.isConnected = false;
         this.currentDevice = null;
+        this.connectionType = null;
         this.updateStatus('disconnected', '📡', 'Ready to connect to LAIKA', 'Not connected');
         this.showDisconnectedButtons();
         this.hideWiFiForm();
@@ -681,7 +812,35 @@ class LAIKAController {
 
     async refreshSLAMMap() {
         if (!this.wifiConnected) {
-            this.showError('WiFi connection required for SLAM map');
+            // Try to load local map data directly for demonstration
+            try {
+                const response = await fetch('/api/slam/map');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Display map
+                        this.elements.slamMap.src = `data:image/png;base64,${data.map_data}`;
+                        this.elements.slamMap.style.display = 'block';
+                        this.elements.slamPlaceholder.style.display = 'none';
+                        
+                        // Update info with more details
+                        this.elements.mapResolution.textContent = `${data.resolution} m/pixel`;
+                        
+                        // Update robot position info
+                        if (data.map_name && data.timestamp) {
+                            const timestamp = new Date(data.timestamp * 1000).toLocaleTimeString();
+                            this.elements.robotPosition.textContent = `${data.map_name} (${timestamp})`;
+                        }
+                        
+                        this.showSuccess(`SLAM map loaded: ${data.width}×${data.height} pixels`);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to load local map:', error);
+            }
+            
+            this.showError('WiFi connection required for SLAM map - showing demo mode');
             return;
         }
 
@@ -697,10 +856,16 @@ class LAIKAController {
                     this.elements.slamMap.style.display = 'block';
                     this.elements.slamPlaceholder.style.display = 'none';
                     
-                    // Update info
+                    // Update info with more details
                     this.elements.mapResolution.textContent = `${data.resolution} m/pixel`;
                     
-                    this.showSuccess('SLAM map updated');
+                    // Update robot position info
+                    if (data.map_name && data.timestamp) {
+                        const timestamp = new Date(data.timestamp * 1000).toLocaleTimeString();
+                        this.elements.robotPosition.textContent = `${data.map_name} (${timestamp})`;
+                    }
+                    
+                    this.showSuccess(`SLAM map updated: ${data.width}×${data.height} pixels`);
                 } else {
                     this.showError('Failed to load SLAM map');
                 }
@@ -842,8 +1007,12 @@ class LAIKAController {
 
             const command = actionMap[action] || action;
             
-            // For now, we'll simulate the command - replace with actual BLE communication
-            await this.simulateRobotCommand(command);
+            // Send command based on connection type
+            if (this.connectionType === 'network') {
+                await this.sendNetworkCommand(command);
+            } else if (this.connectionType === 'ble') {
+                await this.simulateRobotCommand(command);
+            }
             
             this.showSuccess(`Command "${action}" sent to LAIKA`);
             
@@ -937,6 +1106,364 @@ class LAIKAController {
     hideMessages() {
         this.elements.errorMessage.classList.remove('show');
         this.elements.successMessage.classList.remove('show');
+    }
+
+    // Network-specific methods
+    
+    async sendNetworkCommand(command, data = null) {
+        if (!this.networkScanner.websocket || this.networkScanner.websocket.readyState !== WebSocket.OPEN) {
+            throw new Error('No active network connection');
+        }
+        
+        await this.networkScanner.sendCommand(command, data);
+    }
+    
+    updateNetworkDevicesList() {
+        if (!this.elements.networksList) return;
+        
+        if (this.networkDevices.length === 0) {
+            this.elements.networksList.innerHTML = `
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    No PuppyPi devices found on network
+                </div>
+            `;
+            return;
+        }
+
+        this.elements.networksList.innerHTML = this.networkDevices.map(device => `
+            <div class="network-item" onclick="app.connectToNetworkDevice('${device.address}', ${device.port})">
+                <div class="network-name">
+                    ${device.name} 
+                    <span style="color: var(--text-dim); font-size: 12px;">(${device.address}:${device.port})</span>
+                </div>
+                <div class="network-info">
+                    <span>${device.type === 'laika' ? '🤖' : '📡'}</span>
+                    <span>${device.websocketUrl ? '🔌' : '❌'}</span>
+                    <span style="color: var(--atomic-cyan);">${device.type.toUpperCase()}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    async connectToNetworkDevice(address, port) {
+        const device = this.networkDevices.find(d => d.address === address && d.port === port);
+        if (!device) {
+            this.showError('Device not found');
+            return;
+        }
+        
+        try {
+            this.setButtonLoading(this.elements.connectButton, true);
+            this.hideMessages();
+            
+            console.log(`🌐 Connecting to ${device.name}...`);
+            this.updateStatus('connecting', '🔄', `Connecting to ${device.name}...`, 'Network Connection');
+            
+            await this.networkScanner.connectToDevice(device);
+            
+        } catch (error) {
+            console.error('Network connection failed:', error);
+            this.showError(`Failed to connect to ${device.name}: ${error.message}`);
+        } finally {
+            this.setButtonLoading(this.elements.connectButton, false);
+        }
+    }
+    
+    showNetworkConnectionOptions() {
+        // Update the connect button to show network options
+        const connectButton = this.elements.connectButton;
+        if (connectButton && this.networkDevices.length > 0) {
+            const bestDevice = this.networkScanner.getBestDevice();
+            connectButton.innerHTML = `
+                <span>🌐</span>
+                <span>Connect to ${bestDevice.name}</span>
+            `;
+            
+            // Show network devices in the networks list if available
+            this.updateNetworkDevicesList();
+        }
+    }
+    
+    handlePuppyPiMessage(messageData) {
+        const { device, message } = messageData;
+        console.log(`📨 Message from ${device.name}:`, message);
+        
+        // Handle different message types
+        if (message.type === 'status') {
+            this.updateDeviceStatus(message.data);
+        } else if (message.type === 'response') {
+            this.handleCommandResponse(message.data);
+        } else if (message.type === 'error') {
+            this.showError(`Device Error: ${message.data.error}`);
+        } else if (message.type === 'notification') {
+            this.showSuccess(message.data.message);
+        }
+    }
+    
+    updateDeviceStatus(statusData) {
+        // Update UI based on device status
+        if (statusData.battery) {
+            // Update battery indicator if available
+            console.log('Battery level:', statusData.battery);
+        }
+        
+        if (statusData.wifi && statusData.wifi.connected) {
+            // Device is connected to WiFi
+            this.wifiConnected = true;
+            this.serverUrl = `http://${this.currentDevice.address}:${this.currentDevice.port}`;
+            this.handleWiFiConnected();
+        }
+    }
+    
+    handleCommandResponse(responseData) {
+        if (responseData.success) {
+            console.log('✅ Command executed successfully:', responseData.message);
+        } else {
+            console.error('❌ Command failed:', responseData.error);
+            this.showError(`Command failed: ${responseData.error}`);
+        }
+    }
+    
+    // New methods for enhanced functionality
+    
+    setupActionControls() {
+        // This will be called to set up the comprehensive action controls
+        console.log('Setting up LAIKA action controls...');
+        this.renderActionPanels();
+    }
+    
+    renderActionPanels() {
+        // Render all available LAIKA actions in the control panel
+        const controlPage = document.getElementById('controlPage');
+        if (!controlPage) return;
+        
+        // Find or create actions container
+        let actionsContainer = document.getElementById('actionsContainer');
+        if (!actionsContainer) {
+            actionsContainer = document.createElement('div');
+            actionsContainer.id = 'actionsContainer';
+            actionsContainer.className = 'actions-container';
+            controlPage.appendChild(actionsContainer);
+        }
+        
+        // Render action categories
+        const actions = this.laikaActions.actions;
+        let html = '<h3>🤖 LAIKA Actions</h3>';
+        
+        Object.keys(actions).forEach(categoryKey => {
+            const category = actions[categoryKey];
+            html += `
+                <div class="action-category">
+                    <h4 class="category-header" onclick="app.toggleActionCategory('${categoryKey}')">
+                        ${category.icon} ${category.name}
+                        <span class="toggle-icon">▼</span>
+                    </h4>
+                    <div class="action-grid" id="category-${categoryKey}" style="display: none;">
+            `;
+            
+            Object.keys(category.actions).forEach(actionKey => {
+                const action = category.actions[actionKey];
+                const buttonClass = action.emergency ? 'action-button emergency' : 
+                                   action.dangerous ? 'action-button dangerous' : 'action-button';
+                
+                html += `
+                    <button class="${buttonClass}" 
+                            onclick="app.executeAction('${actionKey}')"
+                            title="${action.description}">
+                        <span class="action-icon">${action.icon}</span>
+                        <span class="action-name">${action.name}</span>
+                    </button>
+                `;
+            });
+            
+            html += '</div></div>';
+        });
+        
+        actionsContainer.innerHTML = html;
+    }
+    
+    toggleActionCategory(categoryKey) {
+        const categoryDiv = document.getElementById(`category-${categoryKey}`);
+        const toggleIcon = document.querySelector(`#category-${categoryKey}`).previousElementSibling.querySelector('.toggle-icon');
+        
+        if (categoryDiv.style.display === 'none') {
+            categoryDiv.style.display = 'grid';
+            toggleIcon.textContent = '▲';
+        } else {
+            categoryDiv.style.display = 'none';
+            toggleIcon.textContent = '▼';
+        }
+    }
+    
+    async executeAction(actionName) {
+        if (!this.isConnected) {
+            this.showError('Not connected to LAIKA');
+            return;
+        }
+        
+        try {
+            // Check if it's a dangerous action and confirm
+            if (this.laikaActions.isDangerousAction(actionName)) {
+                const confirmed = confirm(`Are you sure you want to execute "${actionName}"? This action may be irreversible.`);
+                if (!confirmed) {
+                    return;
+                }
+            }
+            
+            const result = await this.laikaActions.executeAction(actionName);
+            const action = this.laikaActions.getAction(actionName);
+            this.showSuccess(`✅ ${action.name} executed successfully`);
+            
+        } catch (error) {
+            console.error(`Action ${actionName} failed:`, error);
+            this.showError(`❌ Action failed: ${error.message}`);
+        }
+    }
+    
+    async sendRobotCommand(command, params = {}) {
+        // Enhanced command sending that works with both BLE and network connections
+        if (this.connectionType === 'network') {
+            return await this.sendNetworkCommand(command, params);
+        } else if (this.connectionType === 'ble') {
+            return await this.sendBLECommand(command, params);
+        } else {
+            throw new Error('No active connection to send command');
+        }
+    }
+    
+    async sendBLECommand(command, params = {}) {
+        // For BLE connections, we'll simulate the command for now
+        // In a real implementation, this would use BLE characteristics
+        console.log(`📡 Sending BLE command: ${command}`, params);
+        
+        // Simulate command execution delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        return {
+            success: true,
+            command: command,
+            params: params,
+            method: 'ble'
+        };
+    }
+    
+    startRegistryMonitoring() {
+        // Start monitoring device registry for global LAIKA discovery
+        console.log('🔍 Starting device registry monitoring...');
+        
+        this.registryCheckInterval = setInterval(() => {
+            this.checkDeviceRegistry();
+        }, 30000); // Check every 30 seconds
+        
+        // Initial check
+        this.checkDeviceRegistry();
+    }
+    
+    async checkDeviceRegistry() {
+        try {
+            // Try to fetch from local registry first
+            const response = await fetch('http://localhost:8888/api/devices/laika');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.devices) {
+                    this.updateDeviceRegistry(data.devices);
+                }
+            }
+        } catch (error) {
+            console.debug('Registry check failed (expected if no local registry):', error.message);
+        }
+    }
+    
+    updateDeviceRegistry(devices) {
+        devices.forEach(device => {
+            this.deviceRegistry.set(device.device_id, {
+                ...device,
+                last_updated: new Date()
+            });
+        });
+        
+        console.log(`📋 Device registry updated: ${this.deviceRegistry.size} devices`);
+        this.updateRegistryUI();
+    }
+    
+    updateRegistryUI() {
+        // Update UI to show available LAIKA devices globally
+        const registryContainer = document.getElementById('globalDevicesContainer');
+        if (!registryContainer) return;
+        
+        const devices = Array.from(this.deviceRegistry.values());
+        const onlineDevices = devices.filter(d => d.network && d.network.wifi_connected);
+        
+        if (onlineDevices.length > 0) {
+            let html = '<h4>🌐 Available LAIKA Devices</h4>';
+            onlineDevices.forEach(device => {
+                const lastSeen = new Date(device.location.last_seen);
+                const timeDiff = (new Date() - lastSeen) / 1000; // seconds
+                const status = timeDiff < 300 ? 'online' : 'offline'; // 5 minutes
+                
+                html += `
+                    <div class="registry-device ${status}">
+                        <div class="device-info">
+                            <strong>${device.device_name}</strong>
+                            <span class="device-id">${device.device_id}</span>
+                        </div>
+                        <div class="device-network">
+                            <span>📍 ${device.network.ssid || 'Unknown Network'}</span>
+                            <span>🌐 ${device.network.local_ip || 'No IP'}</span>
+                        </div>
+                        <div class="device-actions">
+                            <button onclick="app.connectToRegistryDevice('${device.device_id}')" 
+                                    class="connect-btn ${status}">
+                                ${status === 'online' ? 'Connect' : 'Offline'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            registryContainer.innerHTML = html;
+        } else {
+            registryContainer.innerHTML = '<p>No LAIKA devices found in registry</p>';
+        }
+    }
+    
+    async connectToRegistryDevice(deviceId) {
+        const device = this.deviceRegistry.get(deviceId);
+        if (!device) {
+            this.showError('Device not found in registry');
+            return;
+        }
+        
+        try {
+            this.setButtonLoading(this.elements.connectButton, true);
+            this.updateStatus('connecting', '🔄', `Connecting to ${device.device_name}...`, 'Registry Connection');
+            
+            // Try to connect via WebSocket if available
+            if (device.services && device.services.websocket) {
+                const wsUrl = device.services.websocket;
+                console.log(`🌐 Connecting to registry device via WebSocket: ${wsUrl}`);
+                
+                // Create a mock device object for network scanner
+                const networkDevice = {
+                    name: device.device_name,
+                    address: device.network.local_ip,
+                    port: 8765,
+                    websocketUrl: wsUrl,
+                    type: 'laika',
+                    device_id: deviceId
+                };
+                
+                await this.networkScanner.connectToDevice(networkDevice);
+                this.showSuccess(`Connected to ${device.device_name} from registry!`);
+            } else {
+                this.showError('Device does not support WebSocket connection');
+            }
+            
+        } catch (error) {
+            console.error('Registry device connection failed:', error);
+            this.showError(`Failed to connect to ${device.device_name}: ${error.message}`);
+        } finally {
+            this.setButtonLoading(this.elements.connectButton, false);
+        }
     }
 }
 
