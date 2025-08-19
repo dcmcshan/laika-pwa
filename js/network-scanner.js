@@ -12,8 +12,8 @@ class NetworkScanner {
         this.scanTimeout = 5000; // 5 seconds per scan
         this.retryAttempts = 3;
         
-        // Common PuppyPi ports and endpoints
-        this.puppyPiPorts = [8501, 9026, 5000, 8080];
+        // Common PuppyPi ports and endpoints (5002 for real LAIKA API)
+        this.puppyPiPorts = [5002, 8501, 9026, 5000, 8080];
         this.healthEndpoints = ['/health', '/api/status', '/status', '/'];
         this.wsEndpoints = ['/ws', '/websocket', '/api/ws'];
         

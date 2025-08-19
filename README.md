@@ -119,20 +119,40 @@ See [DEMO_GUIDE.md](DEMO_GUIDE.md) for comprehensive testing instructions.
 
 ### Connection Methods
 
-#### Method 1: Registered Device (Preferred)
+The PWA uses an intelligent connection priority system with NAT traversal:
+
+#### Method 1: WebRTC P2P Connection (Preferred)
+1. **Direct peer-to-peer connection** with STUN/TURN NAT traversal
+2. **Works worldwide** even behind firewalls and NAT
+3. **Real-time signaling** via WebSocket for connection establishment
+4. **Automatic fallback** if WebRTC fails
+
+#### Method 2: Registered Device Connection
 1. LAIKA automatically registers when connecting to WiFi
 2. PWA discovers registered devices globally
 3. Connect directly via IP address
 
-#### Method 2: Local BLE Discovery
+#### Method 3: Local Network Discovery
+1. Scan local network for LAIKA devices
+2. Connect via WebSocket or HTTP on local network
+
+#### Method 4: BLE Discovery (Fallback)
 1. Click "Find LAIKA" 
 2. Select LAIKA from BLE scan results
 3. Configure WiFi settings if needed
 4. LAIKA registers automatically after WiFi connection
 
-#### Method 3: Manual IP Connection
-1. Enter LAIKA's IP address directly
-2. Connect via WebSocket or HTTP
+### 🌐 WebRTC NAT Traversal
+
+The PWA includes a complete WebRTC solution for connecting to LAIKA devices behind NAT/firewalls:
+
+- **Signaling Server**: Real-time WebSocket signaling for connection establishment
+- **STUN Servers**: Multiple public STUN servers for NAT discovery  
+- **TURN Servers**: Relay servers for difficult NAT scenarios
+- **Peer-to-Peer Data**: Direct communication once connection established
+- **Automatic Fallback**: If WebRTC fails, automatically tries other methods
+
+This ensures LAIKA can be controlled from anywhere in the world, even behind complex network configurations like corporate firewalls or mobile networks.
 
 ## 📱 Usage Guide
 

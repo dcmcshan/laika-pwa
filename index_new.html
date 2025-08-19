@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
+    <title>LAIKA - AI Companion Robot</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwRkZGRjtzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwODBGRjtzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwRkZGRjtzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwODBGRjtzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LAIKA">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --card-bg: #1A1A2E;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --text-bright: #FFFFFF;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --success-green: #00FF88;
+            --warning-yellow: #FFD700;
+            --error-red: #FF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 60px 60px, 60px 60px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 58px,
+                    var(--grid-color) 58px,
+                    var(--grid-color) 60px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 58px,
+                    var(--grid-color) 58px,
+                    var(--grid-color) 60px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.2;
+            animation: gridPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.4; }
+        }
+
+        .app-container {
+            max-width: 420px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 50%, var(--panel-bg) 100%);
+            box-shadow: 
+                0 0 40px var(--glow-cyan),
+                inset 0 0 40px rgba(0, 255, 255, 0.1);
+            border-left: 2px solid var(--atomic-cyan);
+            border-right: 2px solid var(--atomic-cyan);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Animated border effect */
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -2px;
+            right: -2px;
+            height: 4px;
+            background: linear-gradient(90deg, 
+                var(--atomic-cyan) 0%, 
+                var(--tron-cyan) 25%, 
+                var(--electric-blue) 50%, 
+                var(--tron-cyan) 75%, 
+                var(--atomic-cyan) 100%);
+            animation: borderFlow 3s linear infinite;
+        }
+
+        .app-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -2px;
+            right: -2px;
+            height: 4px;
+            background: linear-gradient(90deg, 
+                var(--atomic-cyan) 0%, 
+                var(--tron-cyan) 25%, 
+                var(--electric-blue) 50%, 
+                var(--tron-cyan) 75%, 
+                var(--atomic-cyan) 100%);
+            animation: borderFlow 3s linear infinite reverse;
+        }
+
+        @keyframes borderFlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Header */
+        .hero-header {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(0, 255, 255, 0.1) 100%);
+            border-bottom: 1px solid var(--atomic-cyan);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 50% 50%, var(--glow-cyan) 0%, transparent 50%);
+            opacity: 0.3;
+            animation: heroPulse 6s ease-in-out infinite;
+        }
+
+        @keyframes heroPulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+        }
+
+        .laika-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--atomic-cyan) 0%, var(--tron-cyan) 50%, var(--electric-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px var(--glow-cyan);
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-tagline {
+            font-size: 0.9rem;
+            color: var(--atomic-orange);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            padding: 1rem 1.5rem;
+            background: var(--card-bg);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--error-red);
+            animation: statusBlink 2s ease-in-out infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success-green);
+            animation: none;
+        }
+
+        .status-dot.connecting {
+            background: var(--warning-yellow);
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .system-info {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 1.5rem;
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(0, 255, 255, 0.1), 
+                transparent);
+            transition: left 0.5s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 20px var(--glow-cyan);
+            transform: translateY(-2px);
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .feature-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+
+        .feature-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--atomic-cyan);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(0, 255, 255, 0.1) 100%);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            color: var(--text-cyan);
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .action-button:hover {
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 15px var(--glow-cyan);
+            transform: translateY(-1px);
+            color: var(--text-bright);
+        }
+
+        .action-button:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        .action-icon {
+            font-size: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .action-label {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        /* Chat Interface Preview */
+        .chat-preview {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--atomic-cyan) 0%, var(--electric-blue) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .chat-info h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            color: var(--text-bright);
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-info p {
+            font-size: 0.8rem;
+            color: var(--success-green);
+        }
+
+        .chat-message {
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .chat-input-preview {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .chat-input-preview input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-cyan);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .chat-input-preview input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .chat-send-btn {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            border: none;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--tron-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        /* Footer */
+        .app-footer {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            background: var(--card-bg);
+            border-top: 1px solid rgba(0, 255, 255, 0.3);
+            margin-top: auto;
+        }
+
+        .footer-info {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .footer-version {
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .app-container {
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .laika-logo {
+                font-size: 2.8rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .feature-card {
+                padding: 1.25rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-top: 3px solid var(--atomic-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Install Banner */
+        .install-banner {
+            background: linear-gradient(135deg, var(--atomic-orange) 0%, var(--atomic-pink) 100%);
+            color: var(--text-bright);
+            padding: 1rem 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .install-banner.show {
+            display: flex;
+        }
+
+        .install-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-bright);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .install-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Install Banner -->
+        <div class="install-banner" id="installBanner">
+            <span>📱</span>
+            <span>Install LAIKA for the best experience</span>
+            <button class="install-btn" id="installButton">Install</button>
+        </div>
+
+        <!-- Hero Header -->
+        <header class="hero-header">
+            <h1 class="laika-logo">LAIKA</h1>
+            <p class="hero-subtitle">AI Companion Robot</p>
+            <p class="hero-tagline">Next-Generation Robotics</p>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Searching...</span>
+            </div>
+            <div class="system-info">
+                <span id="systemInfo">⚡ Ready</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Feature Cards -->
+            <div class="feature-grid">
+                <!-- Voice Chat Feature -->
+                <div class="feature-card" onclick="openChat()">
+                    <span class="feature-icon">🎤</span>
+                    <h3 class="feature-title">Voice Chat</h3>
+                    <p class="feature-description">Talk to LAIKA naturally in English or Russian. She responds with personality and can perform actions!</p>
+                    <div class="feature-stats">
+                        <div class="stat">
+                            <span>🌍</span>
+                            <span>Multilingual</span>
+                        </div>
+                        <div class="stat">
+                            <span>🎭</span>
+                            <span>148 Actions</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Robot Control Feature -->
+                <div class="feature-card" onclick="openController()">
+                    <span class="feature-icon">🎮</span>
+                    <h3 class="feature-title">Robot Control</h3>
+                    <p class="feature-description">Complete control suite with movement, actions, LED effects, and real-time monitoring.</p>
+                    <div class="feature-stats">
+                        <div class="stat">
+                            <span>🤖</span>
+                            <span>80+ Actions</span>
+                        </div>
+                        <div class="stat">
+                            <span>📡</span>
+                            <span>Real-time</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Camera Vision Feature -->
+                <div class="feature-card" onclick="openVision()">
+                    <span class="feature-icon">📸</span>
+                    <h3 class="feature-title">AI Vision</h3>
+                    <p class="feature-description">See through LAIKA's eyes with live camera feed and AI-powered scene analysis.</p>
+                    <div class="feature-stats">
+                        <div class="stat">
+                            <span>👁️</span>
+                            <span>Live Feed</span>
+                        </div>
+                        <div class="stat">
+                            <span>🧠</span>
+                            <span>AI Analysis</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SLAM Mapping Feature -->
+                <div class="feature-card" onclick="openMapping()">
+                    <span class="feature-icon">🗺️</span>
+                    <h3 class="feature-title">SLAM Mapping</h3>
+                    <p class="feature-description">Real-time mapping and navigation with autonomous exploration capabilities.</p>
+                    <div class="feature-stats">
+                        <div class="stat">
+                            <span>🧭</span>
+                            <span>Navigation</span>
+                        </div>
+                        <div class="stat">
+                            <span>📍</span>
+                            <span>Positioning</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <h2 class="section-title">Quick Actions</h2>
+                <div class="action-grid">
+                    <a href="#" class="action-button" onclick="quickConnect()">
+                        <span class="action-icon">⚡</span>
+                        <span class="action-label">Connect</span>
+                    </a>
+                    <a href="#" class="action-button" onclick="emergencyStop()">
+                        <span class="action-icon">🛑</span>
+                        <span class="action-label">Emergency Stop</span>
+                    </a>
+                    <a href="#" class="action-button" onclick="openSettings()">
+                        <span class="action-icon">⚙️</span>
+                        <span class="action-label">Settings</span>
+                    </a>
+                    <a href="#" class="action-button" onclick="viewLogs()">
+                        <span class="action-icon">📊</span>
+                        <span class="action-label">System Logs</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Chat Preview -->
+            <section class="chat-preview">
+                <div class="chat-header">
+                    <div class="chat-avatar">🐕</div>
+                    <div class="chat-info">
+                        <h3>LAIKA</h3>
+                        <p>Online & Ready</p>
+                    </div>
+                </div>
+                <div class="chat-message">
+                    🐕 Привет! I'm LAIKA, your AI companion. I can sit, dance, look around, and even identify MOOP - Matter Out Of Place! Try saying "Hey LAIKA, *sit* and *wag tail*" to see me in action!
+                </div>
+                <div class="chat-input-preview">
+                    <input type="text" placeholder="Type a message to LAIKA..." readonly onclick="openChat()">
+                    <button class="chat-send-btn" onclick="openChat()">
+                        <span>➤</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <p>Connecting to LAIKA...</p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-info">
+                <div class="footer-version">LAIKA v2.0</div>
+                <div>Advanced AI Companion Robot</div>
+                <div>🌐 Global Network • 🔒 Secure Connection</div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // PWA Installation
+        let deferredPrompt;
+        const installBanner = document.getElementById('installBanner');
+        const installButton = document.getElementById('installButton');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.classList.add('show');
+        });
+
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBanner.classList.remove('show');
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        // Connection Status Management
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const systemInfo = document.getElementById('systemInfo');
+
+        let connectionState = 'disconnected';
+
+        function updateConnectionStatus(state, text, info = '') {
+            connectionState = state;
+            statusDot.className = `status-dot ${state}`;
+            statusText.textContent = text;
+            if (info) systemInfo.textContent = info;
+        }
+
+        // Simulate connection process
+        function simulateConnection() {
+            updateConnectionStatus('connecting', 'Connecting...', '🔍 Scanning');
+            
+            setTimeout(() => {
+                updateConnectionStatus('connected', 'Connected to LAIKA', '🔋 100% • 📶 Strong');
+            }, 2000);
+        }
+
+        // Feature Navigation Functions
+        function openChat() {
+            showLoading('Opening LAIKA Chat...');
+            setTimeout(() => {
+                window.location.href = '#chat';
+                hideLoading();
+            }, 1000);
+        }
+
+        function openController() {
+            showLoading('Loading Robot Controller...');
+            setTimeout(() => {
+                window.location.href = '#control';
+                hideLoading();
+            }, 1000);
+        }
+
+        function openVision() {
+            showLoading('Initializing Camera Feed...');
+            setTimeout(() => {
+                window.location.href = '#vision';
+                hideLoading();
+            }, 1000);
+        }
+
+        function openMapping() {
+            showLoading('Loading SLAM Map...');
+            setTimeout(() => {
+                window.location.href = '#mapping';
+                hideLoading();
+            }, 1000);
+        }
+
+        // Quick Action Functions
+        function quickConnect() {
+            if (connectionState === 'disconnected') {
+                simulateConnection();
+            } else {
+                alert('🤖 LAIKA is already connected!');
+            }
+        }
+
+        function emergencyStop() {
+            if (connectionState === 'connected') {
+                alert('🛑 Emergency stop activated! LAIKA has been safely halted.');
+            } else {
+                alert('⚠️ No active connection to LAIKA.');
+            }
+        }
+
+        function openSettings() {
+            showLoading('Loading Settings...');
+            setTimeout(() => {
+                window.location.href = '#settings';
+                hideLoading();
+            }, 1000);
+        }
+
+        function viewLogs() {
+            showLoading('Loading System Logs...');
+            setTimeout(() => {
+                window.location.href = '#logs';
+                hideLoading();
+            }, 1000);
+        }
+
+        // Loading State Management
+        function showLoading(message = 'Loading...') {
+            const loading = document.getElementById('loadingState');
+            loading.querySelector('p').textContent = message;
+            loading.classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.remove('active');
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start with disconnected state
+            updateConnectionStatus('disconnected', 'Ready to Connect', '⚡ Standby');
+            
+            // Auto-connect after a short delay
+            setTimeout(() => {
+                simulateConnection();
+            }, 1500);
+        });
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

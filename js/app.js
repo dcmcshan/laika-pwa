@@ -8,9 +8,12 @@ class LAIKAController {
         this.networkScanner = new NetworkScanner();
         this.laikaActions = new LAIKAActions();
         this.logViewer = new LAIKALogViewer();
+        this.webrtcConnection = new LAIKAWebRTCConnection();
+        this.bleChat = new LAIKABLEChat();
+        this.voiceSystem = new LAIKAVoiceSystem();
         this.isConnected = false;
         this.currentDevice = null;
-        this.connectionType = null; // 'ble' or 'network'
+        this.connectionType = null; // 'ble', 'network', or 'webrtc'
         this.networkDevices = [];
         
         // Override the sendActionCommand method
@@ -127,6 +130,15 @@ class LAIKAController {
         
         // Initialize log viewer
         this.initializeLogViewer();
+        
+        // Initialize WebRTC connection
+        this.initializeWebRTC();
+        
+        // Initialize BLE Chat
+        this.initializeBLEChat();
+        
+        // Initialize Voice System
+        this.initializeVoiceSystem();
         
         // Start device registry monitoring
         this.startRegistryMonitoring();
@@ -312,7 +324,32 @@ class LAIKAController {
             this.setButtonLoading(this.elements.connectButton, true);
             this.hideMessages();
             
-            // PRIORITY 1: Check registered devices first
+            // PRIORITY 1: Check WebRTC devices first (best for NAT traversal)
+            console.log('🌐 Checking WebRTC devices...');
+            this.updateStatus('connecting', '🌐', 'Checking WebRTC LAIKA devices...', 'WebRTC Discovery');
+            
+            const webrtcDevices = this.webrtcConnection.getAvailableDevices();
+            if (webrtcDevices.length > 0) {
+                const bestWebRTCDevice = webrtcDevices[0];
+                console.log('🎯 Found WebRTC LAIKA:', bestWebRTCDevice.device_id);
+                this.updateStatus('connecting', '🔄', `Connecting to ${bestWebRTCDevice.device_id} via WebRTC...`, 'WebRTC Connection');
+                
+                try {
+                    await this.webrtcConnection.connectToDevice(bestWebRTCDevice.device_id);
+                    this.isConnected = true;
+                    this.connectionType = 'webrtc';
+                    this.currentDevice = bestWebRTCDevice;
+                    this.updateStatus('connected', '✅', `Connected to ${bestWebRTCDevice.device_id} via WebRTC`, 'WebRTC Connected');
+                    this.showConnectedButtons();
+                    this.showSuccess('Successfully connected via WebRTC with NAT traversal!');
+                    return; // Success - WebRTC connection established
+                } catch (webrtcError) {
+                    console.warn('WebRTC connection failed:', webrtcError);
+                    this.showError(`WebRTC connection failed: ${webrtcError.message}`);
+                }
+            }
+            
+            // PRIORITY 2: Check registered devices (direct IP)
             console.log('🌍 Checking global device registry...');
             this.updateStatus('connecting', '🌍', 'Checking registered LAIKA devices...', 'Registry Search');
             
@@ -1246,6 +1283,130 @@ class LAIKAController {
         }
     }
     
+    async initializeWebRTC() {
+        // Initialize WebRTC connection for NAT traversal
+        console.log('Initializing WebRTC connection...');
+        try {
+            // Set up event handlers
+            this.webrtcConnection.onDeviceDiscovered = (device) => {
+                console.log('WebRTC device discovered:', device.device_id);
+                this.updateRegistryUI(); // Update UI with WebRTC devices
+            };
+            
+            this.webrtcConnection.onConnectionEstablished = () => {
+                console.log('WebRTC connection established');
+                this.isConnected = true;
+                this.connectionType = 'webrtc';
+                this.handleWiFiConnected(); // Enable advanced features
+            };
+            
+            this.webrtcConnection.onConnectionLost = () => {
+                console.log('WebRTC connection lost');
+                this.handleDisconnection();
+            };
+            
+            this.webrtcConnection.onError = (error) => {
+                console.error('WebRTC error:', error);
+                this.showError(`WebRTC error: ${error.message}`);
+            };
+            
+            // Initialize WebRTC (connects to signaling server)
+            const success = await this.webrtcConnection.initialize();
+            if (success) {
+                console.log('✅ WebRTC initialized successfully');
+            } else {
+                console.warn('WebRTC initialization failed - will use fallback connections');
+            }
+        } catch (error) {
+            console.warn('WebRTC initialization error:', error);
+        }
+    }
+    
+    initializeBLEChat() {
+        // Initialize BLE Chat functionality
+        console.log('Initializing BLE Chat...');
+        try {
+            // Set up event handlers
+            this.bleChat.onMessageReceived = (data) => {
+                console.log('BLE message received:', data);
+                this.displayChatMessage(data.message, 'laika');
+            };
+            
+            this.bleChat.onConnectionChanged = (connected) => {
+                if (connected) {
+                    console.log('BLE Chat connected');
+                    this.showSuccess('Connected to LAIKA via BLE Chat!');
+                    this.enableChatInterface();
+                } else {
+                    console.log('BLE Chat disconnected');
+                    this.disableChatInterface();
+                }
+            };
+            
+            this.bleChat.onError = (error) => {
+                console.error('BLE Chat error:', error);
+                this.showError(`BLE Chat error: ${error.message}`);
+            };
+            
+            // Set up chat UI if available
+            this.setupChatInterface();
+            
+            console.log('✅ BLE Chat initialized successfully');
+        } catch (error) {
+            console.warn('BLE Chat initialization error:', error);
+        }
+    }
+    
+    initializeVoiceSystem() {
+        // Initialize Voice System with STT and TTS
+        console.log('Initializing Voice System...');
+        try {
+            // Set up event handlers
+            this.voiceSystem.onSpeechRecognized = (data) => {
+                console.log('Speech recognized:', data.transcript);
+                this.displayChatMessage(data.transcript, 'user');
+                
+                if (data.isFinal) {
+                    // Send to LAIKA for processing
+                    this.processSpeechInput(data.transcript);
+                }
+            };
+            
+            this.voiceSystem.onSpeechStart = () => {
+                console.log('Listening started');
+                this.updateVoiceStatus('listening');
+            };
+            
+            this.voiceSystem.onSpeechEnd = () => {
+                console.log('Listening ended');
+                this.updateVoiceStatus('idle');
+            };
+            
+            this.voiceSystem.onTTSStart = () => {
+                console.log('LAIKA speaking');
+                this.updateVoiceStatus('speaking');
+            };
+            
+            this.voiceSystem.onTTSEnd = () => {
+                console.log('LAIKA finished speaking');
+                this.updateVoiceStatus('idle');
+            };
+            
+            this.voiceSystem.onError = (error) => {
+                console.error('Voice system error:', error);
+                this.showError(`Voice error: ${error}`);
+                this.updateVoiceStatus('error');
+            };
+            
+            // Set up chat UI
+            this.setupVoiceChatInterface();
+            
+            console.log('✅ Voice System initialized successfully');
+        } catch (error) {
+            console.warn('Voice System initialization error:', error);
+        }
+    }
+    
     renderActionPanels() {
         // Render all available LAIKA actions in the control panel
         const controlPage = document.getElementById('controlPage');
@@ -1335,8 +1496,10 @@ class LAIKAController {
     }
     
     async sendRobotCommand(command, params = {}) {
-        // Enhanced command sending that works with both BLE and network connections
-        if (this.connectionType === 'network') {
+        // Enhanced command sending that works with WebRTC, BLE, and network connections
+        if (this.connectionType === 'webrtc') {
+            return await this.webrtcConnection.sendCommand(command, params);
+        } else if (this.connectionType === 'network') {
             return await this.sendNetworkCommand(command, params);
         } else if (this.connectionType === 'ble') {
             return await this.sendBLECommand(command, params);
