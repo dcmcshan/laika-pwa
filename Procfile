@@ -1,1 +1,1 @@
-web: python webrtc-signaling-server.py
+web: python app.py
