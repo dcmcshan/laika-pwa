@@ -83,17 +83,38 @@ WiFi   Network Conn   Camera/SLAM
 
 ## 🚀 Getting Started
 
+### 🎮 **Live Demo**
+**Try it now: [https://dcmcshan.github.io/laika-pwa/](https://dcmcshan.github.io/laika-pwa/)**
+
+### 🧪 **Demo API Testing**
+For full testing and demonstration:
+
+1. **Start Demo API** (provides realistic LAIKA simulation):
+   ```bash
+   git clone https://github.com/dcmcshan/laika-pwa.git
+   cd laika-pwa
+   pip3 install flask flask-cors pillow numpy
+   python3 demo-api.py
+   ```
+
+2. **Access PWA**: [https://dcmcshan.github.io/laika-pwa/](https://dcmcshan.github.io/laika-pwa/)
+
+3. **Auto-Discovery**: PWA automatically finds and connects to demo LAIKA device
+
+See [DEMO_GUIDE.md](DEMO_GUIDE.md) for comprehensive testing instructions.
+
 ### Prerequisites
 - Modern web browser with Web Bluetooth support (Chrome, Edge)
 - HTTPS connection or localhost for PWA features
-- LAIKA robot with network connectivity
+- LAIKA robot with network connectivity (or demo API for testing)
 
 ### Installation
 1. **Access the PWA**: Navigate to `https://dcmcshan.github.io/laika-pwa/`
 2. **Install App**: Click "Install LAIKA Controller" when prompted
 3. **Connect to LAIKA**: 
-   - PWA will automatically search for registered LAIKA devices
-   - If none found, use BLE discovery to find local devices
+   - PWA will automatically search for registered LAIKA devices worldwide
+   - If none found, scan local network for LAIKA devices
+   - Fall back to BLE discovery for initial setup
    - Configure WiFi if needed
 
 ### Connection Methods
