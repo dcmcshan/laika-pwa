@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
+    <title>LAIKA Conversation Monitor</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --stt-color: #00FF88;
+            --llm-color: #8800FF;
+            --tts-color: #FF8800;
+            --expand-bg: #1A1A2E;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            color: var(--text-cyan);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border-bottom: 2px solid var(--atomic-cyan);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 2rem;
+            text-align: center;
+            color: var(--atomic-cyan);
+            text-shadow: 0 0 20px var(--glow-cyan);
+            letter-spacing: 2px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid var(--grid-color);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: var(--stt-color);
+            box-shadow: 0 0 10px var(--stt-color);
+        }
+
+        .status-dot.inactive {
+            background: #333;
+            box-shadow: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .conversation-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .conversation-entry {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 1px solid var(--grid-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .conversation-entry::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--stt-color), var(--llm-color), var(--tts-color));
+            opacity: 0.7;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--grid-color);
+        }
+
+        .entry-timestamp {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        .entry-status {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stage-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 5px;
+            border: 1px solid;
+        }
+
+        .stage-stt {
+            color: var(--stt-color);
+            border-color: var(--stt-color);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .stage-llm {
+            color: var(--llm-color);
+            border-color: var(--llm-color);
+            background: rgba(136, 0, 255, 0.1);
+        }
+
+        .stage-tts {
+            color: var(--tts-color);
+            border-color: var(--tts-color);
+            background: rgba(255, 136, 0, 0.1);
+        }
+
+        .conversation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message-section {
+            background: rgba(0, 255, 255, 0.02);
+            border: 1px solid var(--grid-color);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-message .message-label {
+            color: var(--stt-color);
+        }
+
+        .assistant-message .message-label {
+            color: var(--llm-color);
+        }
+
+        .expand-button {
+            background: none;
+            border: 1px solid var(--grid-color);
+            color: var(--text-dim);
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .expand-button:hover {
+            color: var(--atomic-cyan);
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .message-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-cyan);
+        }
+
+        .full-prompt {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--expand-bg);
+            border-radius: 8px;
+            border: 1px solid var(--grid-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-dim);
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .full-prompt.show {
+            display: block;
+        }
+
+        .context-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 255, 255, 0.02);
+            border: 1px solid var(--grid-color);
+            border-radius: 8px;
+        }
+
+        .context-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .context-label {
+            font-weight: 600;
+            color: var(--atomic-orange);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .context-data {
+            display: none;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .context-data.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--atomic-cyan);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 50;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--atomic-cyan);
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .control-button:hover {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 255, 255, 0.4);
+        }
+
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .auto-refresh input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--atomic-cyan);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .controls {
+                bottom: 1rem;
+                right: 1rem;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 LAIKA CONVERSATION MONITOR</h1>
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="stt-status"></div>
+                <span>STT System</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="llm-status"></div>
+                <span>LLM Processor</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="tts-status"></div>
+                <span>TTS System</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="conversation-feed" id="conversation-feed">
+            <div class="empty-state">
+                <h2>Waiting for Conversations...</h2>
+                <p>Speak to LAIKA to see the STT → LLM → TTS loop in action!</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="auto-refresh">
+            <input type="checkbox" id="auto-refresh" checked>
+            <label for="auto-refresh">Auto Refresh</label>
+        </div>
+        <button class="control-button" onclick="refreshConversations()">
+            🔄 Refresh
+        </button>
+        <button class="control-button" onclick="clearConversations()">
+            🗑️ Clear
+        </button>
+    </div>
+
+    <script>
+        let lastUpdateTime = null;
+        let autoRefresh = true;
+        let refreshInterval = null;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('auto-refresh').addEventListener('change', function() {
+                autoRefresh = this.checked;
+                if (autoRefresh) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+
+            refreshConversations();
+            startAutoRefresh();
+        });
+
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshConversations, 2000); // Refresh every 2 seconds
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        }
+
+        async function refreshConversations() {
+            try {
+                // Get conversation data
+                const response = await fetch('/api/conversation-data');
+                const data = await response.json();
+
+                // Update status indicators
+                updateStatusIndicators(data.status);
+
+                // Update conversation feed
+                updateConversationFeed(data.conversations);
+
+            } catch (error) {
+                console.error('Error fetching conversation data:', error);
+            }
+        }
+
+        function updateStatusIndicators(status) {
+            const sttStatus = document.getElementById('stt-status');
+            const llmStatus = document.getElementById('llm-status');
+            const ttsStatus = document.getElementById('tts-status');
+
+            sttStatus.className = `status-dot ${status.stt_running ? 'active' : 'inactive'}`;
+            llmStatus.className = `status-dot ${status.llm_running ? 'active' : 'inactive'}`;
+            ttsStatus.className = `status-dot ${status.tts_available ? 'active' : 'inactive'}`;
+        }
+
+        function updateConversationFeed(conversations) {
+            const feed = document.getElementById('conversation-feed');
+            
+            if (!conversations || conversations.length === 0) {
+                feed.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Waiting for Conversations...</h2>
+                        <p>Speak to LAIKA to see the STT → LLM → TTS loop in action!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort conversations by timestamp (newest first)
+            conversations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            feed.innerHTML = conversations.map(conv => createConversationEntry(conv)).join('');
+        }
+
+        function createConversationEntry(conversation) {
+            const timestamp = new Date(conversation.timestamp).toLocaleString();
+            const stages = [];
+            
+            if (conversation.stt_success) stages.push('<span class="stage-indicator stage-stt">STT ✓</span>');
+            if (conversation.llm_success) stages.push('<span class="stage-indicator stage-llm">LLM ✓</span>');
+            if (conversation.tts_success) stages.push('<span class="stage-indicator stage-tts">TTS ✓</span>');
+
+            return `
+                <div class="conversation-entry">
+                    <div class="entry-header">
+                        <div class="entry-timestamp">${timestamp}</div>
+                        <div class="entry-status">${stages.join('')}</div>
+                    </div>
+                    
+                    <div class="conversation-content">
+                        <!-- User Message (STT Output) -->
+                        <div class="message-section user-message">
+                            <div class="message-header">
+                                <span class="message-label">🎤 Voice Command (STT)</span>
+                            </div>
+                            <div class="message-content">"${conversation.user_message}"</div>
+                        </div>
+
+                        <!-- Assistant Message (LLM Output) -->
+                        <div class="message-section assistant-message">
+                            <div class="message-header">
+                                <span class="message-label">🤖 LAIKA Response (LLM)</span>
+                                <button class="expand-button" onclick="toggleFullPrompt('${conversation.id}')">
+                                    Show Full Prompt
+                                </button>
+                            </div>
+                            <div class="message-content">${conversation.assistant_message}</div>
+                            
+                            <div class="full-prompt" id="prompt-${conversation.id}">
+                                <strong>System Prompt:</strong>
+                                ${conversation.system_prompt || 'Not available'}
+                                
+                                <strong>Full User Message with Context:</strong>
+                                ${conversation.full_user_prompt || 'Not available'}
+                                
+                                <strong>Full LLM Response:</strong>
+                                ${conversation.full_llm_response || conversation.assistant_message}
+                            </div>
+                        </div>
+
+                        <!-- Context Data -->
+                        ${conversation.context_data ? `
+                        <div class="context-section">
+                            <div class="context-header">
+                                <span class="context-label">📊 Context Data</span>
+                                <button class="expand-button" onclick="toggleContextData('${conversation.id}')">
+                                    Show Context
+                                </button>
+                            </div>
+                            <div class="context-data" id="context-${conversation.id}">
+                                ${JSON.stringify(conversation.context_data, null, 2)}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleFullPrompt(conversationId) {
+            const element = document.getElementById(`prompt-${conversationId}`);
+            const button = element.previousElementSibling.querySelector('.expand-button');
+            
+            if (element.classList.contains('show')) {
+                element.classList.remove('show');
+                button.textContent = 'Show Full Prompt';
+            } else {
+                element.classList.add('show');
+                button.textContent = 'Hide Full Prompt';
+            }
+        }
+
+        function toggleContextData(conversationId) {
+            const element = document.getElementById(`context-${conversationId}`);
+            const button = element.previousElementSibling.querySelector('.expand-button');
+            
+            if (element.classList.contains('show')) {
+                element.classList.remove('show');
+                button.textContent = 'Show Context';
+            } else {
+                element.classList.add('show');
+                button.textContent = 'Hide Context';
+            }
+        }
+
+        async function clearConversations() {
+            if (confirm('Are you sure you want to clear all conversation history?')) {
+                try {
+                    await fetch('/api/clear-conversations', { method: 'POST' });
+                    refreshConversations();
+                } catch (error) {
+                    console.error('Error clearing conversations:', error);
+                }
+            }
+        }
+
+        // Handle visibility change to pause/resume auto-refresh
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else if (autoRefresh) {
+                startAutoRefresh();
+            }
+        });
+    </script>
+</body>
+</html>

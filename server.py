@@ -11,7 +11,7 @@ import time
 import threading
 import cv2
 import numpy as np
-from flask import Flask, render_template, Response, jsonify, request
+from flask import Flask, render_template, Response, jsonify, request, send_file
 from flask_cors import CORS
 import base64
 import io
@@ -336,6 +336,98 @@ def send_robot_command():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/conversation-data')
+def get_conversation_data():
+    """Get conversation data for the conversation monitor"""
+    try:
+        # Try to import and get conversation data from LLM processor
+        sys.path.append('/home/pi/LAIKA')
+        from laika_llm_processor import get_llm_processor
+        
+        processor = get_llm_processor()
+        data = processor.get_conversation_data_for_pwa()
+        
+        return jsonify(data)
+        
+    except ImportError:
+        # Fallback: read conversation data directly from file
+        try:
+            import json
+            from pathlib import Path
+            
+            conversation_file = Path("/tmp/laika_conversations.jsonl")
+            conversations = []
+            
+            if conversation_file.exists():
+                with open(conversation_file, 'r') as f:
+                    for line in f:
+                        try:
+                            conversation = json.loads(line.strip())
+                            conversations.append(conversation)
+                        except json.JSONDecodeError:
+                            continue
+            
+            return jsonify({
+                "status": {
+                    "stt_running": True,  # Assume running
+                    "llm_running": True,
+                    "tts_available": True,
+                    "timestamp": datetime.now().isoformat() if 'datetime' in globals() else None
+                },
+                "conversations": conversations[-50:],  # Last 50 conversations
+                "total_conversations": len(conversations)
+            })
+            
+        except Exception as e:
+            return jsonify({
+                "status": {"stt_running": False, "llm_running": False, "tts_available": False},
+                "conversations": [],
+                "total_conversations": 0,
+                "error": str(e)
+            })
+    
+    except Exception as e:
+        return jsonify({
+            "status": {"stt_running": False, "llm_running": False, "tts_available": False},
+            "conversations": [],
+            "total_conversations": 0,
+            "error": str(e)
+        })
+
+@app.route('/api/clear-conversations', methods=['POST'])
+def clear_conversations():
+    """Clear conversation history"""
+    try:
+        # Try to use LLM processor to clear
+        sys.path.append('/home/pi/LAIKA')
+        from laika_llm_processor import get_llm_processor
+        
+        processor = get_llm_processor()
+        processor.clear_conversation_history()
+        
+        return jsonify({'success': True, 'message': 'Conversation history cleared'})
+        
+    except ImportError:
+        # Fallback: clear file directly
+        try:
+            from pathlib import Path
+            conversation_file = Path("/tmp/laika_conversations.jsonl")
+            if conversation_file.exists():
+                conversation_file.unlink()
+            
+            return jsonify({'success': True, 'message': 'Conversation history cleared'})
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/conversation')
+def conversation_page():
+    """Serve the conversation monitoring page"""
+    return send_file('conversation.html')
 
 if __name__ == '__main__':
     # Initialize ROS2 node

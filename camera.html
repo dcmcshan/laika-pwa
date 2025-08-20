@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d9ff">
+    <title>LAIKA Camera View</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <style>
+        :root {
+            --primary-cyan: #00d9ff;
+            --secondary-cyan: #0099cc;
+            --accent-orange: #ff6600;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --card-bg: rgba(0, 20, 30, 0.8);
+            --glass-bg: rgba(0, 217, 255, 0.1);
+            --border-glow: rgba(0, 217, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .camera-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .camera-icon {
+            font-size: 1.8rem;
+            color: var(--accent-orange);
+            filter: drop-shadow(0 0 8px var(--accent-orange));
+        }
+
+        .back-button {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .camera-main {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .video-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            border: 2px solid var(--border-glow);
+        }
+
+        #videoStream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ai-overlay {
+            position: absolute;
+            border: 2px solid var(--success);
+            background: rgba(0, 255, 136, 0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+            text-shadow: 0 0 4px var(--success);
+        }
+
+        .video-status {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border-glow);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: var(--success);
+        }
+
+        .video-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            min-width: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.recording {
+            background: var(--error);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .control-card h3 {
+            color: var(--primary-cyan);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pan-tilt-control {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            grid-template-rows: 1fr auto 1fr;
+            gap: 8px;
+            aspect-ratio: 1;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .pan-tilt-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .pan-tilt-btn:hover,
+        .pan-tilt-btn:active {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+        }
+
+        .pan-tilt-btn.up { grid-column: 2; grid-row: 1; }
+        .pan-tilt-btn.left { grid-column: 1; grid-row: 2; }
+        .pan-tilt-btn.center { grid-column: 2; grid-row: 2; }
+        .pan-tilt-btn.right { grid-column: 3; grid-row: 2; }
+        .pan-tilt-btn.down { grid-column: 2; grid-row: 3; }
+
+        .zoom-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .zoom-slider {
+            flex: 1;
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid var(--border-glow);
+        }
+
+        .zoom-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .quality-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quality-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quality-option:hover,
+        .quality-option.active {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+        }
+
+        .ai-features {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .feature-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .feature-toggle:hover {
+            background: var(--border-glow);
+        }
+
+        .feature-toggle.active {
+            background: var(--success);
+            color: var(--dark-bg);
+            border-color: var(--success);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            position: relative;
+            border: 1px solid var(--border-glow);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch.active::after {
+            left: 28px;
+        }
+
+        .ai-info {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .ai-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-value {
+            color: var(--primary-cyan);
+            font-weight: 600;
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-glow);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px var(--primary-cyan); }
+            50% { box-shadow: 0 0 20px var(--primary-cyan), 0 0 30px var(--primary-cyan); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .camera-page {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .camera-main {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .control-panel {
+                order: -1;
+            }
+
+            .camera-header {
+                padding: 12px 15px;
+            }
+
+            .header-title h1 {
+                font-size: 1.2rem;
+            }
+
+            .video-controls {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .control-group {
+                flex-wrap: wrap;
+            }
+
+            .pan-tilt-control {
+                max-width: 150px;
+            }
+
+            .control-card {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .camera-page {
+                padding: 5px;
+            }
+
+            .video-wrapper {
+                aspect-ratio: 4/3;
+            }
+
+            .control-btn {
+                padding: 10px;
+                min-width: 44px;
+                font-size: 14px;
+            }
+
+            .pan-tilt-control {
+                max-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="camera-page">
+            <!-- Camera Header -->
+            <div class="camera-header">
+                <div class="header-title">
+                    <i class="fas fa-video camera-icon"></i>
+                    <h1>LAIKA Camera View</h1>
+                </div>
+                <a href="index.html" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+
+            <div class="camera-main">
+                <!-- Video Stream Container -->
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <video id="videoStream" autoplay muted playsinline poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTFhIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJPcmJpdHJvbiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzAwZDlmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxBSUtBIENhbWVyYSBTdHJlYW08L3RleHQ+Cjwvc3ZnPg==">
+                            Camera stream not available
+                        </video>
+                        
+                        <!-- Video Overlay for AI Detection -->
+                        <div class="video-overlay" id="videoOverlay"></div>
+                        
+                        <!-- Video Status -->
+                        <div class="video-status">
+                            <div class="status-indicator" id="streamStatus"></div>
+                            <span id="streamStatusText">Disconnected</span>
+                        </div>
+                    </div>
+
+                    <!-- Video Controls -->
+                    <div class="video-controls">
+                        <div class="control-group">
+                            <button class="control-btn" id="playPauseBtn" title="Play/Pause Stream">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="control-btn" id="fullscreenBtn" title="Fullscreen">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button class="control-btn" id="pipBtn" title="Picture-in-Picture">
+                                <i class="fas fa-external-link-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="control-group">
+                            <button class="control-btn" id="photoBtn" title="Take Photo">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            <button class="control-btn" id="recordBtn" title="Record Video">
+                                <i class="fas fa-record-vinyl"></i>
+                            </button>
+                            <button class="control-btn" id="micBtn" title="Microphone">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <!-- Pan/Tilt Controls -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-arrows-alt"></i> Camera Control</h3>
+                        <div class="pan-tilt-control">
+                            <button class="pan-tilt-btn up" data-direction="up"><i class="fas fa-chevron-up"></i></button>
+                            <button class="pan-tilt-btn left" data-direction="left"><i class="fas fa-chevron-left"></i></button>
+                            <button class="pan-tilt-btn center" data-direction="center"><i class="fas fa-home"></i></button>
+                            <button class="pan-tilt-btn right" data-direction="right"><i class="fas fa-chevron-right"></i></button>
+                            <button class="pan-tilt-btn down" data-direction="down"><i class="fas fa-chevron-down"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Control -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-search-plus"></i> Zoom Control</h3>
+                        <div class="zoom-control">
+                            <button class="control-btn" id="zoomOutBtn"><i class="fas fa-search-minus"></i></button>
+                            <input type="range" class="zoom-slider" id="zoomSlider" min="1" max="10" value="1" step="0.1">
+                            <button class="control-btn" id="zoomInBtn"><i class="fas fa-search-plus"></i></button>
+                        </div>
+                        <div style="text-align: center; margin-top: 10px; font-size: 12px;">
+                            Zoom: <span id="zoomValue">1.0x</span>
+                        </div>
+                    </div>
+
+                    <!-- Stream Quality -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-cog"></i> Stream Quality</h3>
+                        <div class="quality-settings">
+                            <div class="quality-option active" data-quality="1080p">
+                                <span>1080p HD</span>
+                                <span>30fps</span>
+                            </div>
+                            <div class="quality-option" data-quality="720p">
+                                <span>720p</span>
+                                <span>60fps</span>
+                            </div>
+                            <div class="quality-option" data-quality="480p">
+                                <span>480p</span>
+                                <span>30fps</span>
+                            </div>
+                            <div class="quality-option" data-quality="auto">
+                                <span>Auto</span>
+                                <span>Adaptive</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Vision Features -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-brain"></i> AI Vision</h3>
+                        <div class="ai-features">
+                            <div class="feature-toggle" data-feature="objectDetection">
+                                <span>Object Detection</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="faceRecognition">
+                                <span>Face Recognition</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="motionTracking">
+                                <span>Motion Tracking</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="sceneAnalysis">
+                                <span>Scene Analysis</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-info">
+                            <div class="ai-stats">
+                                <div class="stat-item">
+                                    <span>Objects:</span>
+                                    <span class="stat-value" id="objectCount">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Faces:</span>
+                                    <span class="stat-value" id="faceCount">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Motion:</span>
+                                    <span class="stat-value" id="motionLevel">None</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Scene:</span>
+                                    <span class="stat-value" id="sceneType">Unknown</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <i class="fas fa-wifi"></i>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-battery-three-quarters"></i>
+                <span id="batteryLevel">85%</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/camera.js"></script>
+</body>
+</html>
