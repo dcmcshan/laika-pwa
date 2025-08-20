@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
+    <title>LAIKA WebBLE Setup</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
+    <style>
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
+            --success-green: #00FF88;
+            --error-red: #FF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            position: relative;
+            z-index: 2;
+            padding-top: 70px; /* Account for fixed header */
+        }
+
+        .webble-header {
+            background: 
+                linear-gradient(135deg, var(--electric-blue), var(--tron-cyan));
+            color: var(--atomic-bg);
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--atomic-cyan);
+            box-shadow: 
+                0 4px 20px var(--glow-cyan),
+                inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .webble-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+            animation: bluetoothPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes bluetoothPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .webble-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .webble-subtitle {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .webble-main {
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .status-card {
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            padding: 25px;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-icon {
+            font-size: 24px;
+            color: var(--atomic-cyan);
+        }
+
+        .status-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-text {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .connection-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 4px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .ble-button {
+            background: 
+                linear-gradient(135deg, var(--electric-blue), var(--tron-cyan));
+            color: var(--atomic-bg);
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ble-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 128, 255, 0.4);
+        }
+
+        .ble-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .ble-button.danger {
+            background: 
+                linear-gradient(135deg, var(--error-red), #CC0000);
+        }
+
+        .ble-button.success {
+            background: 
+                linear-gradient(135deg, var(--success-green), #00CC66);
+        }
+
+        .wifi-form {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .wifi-form.show {
+            display: flex;
+        }
+
+        .networks-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--atomic-cyan);
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .network-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+        }
+
+        .network-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .network-item:last-child {
+            border-bottom: none;
+        }
+
+        .network-item.selected {
+            background: rgba(0, 128, 255, 0.2);
+            color: var(--atomic-cyan);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-field {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--atomic-cyan);
+            color: var(--text-cyan);
+            padding: 12px 15px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--tron-cyan);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid var(--error-red);
+            color: #FFB3B3;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--success-green);
+            color: #B3FFD6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .webble-main {
+                padding: 20px 15px;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .ble-button {
+                width: 100%;
+            }
+            
+            .form-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="webble-header">
+            <span class="webble-icon">📶</span>
+            <h1 class="webble-title">WebBLE Setup</h1>
+            <p class="webble-subtitle">Configure LAIKA's WiFi using Web Bluetooth</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="webble-main">
+            <!-- Status Card -->
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-icon" id="statusIcon">🔍</span>
+                    <h3 class="status-title" id="statusTitle">Ready to Connect</h3>
+                </div>
+                <p class="status-text" id="statusText">
+                    Click "Connect to LAIKA" to scan for nearby LAIKA devices using Web Bluetooth.
+                    Make sure your device supports Web Bluetooth (Chrome, Edge, or compatible browsers).
+                </p>
+                <div class="connection-info" id="connectionInfo">
+                    <strong>Device:</strong> <span id="deviceName">-</span><br>
+                    <strong>Status:</strong> <span id="deviceStatus">-</span>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="message error" id="errorMessage"></div>
+            <div class="message success" id="successMessage"></div>
+
+            <!-- Control Buttons -->
+            <div class="status-card">
+                <div class="status-header">
+                    <span class="status-icon">🎛️</span>
+                    <h3 class="status-title">BLE Controls</h3>
+                </div>
+                <div class="control-buttons">
+                    <button class="ble-button" id="connectButton">Connect to LAIKA</button>
+                    <button class="ble-button" id="identifyButton" disabled>Identify Device</button>
+                    <button class="ble-button" id="configureWifiButton" disabled>Configure WiFi</button>
+                    <button class="ble-button danger" id="disconnectButton" disabled>Disconnect</button>
+                </div>
+            </div>
+
+            <!-- WiFi Configuration Form -->
+            <div class="status-card wifi-form" id="wifiForm">
+                <div class="status-header">
+                    <span class="status-icon">📡</span>
+                    <h3 class="status-title">WiFi Configuration</h3>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Available Networks</label>
+                    <div class="networks-list" id="networksList">
+                        <div class="network-item">Scanning for networks...</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="ssidInput">Network Name (SSID)</label>
+                    <input type="text" class="input-field" id="ssidInput" placeholder="Enter WiFi network name">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="passwordInput">Password</label>
+                    <input type="password" class="input-field" id="passwordInput" placeholder="Enter WiFi password">
+                </div>
+
+                <div class="form-buttons">
+                    <button class="ble-button" id="cancelWifiButton">Cancel</button>
+                    <button class="ble-button success" id="submitWifiButton">Configure WiFi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header and Footer will be automatically inserted by header-footer.js -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/ble-improv.js"></script>
+    <script>
+        class WebBLEController {
+            constructor() {
+                this.bleImprov = new BLEImprov();
+                this.isConnected = false;
+                this.currentDevice = null;
+                
+                // UI Elements
+                this.elements = {
+                    statusCard: document.querySelector('.status-card'),
+                    statusTitle: document.getElementById('statusTitle'),
+                    statusIcon: document.getElementById('statusIcon'),
+                    statusText: document.getElementById('statusText'),
+                    connectionInfo: document.getElementById('connectionInfo'),
+                    
+                    connectButton: document.getElementById('connectButton'),
+                    identifyButton: document.getElementById('identifyButton'),
+                    configureWifiButton: document.getElementById('configureWifiButton'),
+                    disconnectButton: document.getElementById('disconnectButton'),
+                    
+                    wifiForm: document.getElementById('wifiForm'),
+                    networksList: document.getElementById('networksList'),
+                    ssidInput: document.getElementById('ssidInput'),
+                    passwordInput: document.getElementById('passwordInput'),
+                    submitWifiButton: document.getElementById('submitWifiButton'),
+                    cancelWifiButton: document.getElementById('cancelWifiButton'),
+                    
+                    errorMessage: document.getElementById('errorMessage'),
+                    successMessage: document.getElementById('successMessage')
+                };
+                
+                this.init();
+            }
+
+            init() {
+                console.log('Initializing WebBLE Controller...');
+                
+                // Check BLE support
+                if (!this.bleImprov.isSupported()) {
+                    this.showError('Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or another compatible browser.');
+                    this.elements.connectButton.disabled = true;
+                    return;
+                }
+
+                // Set up BLE event handlers
+                this.setupBLEHandlers();
+                
+                // Set up UI event listeners
+                this.setupEventListeners();
+                
+                console.log('WebBLE Controller initialized');
+            }
+
+            setupBLEHandlers() {
+                this.bleImprov.onStateChange = (state) => {
+                    console.log('BLE State changed:', state);
+                    this.updateStatus(state);
+                };
+
+                this.bleImprov.onConnected = (device) => {
+                    console.log('Connected to device:', device.name);
+                    this.isConnected = true;
+                    this.currentDevice = device;
+                    this.updateConnectionStatus(device);
+                };
+
+                this.bleImprov.onDisconnected = () => {
+                    console.log('Device disconnected');
+                    this.isConnected = false;
+                    this.currentDevice = null;
+                    this.updateDisconnectedStatus();
+                };
+
+                this.bleImprov.onNetworksFound = (networks) => {
+                    console.log('Networks found:', networks);
+                    this.updateNetworksList(networks);
+                };
+
+                this.bleImprov.onWiFiConfigured = (result) => {
+                    console.log('WiFi configured:', result);
+                    this.showSuccess('WiFi configuration sent successfully!');
+                    this.elements.wifiForm.classList.remove('show');
+                };
+
+                this.bleImprov.onError = (error) => {
+                    console.error('BLE Error:', error);
+                    this.showError(error.message || 'An error occurred with the Bluetooth connection.');
+                };
+            }
+
+            setupEventListeners() {
+                this.elements.connectButton.addEventListener('click', () => this.connectToDevice());
+                this.elements.identifyButton.addEventListener('click', () => this.identifyDevice());
+                this.elements.configureWifiButton.addEventListener('click', () => this.showWiFiForm());
+                this.elements.disconnectButton.addEventListener('click', () => this.disconnectDevice());
+                
+                this.elements.submitWifiButton.addEventListener('click', () => this.submitWiFiConfig());
+                this.elements.cancelWifiButton.addEventListener('click', () => this.hideWiFiForm());
+                
+                // Network selection
+                this.elements.networksList.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('network-item')) {
+                        this.selectNetwork(e.target);
+                    }
+                });
+            }
+
+            async connectToDevice() {
+                try {
+                    this.elements.connectButton.disabled = true;
+                    this.updateStatus('Scanning for devices...');
+                    
+                    await this.bleImprov.scan();
+                    await this.bleImprov.connect();
+                    
+                } catch (error) {
+                    console.error('Connection failed:', error);
+                    this.showError('Failed to connect: ' + error.message);
+                    this.elements.connectButton.disabled = false;
+                }
+            }
+
+            async identifyDevice() {
+                try {
+                    await this.bleImprov.identify();
+                    this.showSuccess('Identify command sent to device!');
+                } catch (error) {
+                    console.error('Identify failed:', error);
+                    this.showError('Failed to identify device: ' + error.message);
+                }
+            }
+
+            async showWiFiForm() {
+                try {
+                    this.elements.wifiForm.classList.add('show');
+                    this.updateStatus('Scanning for WiFi networks...');
+                    await this.bleImprov.scanNetworks();
+                } catch (error) {
+                    console.error('Network scan failed:', error);
+                    this.showError('Failed to scan networks: ' + error.message);
+                }
+            }
+
+            hideWiFiForm() {
+                this.elements.wifiForm.classList.remove('show');
+                this.elements.ssidInput.value = '';
+                this.elements.passwordInput.value = '';
+            }
+
+            async submitWiFiConfig() {
+                const ssid = this.elements.ssidInput.value.trim();
+                const password = this.elements.passwordInput.value;
+
+                if (!ssid) {
+                    this.showError('Please enter a network name (SSID)');
+                    return;
+                }
+
+                try {
+                    this.elements.submitWifiButton.disabled = true;
+                    this.updateStatus('Configuring WiFi...');
+                    
+                    await this.bleImprov.configureWiFi(ssid, password);
+                    
+                } catch (error) {
+                    console.error('WiFi configuration failed:', error);
+                    this.showError('Failed to configure WiFi: ' + error.message);
+                } finally {
+                    this.elements.submitWifiButton.disabled = false;
+                }
+            }
+
+            async disconnectDevice() {
+                try {
+                    await this.bleImprov.disconnect();
+                } catch (error) {
+                    console.error('Disconnect failed:', error);
+                    this.showError('Failed to disconnect: ' + error.message);
+                }
+            }
+
+            selectNetwork(networkElement) {
+                // Remove selection from other networks
+                document.querySelectorAll('.network-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // Select this network
+                networkElement.classList.add('selected');
+                this.elements.ssidInput.value = networkElement.textContent.trim();
+            }
+
+            updateNetworksList(networks) {
+                this.elements.networksList.innerHTML = '';
+                
+                if (networks.length === 0) {
+                    this.elements.networksList.innerHTML = '<div class="network-item">No networks found</div>';
+                    return;
+                }
+
+                networks.forEach(network => {
+                    const networkElement = document.createElement('div');
+                    networkElement.className = 'network-item';
+                    networkElement.textContent = network.ssid || network;
+                    this.elements.networksList.appendChild(networkElement);
+                });
+            }
+
+            updateStatus(status) {
+                this.elements.statusText.textContent = status;
+                
+                if (status.includes('Scanning')) {
+                    this.elements.statusIcon.textContent = '🔍';
+                    this.elements.statusTitle.textContent = 'Scanning';
+                } else if (status.includes('Connected')) {
+                    this.elements.statusIcon.textContent = '✅';
+                    this.elements.statusTitle.textContent = 'Connected';
+                } else if (status.includes('Configuring')) {
+                    this.elements.statusIcon.textContent = '⚙️';
+                    this.elements.statusTitle.textContent = 'Configuring';
+                }
+            }
+
+            updateConnectionStatus(device) {
+                this.elements.statusIcon.textContent = '✅';
+                this.elements.statusTitle.textContent = 'Connected';
+                this.elements.statusText.textContent = 'Successfully connected to LAIKA device. You can now configure WiFi or identify the device.';
+                
+                document.getElementById('deviceName').textContent = device.name || 'Unknown';
+                document.getElementById('deviceStatus').textContent = 'Connected';
+                this.elements.connectionInfo.style.display = 'block';
+                
+                // Enable buttons
+                this.elements.identifyButton.disabled = false;
+                this.elements.configureWifiButton.disabled = false;
+                this.elements.disconnectButton.disabled = false;
+                this.elements.connectButton.disabled = true;
+            }
+
+            updateDisconnectedStatus() {
+                this.elements.statusIcon.textContent = '❌';
+                this.elements.statusTitle.textContent = 'Disconnected';
+                this.elements.statusText.textContent = 'Device disconnected. Click "Connect to LAIKA" to reconnect.';
+                
+                this.elements.connectionInfo.style.display = 'none';
+                
+                // Reset buttons
+                this.elements.connectButton.disabled = false;
+                this.elements.identifyButton.disabled = true;
+                this.elements.configureWifiButton.disabled = true;
+                this.elements.disconnectButton.disabled = true;
+                
+                // Hide WiFi form
+                this.hideWiFiForm();
+            }
+
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                this.elements.errorMessage.classList.add('show');
+                this.elements.successMessage.classList.remove('show');
+                
+                setTimeout(() => {
+                    this.elements.errorMessage.classList.remove('show');
+                }, 5000);
+            }
+
+            showSuccess(message) {
+                this.elements.successMessage.textContent = message;
+                this.elements.successMessage.classList.add('show');
+                this.elements.errorMessage.classList.remove('show');
+                
+                setTimeout(() => {
+                    this.elements.successMessage.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebBLEController();
+        });
+    </script>
+    
+    <!-- Header/Footer System -->
+    <script src="js/header-footer.js"></script>
+</body>
+</html>

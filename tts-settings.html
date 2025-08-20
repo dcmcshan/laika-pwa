@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA - TTS Voice Settings</title>
+    <link rel="stylesheet" href="css/tron-styles.css">
+    <link rel="stylesheet" href="css/cards.css">
+    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    <style>
+        .voice-preview-container {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .voice-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .voice-option:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: #00ffff;
+        }
+        
+        .voice-option.selected {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
+        .voice-provider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .provider-badge {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .provider-badge.piper {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+        }
+        
+        .provider-badge.system {
+            background: linear-gradient(45deg, #9C27B0, #E91E63);
+        }
+        
+        .voice-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .control-group {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .test-btn {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+        }
+        
+        .test-btn:hover {
+            background: linear-gradient(45deg, #2a5298, #1e3c72);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        
+        .volume-meter {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .volume-level {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        @media (max-width: 768px) {
+            .voice-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo">
+                        <span class="logo-text">LAIKA</span>
+                        <span class="logo-subtitle">TTS Voice Settings</span>
+                    </div>
+                </div>
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Dashboard</a>
+                    <a href="chat.html" class="nav-link">Chat</a>
+                    <a href="control.html" class="nav-link">Control</a>
+                    <a href="settings.html" class="nav-link">Settings</a>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="page-header">
+                <h1>🗣️ Voice Settings</h1>
+                <p>Configure LAIKA's text-to-speech voice and audio parameters</p>
+            </div>
+
+            <!-- Voice Provider Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🎤 Voice Provider</h2>
+                    <p>Select the TTS engine for LAIKA's voice</p>
+                </div>
+                <div class="card-content">
+                    <div class="voice-option" data-provider="elevenlabs">
+                        <div class="voice-provider">
+                            <input type="radio" name="provider" value="elevenlabs" id="provider-elevenlabs">
+                            <label for="provider-elevenlabs"><strong>ElevenLabs</strong></label>
+                            <span class="provider-badge">Premium</span>
+                        </div>
+                        <p>High-quality AI voices with natural speech patterns and emotion</p>
+                        <small>Requires API key • Best quality • Cloud-based</small>
+                    </div>
+                    
+                    <div class="voice-option" data-provider="piper">
+                        <div class="voice-provider">
+                            <input type="radio" name="provider" value="piper" id="provider-piper" checked>
+                            <label for="provider-piper"><strong>Piper TTS</strong></label>
+                            <span class="provider-badge piper">Local</span>
+                        </div>
+                        <p>Fast local text-to-speech with good quality voices</p>
+                        <small>Works offline • Fast • Multiple languages</small>
+                    </div>
+                    
+                    <div class="voice-option" data-provider="system">
+                        <div class="voice-provider">
+                            <input type="radio" name="provider" value="system" id="provider-system">
+                            <label for="provider-system"><strong>System TTS</strong></label>
+                            <span class="provider-badge system">Fallback</span>
+                        </div>
+                        <p>Built-in system text-to-speech (espeak/festival)</p>
+                        <small>Always available • Basic quality • Lightweight</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>👤 Voice Selection</h2>
+                    <p>Choose LAIKA's voice personality</p>
+                </div>
+                <div class="card-content">
+                    <div id="voice-selection-container">
+                        <!-- Voice options will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Controls -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🎛️ Voice Parameters</h2>
+                    <p>Adjust voice characteristics and audio settings</p>
+                </div>
+                <div class="card-content">
+                    <div class="voice-controls">
+                        <!-- Volume Control -->
+                        <div class="control-group">
+                            <h3>🔊 Volume</h3>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="100" value="70" class="slider" id="volume-slider">
+                                <div class="volume-meter">
+                                    <div class="volume-level" id="volume-level"></div>
+                                </div>
+                                <div class="value-display">
+                                    <span id="volume-value">70%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speech Rate -->
+                        <div class="control-group">
+                            <h3>⚡ Speech Rate</h3>
+                            <div class="slider-container">
+                                <input type="range" min="0.5" max="2.0" step="0.1" value="1.0" class="slider" id="rate-slider">
+                                <div class="value-display">
+                                    <span id="rate-value">1.0x</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stability (ElevenLabs only) -->
+                        <div class="control-group" id="stability-control">
+                            <h3>🎯 Stability</h3>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="1" step="0.1" value="0.5" class="slider" id="stability-slider">
+                                <div class="value-display">
+                                    <span id="stability-value">0.5</span>
+                                </div>
+                            </div>
+                            <small>Higher values = more consistent, Lower values = more expressive</small>
+                        </div>
+
+                        <!-- Similarity Boost (ElevenLabs only) -->
+                        <div class="control-group" id="similarity-control">
+                            <h3>🎨 Similarity Boost</h3>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="1" step="0.1" value="0.75" class="slider" id="similarity-slider">
+                                <div class="value-display">
+                                    <span id="similarity-value">0.75</span>
+                                </div>
+                            </div>
+                            <small>How closely the AI follows the original voice</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Testing -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🧪 Voice Testing</h2>
+                    <p>Test LAIKA's voice with different phrases</p>
+                </div>
+                <div class="card-content">
+                    <div class="voice-preview-container">
+                        <h3>Test Phrases</h3>
+                        <div class="test-buttons">
+                            <button class="test-btn" data-text="Hello! I'm LAIKA, your friendly robot companion.">Greeting</button>
+                            <button class="test-btn" data-text="I'm ready to help you with whatever you need today.">Helpful</button>
+                            <button class="test-btn" data-text="Let's go for a walk and explore together!">Excited</button>
+                            <button class="test-btn" data-text="I understand your command and I'm processing it now.">Professional</button>
+                            <button class="test-btn" data-text="Привет! Меня зовут ЛАЙКА, и я ваш робот-компаньон.">Russian</button>
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <label for="custom-text">Custom Text:</label>
+                            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                                <input type="text" id="custom-text" placeholder="Enter text to test..." 
+                                       style="flex: 1; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,255,255,0.3); border-radius: 4px; color: #00ffff;">
+                                <button class="test-btn" id="test-custom">Test</button>
+                            </div>
+                        </div>
+                        
+                        <div id="tts-status" style="margin-top: 10px; padding: 8px; border-radius: 4px; display: none;">
+                            <!-- Status messages will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>💾 Save Configuration</h2>
+                    <p>Apply your voice settings to LAIKA</p>
+                </div>
+                <div class="card-content">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <button id="save-settings" class="action-btn primary">
+                            💾 Save Settings
+                        </button>
+                        <button id="reset-settings" class="action-btn secondary">
+                            🔄 Reset to Defaults
+                        </button>
+                        <button id="export-config" class="action-btn">
+                            📤 Export Config
+                        </button>
+                        <div id="save-status" style="margin-left: 10px;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>LAIKA Voice System</h4>
+                    <p>Configure your robot's voice and speech parameters</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Status</h4>
+                    <div id="connection-status">
+                        <span class="status-indicator" id="status-dot"></span>
+                        <span id="status-text">Checking connection...</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/tts-settings.js"></script>
+    <script>
+        // Initialize TTS Settings when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof TTSSettings !== 'undefined') {
+                window.ttsSettings = new TTSSettings();
+            }
+        });
+    </script>
+</body>
+</html>

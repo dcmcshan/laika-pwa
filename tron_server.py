@@ -6,6 +6,8 @@ Serves all the beautiful TRON-styled pages with robust startup
 
 from flask import Flask, send_file, jsonify, request, render_template_string, redirect
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, disconnect
+import socketio
 import os
 import json
 import threading
@@ -45,6 +47,9 @@ except ImportError:
 
 app = Flask(__name__)
 CORS(app)
+
+# Initialize SocketIO for WebSocket support
+socketio_app = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 
 # Set the template and static folders to the laika-pwa directory
 app.template_folder = '/home/pi/LAIKA/laika-pwa'
@@ -168,37 +173,78 @@ def encode_image_to_base64(image_path):
 def safe_camera_init():
     """Initialize camera safely in background thread"""
     global camera, camera_initialized
+    
+    print("📷 Starting camera initialization...")
+    
+    # First try direct OpenCV access to ensure camera is available
+    try:
+        import cv2
+        print("📷 Testing direct camera access...")
+        test_cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+        if not test_cap.isOpened():
+            print("⚠️ Direct camera access failed")
+            raise Exception("Camera device not accessible")
+        test_cap.release()
+        print("✅ Direct camera access successful")
+    except Exception as e:
+        print(f"⚠️ Direct camera test failed: {e}")
+    
     try:
         import sys
         sys.path.append('/home/pi/LAIKA')
         from laika_camera_control_service import LAIKACameraController
         
-        import signal
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Camera init timeout")
-        
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(3)  # 3 second timeout
-        
+        print("📷 Creating LAIKA Camera Controller...")
         camera = LAIKACameraController()
-        if hasattr(camera, 'camera_open'):
-            camera.camera_open()
-        camera_initialized = True
-        print("📷 Camera initialized successfully")
+        
+        print("📷 Opening camera...")
+        if hasattr(camera, 'open_camera'):
+            success = camera.open_camera()
+            if success:
+                camera_initialized = True
+                print("✅ LAIKA Camera initialized successfully!")
+                
+                # Test frame capture
+                frame = camera.capture_frame()
+                if frame is not None:
+                    print(f"✅ Camera frame test successful: {frame.shape}")
+                else:
+                    print("⚠️ Camera frame test failed")
+            else:
+                raise Exception("Camera controller failed to open camera")
+        else:
+            raise Exception("Camera controller missing open_camera method")
         
     except Exception as e:
-        print(f"⚠️ Camera initialization failed: {e} - using mock camera")
-        # Mock camera fallback
+        print(f"⚠️ Camera initialization failed: {e}")
+        print("🔄 Using mock camera fallback")
+        
+        # Mock camera fallback with proper interface
         class MockCamera:
-            def get_frame(self): return False, None
-            def camera_open(self): pass
+            def __init__(self):
+                self.is_opened = False
+                
+            def get_frame(self): 
+                return False, None
+                
+            def capture_frame(self):
+                return None
+                
+            def open_camera(self): 
+                self.is_opened = True
+                return True
+                
+            def get_parameters(self):
+                return {}
+                
+            def get_presets(self):
+                return {}
+                
         camera = MockCamera()
         camera_initialized = True
-    finally:
-        try:
-            signal.alarm(0)
-        except:
-            pass
+        print("📷 Mock camera initialized")
+    
+    print(f"📷 Camera initialization complete. Status: {'Real camera' if hasattr(camera, 'capture_frame') and camera.capture_frame else 'Mock camera'}")
 
 # Routes for all the TRON-styled pages
 @app.route('/')
@@ -276,6 +322,11 @@ def cursor_page():
 def github_page():
     """Serve the TRON-styled GitHub manager page"""
     return send_file('/home/pi/LAIKA/laika-pwa/github.html')
+
+@app.route('/shell')
+def shell_page():
+    """Serve the TRON-styled shell terminal page"""
+    return send_file('/home/pi/LAIKA/laika-pwa/shell.html')
 
 # Static file serving
 @app.route('/css/<path:filename>')
@@ -566,6 +617,56 @@ def camera_status():
         'stream_url': '/camera/stream' if camera_initialized else None
     })
 
+@app.route('/api/camera/parameters', methods=['GET', 'POST'])
+def camera_parameters():
+    """Get or set camera parameters"""
+    if not camera_initialized or not camera:
+        return jsonify({'error': 'Camera not available'}), 503
+    
+    if request.method == 'GET':
+        # Get current camera parameters
+        try:
+            if hasattr(camera, 'get_parameters'):
+                parameters = camera.get_parameters()
+                return jsonify({'success': True, 'parameters': parameters})
+            else:
+                return jsonify({'success': True, 'parameters': {}})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        # Set camera parameters
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            if hasattr(camera, 'set_parameter'):
+                results = {}
+                for param, value in data.items():
+                    results[param] = camera.set_parameter(param, value)
+                return jsonify({'success': True, 'results': results})
+            else:
+                return jsonify({'error': 'Camera does not support parameter setting'}), 501
+                
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/camera/presets')
+def camera_presets():
+    """Get available camera presets"""
+    if not camera_initialized or not camera:
+        return jsonify({'error': 'Camera not available'}), 503
+    
+    try:
+        if hasattr(camera, 'get_presets'):
+            presets = camera.get_presets()
+            return jsonify({'success': True, 'presets': presets})
+        else:
+            return jsonify({'success': True, 'presets': {}})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/camera/stream')
 def camera_stream():
     """Camera stream endpoint"""
@@ -573,20 +674,321 @@ def camera_stream():
         return jsonify({'error': 'Camera not available'}), 503
     
     def generate():
+        import cv2
         while True:
             try:
-                success, frame = camera.get_frame()
-                if success:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                frame = None
+                
+                # Try capture_frame method first (LAIKACameraController)
+                if hasattr(camera, 'capture_frame'):
+                    frame = camera.capture_frame()
+                    if frame is not None:
+                        # Encode frame to JPEG
+                        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                        if ret:
+                            frame_bytes = buffer.tobytes()
+                            yield (b'--frame\r\n'
+                                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                        else:
+                            time.sleep(0.1)
+                    else:
+                        time.sleep(0.1)
+                
+                # Fallback to get_frame method
+                elif hasattr(camera, 'get_frame'):
+                    success, frame_data = camera.get_frame()
+                    if success and frame_data is not None:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
+                    else:
+                        time.sleep(0.1)
                 else:
-                    time.sleep(0.1)
+                    time.sleep(0.5)  # No valid camera method
+                    
             except Exception as e:
                 print(f"Camera stream error: {e}")
-                break
+                time.sleep(0.5)
     
     return app.response_class(generate(),
                               mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/services')
+def get_services():
+    """Get system services status"""
+    import subprocess
+    
+    # Key LAIKA services to monitor
+    key_services = [
+        'laika-pwa.service',
+        'laika-ngrok-unified.service', 
+        'ssh.service',
+        'systemd-resolved.service',
+        'NetworkManager.service',
+        'bluetooth.service'
+    ]
+    
+    services = []
+    
+    for service_name in key_services:
+        try:
+            # Get service status
+            result = subprocess.run(
+                ['systemctl', 'status', service_name, '--no-pager', '-n', '0'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            # Parse systemctl output
+            status_lines = result.stdout.split('\n')
+            active_line = next((line for line in status_lines if 'Active:' in line), '')
+            loaded_line = next((line for line in status_lines if 'Loaded:' in line), '')
+            
+            # Extract status info
+            is_active = ('active (running)' in active_line or 
+                        'active (start-post)' in active_line or
+                        'activating (start-post)' in active_line)
+            is_enabled = 'enabled' in loaded_line
+            status_text = active_line.split('Active:')[1].strip() if 'Active:' in active_line else 'unknown'
+            
+            services.append({
+                'name': service_name,
+                'display_name': service_name.replace('.service', '').replace('-', ' ').title(),
+                'status': 'active' if is_active else 'inactive',
+                'enabled': is_enabled,
+                'status_text': status_text,
+                'controllable': service_name in ['laika-pwa.service', 'laika-ngrok-unified.service']
+            })
+            
+        except Exception as e:
+            services.append({
+                'name': service_name,
+                'display_name': service_name.replace('.service', '').replace('-', ' ').title(),
+                'status': 'error',
+                'enabled': False,
+                'status_text': f'Error: {str(e)}',
+                'controllable': False
+            })
+    
+    return jsonify({
+        'success': True,
+        'services': services,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/services/<service_name>/<action>', methods=['POST'])
+def control_service(service_name, action):
+    """Control a system service (start/stop/restart)"""
+    import subprocess
+    
+    # Only allow control of specific services for security
+    allowed_services = ['laika-pwa.service', 'laika-ngrok-unified.service']
+    allowed_actions = ['start', 'stop', 'restart', 'enable', 'disable']
+    
+    if service_name not in allowed_services:
+        return jsonify({
+            'success': False,
+            'error': f'Service {service_name} is not controllable'
+        }), 403
+    
+    if action not in allowed_actions:
+        return jsonify({
+            'success': False,
+            'error': f'Action {action} is not allowed'
+        }), 400
+    
+    try:
+        # Execute systemctl command
+        cmd = ['sudo', 'systemctl', action, service_name]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            return jsonify({
+                'success': True,
+                'message': f'Successfully {action}ed {service_name}',
+                'service': service_name,
+                'action': action
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to {action} {service_name}: {result.stderr}',
+                'service': service_name,
+                'action': action
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'success': False,
+            'error': f'Timeout while trying to {action} {service_name}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Error controlling service: {str(e)}'
+        }), 500
+
+@app.route('/services')
+def services_page():
+    """Serve the services management page"""
+    return send_file('services.html')
+
+@app.route('/webble')
+def webble_page():
+    """Serve the WebBLE WiFi setup page"""
+    return send_file('webble.html')
+
+# ================================
+# CONTROL & GAMEPAD ENDPOINTS
+# ================================
+
+# Duplicate control route removed - already defined earlier
+
+@app.route('/gamepad_action', methods=['POST'])
+def handle_gamepad_action():
+    """Handle gamepad button actions from web interface"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+        
+        action = data.get('action')
+        if not action:
+            return jsonify({'success': False, 'error': 'No action specified'}), 400
+        
+        print(f"🎮 Gamepad action received: {action}")
+        
+        # Use the comprehensive web gamepad processor
+        try:
+            from web_gamepad_processor import process_web_gamepad_action
+            result = process_web_gamepad_action(action)
+            
+            return jsonify({
+                'success': result['success'],
+                'action': action,
+                'laika_action': result.get('laika_action', action),
+                'button_name': result.get('button_name', ''),
+                'description': result.get('description', ''),
+                'category': result.get('category', ''),
+                'message': f'Gamepad action {action} processed successfully',
+                'timestamp': datetime.now().isoformat(),
+                **result  # Include all processor results
+            })
+            
+        except ImportError as e:
+            # Fallback: log the action
+            print(f"🤖 Gamepad action (fallback): {action}")
+            return jsonify({
+                'success': True,
+                'action': action,
+                'message': f'Action {action} logged (gamepad processor not available)',
+                'timestamp': datetime.now().isoformat()
+            })
+            
+    except Exception as e:
+        print(f"❌ Error handling gamepad action: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/gamepad_movement', methods=['POST'])
+def handle_gamepad_movement():
+    """Handle gamepad movement commands from web interface"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No movement data received'}), 400
+        
+        linear_x = data.get('linear_x', 0.0)
+        linear_y = data.get('linear_y', 0.0)
+        angular_z = data.get('angular_z', 0.0)
+        
+        # Only process significant movements to reduce noise
+        if abs(linear_x) < 0.05 and abs(linear_y) < 0.05 and abs(angular_z) < 0.05:
+            return jsonify({'success': True, 'message': 'Movement below threshold, ignored'})
+        
+        print(f"🎮 Gamepad movement: linear_x={linear_x:.2f}, linear_y={linear_y:.2f}, angular_z={angular_z:.2f}")
+        
+        try:
+            # Use the comprehensive web gamepad processor
+            from web_gamepad_processor import process_web_gamepad_movement
+            result = process_web_gamepad_movement(linear_x, linear_y, angular_z)
+            
+            return jsonify({
+                'success': result['success'],
+                'movement': result.get('movement', {
+                    'linear_x': linear_x,
+                    'linear_y': linear_y,
+                    'angular_z': angular_z
+                }),
+                'modifiers': result.get('modifiers', {}),
+                'message': 'Movement command processed by gamepad processor',
+                'timestamp': datetime.now().isoformat(),
+                **result  # Include all processor results
+            })
+            
+        except ImportError as e:
+            # Fallback: just log the movement
+            print(f"🤖 Movement command (fallback): x={linear_x:.2f}, y={linear_y:.2f}, z={angular_z:.2f}")
+            return jsonify({
+                'success': True,
+                'movement': {
+                    'linear_x': linear_x,
+                    'linear_y': linear_y,
+                    'angular_z': angular_z
+                },
+                'message': 'Movement logged (gamepad processor not available)',
+                'timestamp': datetime.now().isoformat()
+            })
+            
+    except Exception as e:
+        print(f"❌ Error handling gamepad movement: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/gamepad/status', methods=['GET'])
+def get_gamepad_status():
+    """Get gamepad connection and processing status"""
+    try:
+        # Check if enhanced gamepad handler is available
+        gamepad_available = False
+        motion_available = False
+        
+        try:
+            from enhanced_gamepad_handler import EnhancedGamepadHandler
+            gamepad_available = True
+        except ImportError:
+            pass
+            
+        try:
+            from gamepad_motion_controller import GamepadMotionController
+            motion_available = True
+        except ImportError:
+            pass
+        
+        return jsonify({
+            'success': True,
+            'gamepad_handler_available': gamepad_available,
+            'motion_controller_available': motion_available,
+            'endpoints_active': True,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ================================
+# WEBSOCKET ENDPOINTS FOR REAL-TIME CONTROL
+# ================================
+
+# TODO: Fix SocketIO implementation - temporarily disabled to fix camera
+# The SocketIO section has been commented out due to syntax errors
+# This will be re-enabled once the issues are resolved
+
+# Original SocketIO code was here but had indentation issues
+# SocketIO functionality will be re-implemented properly later
 
 @app.route('/api/processes')
 def get_processes():
@@ -1761,16 +2163,31 @@ def update_repository(repo_path, repo_name):
                                      cwd=repo_path, capture_output=True, text=True)
         current_branch = branch_result.stdout.strip() if branch_result.returncode == 0 else 'main'
         
+        # Configure git to handle divergent branches
+        subprocess.run(['git', 'config', 'pull.rebase', 'false'], 
+                      cwd=repo_path, capture_output=True, text=True)
+        
         # Pull latest changes
         pull_result = subprocess.run(['git', 'pull', 'origin', current_branch], 
                                    cwd=repo_path, capture_output=True, text=True, timeout=60)
         
         if pull_result.returncode != 0:
-            return {
-                'repository': repo_name,
-                'success': False,
-                'status': f'Pull failed: {pull_result.stderr}'
-            }
+            # If pull fails due to divergent branches, try merge strategy
+            if 'divergent branches' in pull_result.stderr or 'Need to specify how to reconcile' in pull_result.stderr:
+                merge_result = subprocess.run(['git', 'pull', '--no-rebase', 'origin', current_branch], 
+                                            cwd=repo_path, capture_output=True, text=True, timeout=60)
+                if merge_result.returncode != 0:
+                    return {
+                        'repository': repo_name,
+                        'success': False,
+                        'status': f'Pull failed after attempting merge: {merge_result.stderr}'
+                    }
+            else:
+                return {
+                    'repository': repo_name,
+                    'success': False,
+                    'status': f'Pull failed: {pull_result.stderr}'
+                }
         
         return {
             'repository': repo_name,
@@ -1843,6 +2260,507 @@ def refresh_submodules(repo_path, hard_reset=False):
             'message': f'Submodule refresh failed: {str(e)}'
         }
 
+# Shell Terminal API endpoints
+@app.route('/api/shell/status')
+def shell_status():
+    """Get shell service status"""
+    try:
+        return jsonify({
+            'success': True,
+            'status': 'online',
+            'shell_available': True,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/shell/execute', methods=['POST'])
+def execute_shell_command():
+    """Execute shell command with security controls"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'JSON data required'}), 400
+            
+        command = data.get('command', '').strip()
+        cwd = data.get('cwd', '/home/pi/LAIKA')
+        
+        if not command:
+            return jsonify({'success': False, 'error': 'Command is required'}), 400
+        
+        # Security: Command whitelist and blacklist
+        dangerous_commands = [
+            'rm -rf /', 'dd', 'mkfs', 'fdisk', 'parted', 'wipefs',
+            'shutdown', 'reboot', 'halt', 'poweroff', 'init 0', 'init 6',
+            'passwd', 'su -', 'sudo su', 'chmod 777', 'chown root'
+        ]
+        
+        # Check for dangerous commands
+        for dangerous in dangerous_commands:
+            if dangerous in command.lower():
+                return jsonify({
+                    'success': False,
+                    'error': f'Command "{dangerous}" is not allowed for security reasons'
+                }), 403
+        
+        # Limit command length
+        if len(command) > 500:
+            return jsonify({
+                'success': False,
+                'error': 'Command too long (max 500 characters)'
+            }), 400
+        
+        # Validate working directory
+        if not cwd.startswith('/home/pi'):
+            cwd = '/home/pi/LAIKA'
+        
+        # Execute command with timeout and security restrictions
+        import subprocess
+        import os
+        
+        try:
+            # Set up environment
+            env = os.environ.copy()
+            env['PATH'] = '/usr/local/bin:/usr/bin:/bin'  # Restrict PATH
+            
+            # Handle built-in commands
+            if command.startswith('cd '):
+                new_dir = command[3:].strip()
+                if new_dir == '':
+                    new_dir = '/home/pi'
+                elif new_dir.startswith('~'):
+                    new_dir = new_dir.replace('~', '/home/pi', 1)
+                elif not new_dir.startswith('/'):
+                    new_dir = os.path.join(cwd, new_dir)
+                
+                # Normalize path and check if it exists
+                try:
+                    new_dir = os.path.abspath(new_dir)
+                    if os.path.exists(new_dir) and os.path.isdir(new_dir):
+                        # Security: Only allow directories under /home/pi
+                        if new_dir.startswith('/home/pi'):
+                            return jsonify({
+                                'success': True,
+                                'output': '',
+                                'cwd': new_dir,
+                                'message': f'Changed directory to {new_dir}'
+                            })
+                        else:
+                            return jsonify({
+                                'success': False,
+                                'error': 'Access denied: Can only navigate within /home/pi'
+                            })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': f'Directory not found: {new_dir}'
+                        })
+                except Exception as e:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Invalid path: {str(e)}'
+                    })
+            
+            # Execute other commands
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=cwd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=30,  # 30 second timeout
+                user='pi'  # Run as pi user
+            )
+            
+            # Combine stdout and stderr
+            output = result.stdout
+            if result.stderr:
+                output += '\n' + result.stderr
+            
+            return jsonify({
+                'success': result.returncode == 0,
+                'output': output.strip(),
+                'cwd': cwd,
+                'return_code': result.returncode,
+                'error': result.stderr.strip() if result.stderr and result.returncode != 0 else None
+            })
+            
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                'success': False,
+                'error': 'Command timed out (30 second limit)',
+                'cwd': cwd
+            })
+        except PermissionError:
+            return jsonify({
+                'success': False,
+                'error': 'Permission denied - insufficient privileges',
+                'cwd': cwd
+            })
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Command execution failed: {str(e)}',
+                'cwd': cwd
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/shell/history', methods=['GET', 'POST'])
+def shell_history():
+    """Get or add to shell command history"""
+    history_file = '/tmp/laika_shell_history.txt'
+    
+    if request.method == 'GET':
+        try:
+            if os.path.exists(history_file):
+                with open(history_file, 'r') as f:
+                    history = [line.strip() for line in f.readlines()][-50:]  # Last 50 commands
+            else:
+                history = []
+                
+            return jsonify({
+                'success': True,
+                'history': history,
+                'count': len(history)
+            })
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            command = data.get('command', '').strip()
+            
+            if command:
+                # Append to history file
+                with open(history_file, 'a') as f:
+                    f.write(f"{command}\n")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Command added to history'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'No command provided'
+                }), 400
+                
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+@app.route('/api/shell/suggestions')
+def shell_suggestions():
+    """Get command suggestions based on input"""
+    try:
+        query = request.args.get('q', '').lower().strip()
+        if not query:
+            return jsonify({'success': True, 'suggestions': []})
+        
+        # Common Linux commands with descriptions
+        common_commands = [
+            {'cmd': 'ls', 'desc': 'List directory contents', 'category': 'file'},
+            {'cmd': 'ls -la', 'desc': 'List all files with details', 'category': 'file'},
+            {'cmd': 'cd', 'desc': 'Change directory', 'category': 'navigation'},
+            {'cmd': 'pwd', 'desc': 'Print working directory', 'category': 'navigation'},
+            {'cmd': 'cat', 'desc': 'Display file contents', 'category': 'file'},
+            {'cmd': 'less', 'desc': 'View file contents page by page', 'category': 'file'},
+            {'cmd': 'head', 'desc': 'Show first lines of file', 'category': 'file'},
+            {'cmd': 'tail', 'desc': 'Show last lines of file', 'category': 'file'},
+            {'cmd': 'grep', 'desc': 'Search text patterns', 'category': 'search'},
+            {'cmd': 'find', 'desc': 'Find files and directories', 'category': 'search'},
+            {'cmd': 'ps', 'desc': 'Show running processes', 'category': 'process'},
+            {'cmd': 'ps aux', 'desc': 'Show all processes with details', 'category': 'process'},
+            {'cmd': 'top', 'desc': 'Display system processes', 'category': 'process'},
+            {'cmd': 'htop', 'desc': 'Interactive process viewer', 'category': 'process'},
+            {'cmd': 'df -h', 'desc': 'Show disk usage', 'category': 'system'},
+            {'cmd': 'free -h', 'desc': 'Show memory usage', 'category': 'system'},
+            {'cmd': 'uptime', 'desc': 'Show system uptime', 'category': 'system'},
+            {'cmd': 'whoami', 'desc': 'Show current user', 'category': 'system'},
+            {'cmd': 'date', 'desc': 'Show current date and time', 'category': 'system'},
+            {'cmd': 'systemctl status', 'desc': 'Check service status', 'category': 'service'},
+            {'cmd': 'systemctl list-units', 'desc': 'List all systemd units', 'category': 'service'},
+            {'cmd': 'journalctl -f', 'desc': 'Follow system logs', 'category': 'logs'},
+            {'cmd': 'journalctl -u', 'desc': 'Show logs for specific service', 'category': 'logs'},
+            {'cmd': 'git status', 'desc': 'Show git repository status', 'category': 'git'},
+            {'cmd': 'git log', 'desc': 'Show git commit history', 'category': 'git'},
+            {'cmd': 'python3', 'desc': 'Python interpreter', 'category': 'dev'},
+            {'cmd': 'pip3 list', 'desc': 'List installed Python packages', 'category': 'dev'},
+            {'cmd': 'nano', 'desc': 'Simple text editor', 'category': 'edit'},
+            {'cmd': 'vim', 'desc': 'Vi text editor', 'category': 'edit'}
+        ]
+        
+        # Filter suggestions based on query
+        suggestions = [
+            cmd for cmd in common_commands 
+            if cmd['cmd'].startswith(query) or query in cmd['desc'].lower()
+        ][:10]  # Limit to 10 suggestions
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions,
+            'query': query
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/tts/settings', methods=['GET', 'POST'])
+def tts_settings():
+    """Get or update TTS settings"""
+    settings_file = '/tmp/laika_tts_settings.json'
+    
+    if request.method == 'GET':
+        try:
+            # Load current settings
+            default_settings = {
+                'provider': 'piper',
+                'voice_id': 'en_US-amy-medium',
+                'volume': 70,
+                'rate': 1.0,
+                'stability': 0.5,
+                'similarity_boost': 0.75,
+                'language': 'en-US'
+            }
+            
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    # Merge with defaults to ensure all keys exist
+                    settings = {**default_settings, **settings}
+            else:
+                settings = default_settings
+            
+            return jsonify({
+                'success': True,
+                'config': settings
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Validate settings
+            required_fields = ['provider', 'voice_id', 'volume', 'rate']
+            for field in required_fields:
+                if field not in data:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Missing required field: {field}'
+                    }), 400
+            
+            # Validate ranges
+            if not (0 <= data['volume'] <= 100):
+                return jsonify({
+                    'success': False,
+                    'error': 'Volume must be between 0 and 100'
+                }), 400
+                
+            if not (0.5 <= data['rate'] <= 2.0):
+                return jsonify({
+                    'success': False,
+                    'error': 'Rate must be between 0.5 and 2.0'
+                }), 400
+            
+            # Save settings
+            with open(settings_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            
+            # Update system volume if needed
+            try:
+                import subprocess
+                subprocess.run(['amixer', 'set', 'Master', f"{data['volume']}%"], 
+                             capture_output=True, check=False)
+            except:
+                pass  # Ignore amixer errors
+            
+            return jsonify({
+                'success': True,
+                'message': 'Settings saved successfully'
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            }), 500
+
+@app.route('/api/tts/test', methods=['POST'])
+def tts_test():
+    """Test TTS with given text and settings"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        provider = data.get('provider', 'piper')
+        voice_id = data.get('voice_id', 'default')
+        settings = data.get('settings', {})
+        
+        if not text:
+            return jsonify({
+                'success': False,
+                'error': 'No text provided'
+            }), 400
+        
+        if len(text) > 500:
+            return jsonify({
+                'success': False,
+                'error': 'Text too long (max 500 characters)'
+            }), 400
+        
+        # Generate unique filename for this test
+        timestamp = int(time.time())
+        audio_filename = f"tts_test_{timestamp}.wav"
+        audio_path = f"/tmp/{audio_filename}"
+        
+        # Try to use the TTS system
+        try:
+            # Import TTS system
+            sys.path.append('/home/pi/LAIKA')
+            from laika_say import speak_text
+            
+            # Temporarily adjust system volume
+            volume = settings.get('volume', 0.7)
+            if isinstance(volume, (int, float)) and 0 <= volume <= 1:
+                volume_percent = int(volume * 100)
+                try:
+                    subprocess.run(['amixer', 'set', 'Master', f"{volume_percent}%"], 
+                                 capture_output=True, check=False)
+                except:
+                    pass
+            
+            # Generate speech (this will play it automatically)
+            success = speak_text(text)
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'TTS test completed',
+                    'provider_used': provider,
+                    'voice_used': voice_id,
+                    'text_length': len(text)
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'TTS generation failed'
+                })
+                
+        except ImportError:
+            return jsonify({
+                'success': False,
+                'error': 'TTS system not available'
+            }), 503
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/tts/voices')
+def tts_voices():
+    """Get available TTS voices for each provider"""
+    try:
+        voices = {
+            'elevenlabs': [
+                {
+                    'id': 'GN4wbsbejSnGSa1AzjH5',
+                    'name': 'Ekaterina',
+                    'description': 'Multilingual female voice (English/Russian)',
+                    'gender': 'female',
+                    'languages': ['en-US', 'ru-RU'],
+                    'premium': True
+                },
+                {
+                    'id': 'oKxkBkm5a8Bmrd1Whf2c',
+                    'name': 'Prince Nuri',
+                    'description': 'Clear male voice with good pronunciation',
+                    'gender': 'male',
+                    'languages': ['en-US'],
+                    'premium': True
+                }
+            ],
+            'piper': [
+                {
+                    'id': 'en_US-joe-medium',
+                    'name': 'Joe (English Male)',
+                    'description': 'Clear male English voice',
+                    'gender': 'male',
+                    'languages': ['en-US'],
+                    'available': os.path.exists('/home/pi/LAIKA/models/piper/en_US-joe-medium.onnx')
+                },
+                {
+                    'id': 'en_US-amy-medium',
+                    'name': 'Amy (English Female)',
+                    'description': 'Natural female English voice',
+                    'gender': 'female',
+                    'languages': ['en-US'],
+                    'available': os.path.exists('/home/pi/LAIKA/models/piper/en_US-amy-medium.onnx')
+                },
+                {
+                    'id': 'ru_RU-denis-medium',
+                    'name': 'Denis (Russian Male)',
+                    'description': 'Clear male Russian voice',
+                    'gender': 'male',
+                    'languages': ['ru-RU'],
+                    'available': os.path.exists('/home/pi/LAIKA/models/piper/ru_RU-denis-medium.onnx')
+                },
+                {
+                    'id': 'ru_RU-irina-medium',
+                    'name': 'Irina (Russian Female)',
+                    'description': 'Natural female Russian voice',
+                    'gender': 'female',
+                    'languages': ['ru-RU'],
+                    'available': os.path.exists('/home/pi/LAIKA/models/piper/ru_RU-irina-medium.onnx')
+                }
+            ],
+            'system': [
+                {
+                    'id': 'espeak-default',
+                    'name': 'eSpeak Default',
+                    'description': 'Basic system voice (espeak)',
+                    'gender': 'neutral',
+                    'languages': ['en-US', 'ru-RU'],
+                    'available': True
+                }
+            ]
+        }
+        
+        return jsonify({
+            'success': True,
+            'voices': voices
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     print("🚀 Starting LAIKA TRON PWA Server...")
     print("🎨 Full TRON aesthetic with all pages")
@@ -1861,8 +2779,14 @@ if __name__ == '__main__':
     
     # ALWAYS START THE FLASK SERVER - GUARANTEED!
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
+        if 'SOCKETIO_AVAILABLE' in globals() and SOCKETIO_AVAILABLE and socketio_app:
+            print("🔗 Starting with SocketIO WebSocket support for real-time gamepad control")
+            socketio_app.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+        else:
+            print("🌐 Starting regular Flask server (SocketIO not available)")
+            app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
     except Exception as e:
         print(f"❌ Server failed: {e}")
-        # Fallback - try localhost only
+        print("🔄 Falling back to basic Flask server")
+        # Fallback - try regular Flask server
         app.run(host='127.0.0.1', port=5000, debug=False, threaded=True, use_reloader=False)

@@ -281,7 +281,14 @@ class LAIKACamera {
         try {
             console.log('📺 Starting HTTP camera stream...');
             const video = document.getElementById('videoStream');
-            const streamUrl = `${this.baseUrl}/camera/stream`;
+            
+            // For ngrok HTTPS, we need to use the same protocol and host
+            const isNgrok = window.location.hostname.includes('ngrok');
+            const streamUrl = isNgrok ? 
+                `${window.location.origin}/camera/stream` : 
+                `${this.baseUrl}/camera/stream`;
+            
+            console.log(`🔗 Stream URL: ${streamUrl}`);
             
             // For HTTP streaming, we'll use an img element instead of video
             if (video.tagName === 'VIDEO') {
@@ -300,8 +307,9 @@ class LAIKACamera {
                     this.updateConnectionStatus();
                 };
                 
-                img.onerror = () => {
-                    console.error('❌ Failed to load camera stream');
+                img.onerror = (error) => {
+                    console.error('❌ Failed to load camera stream:', error);
+                    console.log('🔄 Trying alternative stream methods...');
                     this.enableSimulationMode();
                 };
                 

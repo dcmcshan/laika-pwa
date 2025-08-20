@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
+    <title>LAIKA Shell - Terminal Interface</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LAIKA Shell">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
+            --terminal-bg: #0F0F1A;
+            --terminal-border: #00FFFF;
+            --prompt-color: #00E5FF;
+            --success-color: #00FF88;
+            --error-color: #FF4444;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Exo 2', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            position: relative;
+            z-index: 2;
+        }
+
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 20px,
+                    var(--grid-color) 20px,
+                    var(--grid-color) 21px
+                );
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: 
+                linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
+                linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
+            color: var(--atomic-bg);
+            padding: 40px 20px 30px;
+            text-align: center;
+            position: relative;
+            border-bottom: 2px solid var(--atomic-cyan);
+            box-shadow: 
+                0 4px 20px var(--glow-cyan),
+                inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+            margin-top: 70px; /* Account for fixed header */
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255, 255, 255, 0.1) 10px,
+                    rgba(255, 255, 255, 0.1) 11px
+                );
+            pointer-events: none;
+        }
+
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 
+                0 0 10px var(--atomic-bg),
+                0 0 20px var(--atomic-bg);
+        }
+
+        .page-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--atomic-bg);
+        }
+
+        .shell-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+            text-shadow: 
+                0 0 10px var(--atomic-bg),
+                0 0 20px var(--atomic-bg),
+                0 0 30px var(--atomic-bg);
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+            animation: terminalPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes terminalPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Terminal Container */
+        .terminal-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            height: calc(100vh - 250px);
+            min-height: 600px;
+        }
+
+        .terminal {
+            background: var(--terminal-bg);
+            border: 2px solid var(--terminal-border);
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px var(--glow-cyan),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .terminal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border-bottom: 1px solid var(--terminal-border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .terminal-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid var(--text-dim);
+            cursor: pointer;
+        }
+
+        .terminal-control.close { background: var(--error-color); }
+        .terminal-control.minimize { background: var(--warning-yellow); }
+        .terminal-control.maximize { background: var(--success-color); }
+
+        /* Terminal Output */
+        .terminal-output {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-cyan);
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 24px,
+                    rgba(0, 255, 255, 0.02) 24px,
+                    rgba(0, 255, 255, 0.02) 25px
+                );
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: flex-start;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .terminal-prompt {
+            color: var(--prompt-color);
+            font-weight: 500;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .terminal-command {
+            color: var(--text-cyan);
+            flex: 1;
+        }
+
+        .terminal-output-text {
+            color: var(--text-dim);
+            margin-left: 0;
+        }
+
+        .terminal-output-text.success {
+            color: var(--success-color);
+        }
+
+        .terminal-output-text.error {
+            color: var(--error-color);
+        }
+
+        .terminal-output-text.warning {
+            color: var(--warning-yellow);
+        }
+
+        /* Terminal Input */
+        .terminal-input-container {
+            border-top: 1px solid var(--terminal-border);
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--terminal-bg), #0A0A15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-input-prompt {
+            color: var(--prompt-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            padding: 0;
+            caret-color: var(--atomic-cyan);
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--atomic-cyan);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border-top: 1px solid var(--terminal-border);
+            padding: 15px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 1px solid var(--atomic-cyan);
+            color: var(--text-cyan);
+            padding: 8px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-button:hover {
+            background: linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan));
+            color: var(--atomic-bg);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .control-button.danger {
+            border-color: var(--error-color);
+        }
+
+        .control-button.danger:hover {
+            background: var(--error-color);
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        }
+
+        /* Status Indicators */
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error-color);
+        }
+
+        .status-dot.connected {
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            color: var(--atomic-cyan);
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .system-info {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        /* Command Suggestions */
+        .command-suggestions {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background: var(--terminal-bg);
+            border: 1px solid var(--terminal-border);
+            border-bottom: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+
+        .suggestion-item {
+            padding: 8px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.selected {
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--text-cyan);
+        }
+
+        .suggestion-command {
+            color: var(--prompt-color);
+            font-weight: 500;
+        }
+
+        .suggestion-description {
+            color: var(--text-dim);
+            font-size: 11px;
+            margin-left: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .terminal-container {
+                padding: 10px;
+                height: calc(100vh - 200px);
+            }
+            
+            .page-title {
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .status-indicators {
+                margin-left: 0;
+                justify-content: center;
+            }
+            
+            .terminal-output {
+                font-size: 12px;
+                padding: 15px;
+            }
+            
+            .terminal-input {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 20px;
+            }
+            
+            .terminal-container {
+                height: calc(100vh - 180px);
+                min-height: 400px;
+            }
+            
+            .terminal-output {
+                font-size: 11px;
+                padding: 10px;
+            }
+        }
+
+        /* Error Message Styles */
+        .error-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--error-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .error-message.show {
+            transform: translateX(0);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: var(--atomic-bg);
+            padding: 15px 20px;
+            border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .success-message.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <span class="shell-icon">💻</span>
+            <h1 class="page-title">LAIKA Shell</h1>
+            <p class="page-subtitle">Terminal Interface • System Command Line</p>
+        </div>
+
+        <!-- Terminal Container -->
+        <div class="terminal-container">
+            <div class="terminal">
+                <!-- Terminal Header -->
+                <div class="terminal-header">
+                    <div class="terminal-title">
+                        <span>🤖</span>
+                        <span>LAIKA Terminal v2.1.0</span>
+                        <span>•</span>
+                        <span id="currentPath">/home/pi/LAIKA</span>
+                    </div>
+                    <div class="terminal-controls">
+                        <div class="terminal-control minimize" title="Minimize"></div>
+                        <div class="terminal-control maximize" title="Maximize"></div>
+                        <div class="terminal-control close" title="Close"></div>
+                    </div>
+                </div>
+
+                <!-- Terminal Output -->
+                <div class="terminal-output" id="terminalOutput">
+                    <div class="terminal-line welcome-message">
+                        Welcome to LAIKA Shell Interface
+                    </div>
+                    <div class="terminal-line system-info">
+                        System: Raspberry Pi • OS: Linux • Shell: bash
+                    </div>
+                    <div class="terminal-line system-info">
+                        Type 'help' for available commands or 'clear' to clear the screen
+                    </div>
+                    <div class="terminal-line">
+                        <span class="terminal-prompt">laika@pi:~$</span>
+                        <span class="terminal-command"></span>
+                    </div>
+                </div>
+
+                <!-- Command Suggestions -->
+                <div class="command-suggestions" id="commandSuggestions"></div>
+
+                <!-- Terminal Input -->
+                <div class="terminal-input-container">
+                    <span class="terminal-input-prompt" id="inputPrompt">laika@pi:~$</span>
+                    <input type="text" class="terminal-input" id="terminalInput" placeholder="Enter command..." autocomplete="off" spellcheck="false">
+                    <span class="terminal-cursor"></span>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <button class="control-button" id="clearBtn">Clear</button>
+                    <button class="control-button" id="historyBtn">History</button>
+                    <button class="control-button" id="helpBtn">Help</button>
+                    <button class="control-button danger" id="killBtn">Kill Process</button>
+                    
+                    <div class="status-indicators">
+                        <div class="status-indicator">
+                            <div class="status-dot" id="connectionStatus"></div>
+                            <span>Connection</span>
+                        </div>
+                        <div class="status-indicator">
+                            <div class="status-dot" id="shellStatus"></div>
+                            <span>Shell</span>
+                        </div>
+                        <div class="status-indicator">
+                            <span id="currentTime">--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header and Footer will be automatically inserted by header-footer.js -->
+    </div>
+
+    <!-- Error/Success Messages -->
+    <div class="error-message" id="errorMessage"></div>
+    <div class="success-message" id="successMessage"></div>
+
+    <!-- Scripts -->
+    <script>
+        class LAIKAShell {
+            constructor() {
+                this.commandHistory = [];
+                this.historyIndex = -1;
+                this.currentPath = '/home/pi/LAIKA';
+                this.isConnected = false;
+                this.suggestions = [];
+                
+                this.elements = {
+                    terminalOutput: document.getElementById('terminalOutput'),
+                    terminalInput: document.getElementById('terminalInput'),
+                    inputPrompt: document.getElementById('inputPrompt'),
+                    currentPath: document.getElementById('currentPath'),
+                    commandSuggestions: document.getElementById('commandSuggestions'),
+                    connectionStatus: document.getElementById('connectionStatus'),
+                    shellStatus: document.getElementById('shellStatus'),
+                    currentTime: document.getElementById('currentTime'),
+                    clearBtn: document.getElementById('clearBtn'),
+                    historyBtn: document.getElementById('historyBtn'),
+                    helpBtn: document.getElementById('helpBtn'),
+                    killBtn: document.getElementById('killBtn'),
+                    errorMessage: document.getElementById('errorMessage'),
+                    successMessage: document.getElementById('successMessage')
+                };
+                
+                this.commonCommands = [
+                    { cmd: 'ls', desc: 'List directory contents' },
+                    { cmd: 'cd', desc: 'Change directory' },
+                    { cmd: 'pwd', desc: 'Print working directory' },
+                    { cmd: 'ps', desc: 'Show running processes' },
+                    { cmd: 'top', desc: 'Display system processes' },
+                    { cmd: 'df', desc: 'Show disk usage' },
+                    { cmd: 'free', desc: 'Show memory usage' },
+                    { cmd: 'cat', desc: 'Display file contents' },
+                    { cmd: 'grep', desc: 'Search text patterns' },
+                    { cmd: 'find', desc: 'Find files and directories' },
+                    { cmd: 'sudo', desc: 'Execute as superuser' },
+                    { cmd: 'systemctl', desc: 'Control systemd services' },
+                    { cmd: 'journalctl', desc: 'View system logs' },
+                    { cmd: 'git', desc: 'Git version control' },
+                    { cmd: 'python3', desc: 'Python interpreter' },
+                    { cmd: 'pip3', desc: 'Python package manager' },
+                    { cmd: 'nano', desc: 'Text editor' },
+                    { cmd: 'vim', desc: 'Vi text editor' },
+                    { cmd: 'chmod', desc: 'Change file permissions' },
+                    { cmd: 'chown', desc: 'Change file ownership' }
+                ];
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('Initializing LAIKA Shell...');
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Update time
+                this.updateTime();
+                setInterval(() => this.updateTime(), 1000);
+                
+                // Test connection
+                this.testConnection();
+                
+                // Focus input
+                this.elements.terminalInput.focus();
+                
+                console.log('LAIKA Shell initialized');
+            }
+            
+            setupEventListeners() {
+                // Terminal input
+                this.elements.terminalInput.addEventListener('keydown', (e) => {
+                    this.handleKeyDown(e);
+                });
+                
+                this.elements.terminalInput.addEventListener('input', (e) => {
+                    this.handleInput(e);
+                });
+                
+                // Control buttons
+                this.elements.clearBtn.addEventListener('click', () => {
+                    this.clearTerminal();
+                });
+                
+                this.elements.historyBtn.addEventListener('click', () => {
+                    this.showHistory();
+                });
+                
+                this.elements.helpBtn.addEventListener('click', () => {
+                    this.showHelp();
+                });
+                
+                this.elements.killBtn.addEventListener('click', () => {
+                    this.killCurrentProcess();
+                });
+                
+                // Terminal controls
+                document.querySelector('.terminal-control.close').addEventListener('click', () => {
+                    window.location.href = '/';
+                });
+                
+                document.querySelector('.terminal-control.minimize').addEventListener('click', () => {
+                    this.minimizeTerminal();
+                });
+                
+                document.querySelector('.terminal-control.maximize').addEventListener('click', () => {
+                    this.maximizeTerminal();
+                });
+                
+                // Click to focus input
+                this.elements.terminalOutput.addEventListener('click', () => {
+                    this.elements.terminalInput.focus();
+                });
+            }
+            
+            handleKeyDown(e) {
+                switch (e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        this.executeCommand();
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateHistory(-1);
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateHistory(1);
+                        break;
+                        
+                    case 'Tab':
+                        e.preventDefault();
+                        this.handleTabCompletion();
+                        break;
+                        
+                    case 'Escape':
+                        this.hideSuggestions();
+                        break;
+                        
+                    case 'c':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.interruptCommand();
+                        }
+                        break;
+                }
+            }
+            
+            handleInput(e) {
+                const input = e.target.value;
+                this.showSuggestions(input);
+            }
+            
+            async executeCommand() {
+                const command = this.elements.terminalInput.value.trim();
+                if (!command) return;
+                
+                // Add to history
+                if (this.commandHistory[this.commandHistory.length - 1] !== command) {
+                    this.commandHistory.push(command);
+                }
+                this.historyIndex = -1;
+                
+                // Display command in output
+                this.addOutputLine(`laika@pi:~$ ${command}`, 'command');
+                
+                // Clear input
+                this.elements.terminalInput.value = '';
+                this.hideSuggestions();
+                
+                // Handle built-in commands
+                if (this.handleBuiltinCommand(command)) {
+                    return;
+                }
+                
+                // Execute command on server
+                try {
+                    this.updateShellStatus(false);
+                    const response = await this.sendCommand(command);
+                    this.handleCommandResponse(response);
+                } catch (error) {
+                    this.addOutputLine(`Error: ${error.message}`, 'error');
+                } finally {
+                    this.updateShellStatus(true);
+                    this.scrollToBottom();
+                }
+            }
+            
+            handleBuiltinCommand(command) {
+                const [cmd, ...args] = command.split(' ');
+                
+                switch (cmd.toLowerCase()) {
+                    case 'clear':
+                        this.clearTerminal();
+                        return true;
+                        
+                    case 'help':
+                        this.showHelp();
+                        return true;
+                        
+                    case 'history':
+                        this.showHistory();
+                        return true;
+                        
+                    case 'exit':
+                    case 'quit':
+                        window.location.href = '/';
+                        return true;
+                        
+                    default:
+                        return false;
+                }
+            }
+            
+            async sendCommand(command) {
+                const response = await fetch('/api/shell/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        cwd: this.currentPath
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                return await response.json();
+            }
+            
+            handleCommandResponse(response) {
+                if (response.success) {
+                    if (response.output) {
+                        this.addOutputLine(response.output, response.error ? 'error' : 'output');
+                    }
+                    
+                    // Update current path if changed
+                    if (response.cwd) {
+                        this.currentPath = response.cwd;
+                        this.updatePrompt();
+                    }
+                    
+                    if (response.message) {
+                        this.showSuccess(response.message);
+                    }
+                } else {
+                    this.addOutputLine(response.error || 'Command failed', 'error');
+                    if (response.details) {
+                        this.addOutputLine(response.details, 'error');
+                    }
+                }
+            }
+            
+            addOutputLine(text, type = 'output') {
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                
+                if (type === 'command') {
+                    const prompt = document.createElement('span');
+                    prompt.className = 'terminal-prompt';
+                    prompt.textContent = 'laika@pi:~$';
+                    
+                    const command = document.createElement('span');
+                    command.className = 'terminal-command';
+                    command.textContent = text.replace('laika@pi:~$ ', '');
+                    
+                    line.appendChild(prompt);
+                    line.appendChild(command);
+                } else {
+                    const output = document.createElement('span');
+                    output.className = `terminal-output-text ${type}`;
+                    output.textContent = text;
+                    line.appendChild(output);
+                }
+                
+                this.elements.terminalOutput.appendChild(line);
+                this.scrollToBottom();
+            }
+            
+            clearTerminal() {
+                this.elements.terminalOutput.innerHTML = `
+                    <div class="terminal-line welcome-message">
+                        Terminal cleared - LAIKA Shell ready
+                    </div>
+                    <div class="terminal-line">
+                        <span class="terminal-prompt">laika@pi:~$</span>
+                        <span class="terminal-command"></span>
+                    </div>
+                `;
+                this.elements.terminalInput.focus();
+            }
+            
+            showHelp() {
+                const helpText = [
+                    'LAIKA Shell - Available Commands:',
+                    '',
+                    'Built-in Commands:',
+                    '  clear        - Clear the terminal screen',
+                    '  help         - Show this help message',
+                    '  history      - Show command history',
+                    '  exit/quit    - Return to main interface',
+                    '',
+                    'System Commands:',
+                    '  ls           - List directory contents',
+                    '  cd <dir>     - Change directory',
+                    '  pwd          - Show current directory',
+                    '  ps           - Show running processes',
+                    '  top          - Display system processes',
+                    '  df -h        - Show disk usage',
+                    '  free -h      - Show memory usage',
+                    '  cat <file>   - Display file contents',
+                    '  systemctl status <service> - Check service status',
+                    '',
+                    'Navigation:',
+                    '  ↑/↓ arrows  - Browse command history',
+                    '  Tab          - Auto-complete commands',
+                    '  Ctrl+C       - Interrupt running command',
+                    ''
+                ];
+                
+                helpText.forEach(line => {
+                    this.addOutputLine(line, line.includes(':') ? 'success' : 'output');
+                });
+            }
+            
+            showHistory() {
+                if (this.commandHistory.length === 0) {
+                    this.addOutputLine('No commands in history', 'output');
+                    return;
+                }
+                
+                this.addOutputLine('Command History:', 'success');
+                this.commandHistory.forEach((cmd, index) => {
+                    this.addOutputLine(`  ${index + 1}: ${cmd}`, 'output');
+                });
+            }
+            
+            navigateHistory(direction) {
+                if (this.commandHistory.length === 0) return;
+                
+                if (direction === -1) {
+                    // Up arrow - go to previous command
+                    if (this.historyIndex === -1) {
+                        this.historyIndex = this.commandHistory.length - 1;
+                    } else if (this.historyIndex > 0) {
+                        this.historyIndex--;
+                    }
+                } else {
+                    // Down arrow - go to next command
+                    if (this.historyIndex < this.commandHistory.length - 1) {
+                        this.historyIndex++;
+                    } else {
+                        this.historyIndex = -1;
+                        this.elements.terminalInput.value = '';
+                        return;
+                    }
+                }
+                
+                if (this.historyIndex >= 0) {
+                    this.elements.terminalInput.value = this.commandHistory[this.historyIndex];
+                }
+            }
+            
+            showSuggestions(input) {
+                if (!input.trim()) {
+                    this.hideSuggestions();
+                    return;
+                }
+                
+                const matches = this.commonCommands.filter(cmd => 
+                    cmd.cmd.startsWith(input.toLowerCase())
+                ).slice(0, 5);
+                
+                if (matches.length === 0) {
+                    this.hideSuggestions();
+                    return;
+                }
+                
+                const suggestionsHtml = matches.map(match => `
+                    <div class="suggestion-item" data-command="${match.cmd}">
+                        <span class="suggestion-command">${match.cmd}</span>
+                        <span class="suggestion-description">${match.desc}</span>
+                    </div>
+                `).join('');
+                
+                this.elements.commandSuggestions.innerHTML = suggestionsHtml;
+                this.elements.commandSuggestions.style.display = 'block';
+                
+                // Add click handlers
+                this.elements.commandSuggestions.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        this.elements.terminalInput.value = item.dataset.command;
+                        this.hideSuggestions();
+                        this.elements.terminalInput.focus();
+                    });
+                });
+            }
+            
+            hideSuggestions() {
+                this.elements.commandSuggestions.style.display = 'none';
+            }
+            
+            handleTabCompletion() {
+                const input = this.elements.terminalInput.value;
+                const matches = this.commonCommands.filter(cmd => 
+                    cmd.cmd.startsWith(input.toLowerCase())
+                );
+                
+                if (matches.length === 1) {
+                    this.elements.terminalInput.value = matches[0].cmd + ' ';
+                    this.hideSuggestions();
+                } else if (matches.length > 1) {
+                    this.showSuggestions(input);
+                }
+            }
+            
+            interruptCommand() {
+                this.addOutputLine('^C', 'warning');
+                this.addOutputLine('Command interrupted', 'warning');
+                this.elements.terminalInput.value = '';
+                this.updateShellStatus(true);
+            }
+            
+            killCurrentProcess() {
+                // This would send a kill signal to any running process
+                this.interruptCommand();
+                this.showSuccess('Sent interrupt signal');
+            }
+            
+            minimizeTerminal() {
+                document.querySelector('.terminal').style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    document.querySelector('.terminal').style.transform = 'scale(1)';
+                }, 300);
+            }
+            
+            maximizeTerminal() {
+                document.querySelector('.terminal-container').classList.toggle('fullscreen');
+            }
+            
+            updatePrompt() {
+                const shortPath = this.currentPath.replace('/home/pi', '~');
+                this.elements.inputPrompt.textContent = `laika@pi:${shortPath}$`;
+                this.elements.currentPath.textContent = this.currentPath;
+            }
+            
+            updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                this.elements.currentTime.textContent = timeString;
+            }
+            
+            async testConnection() {
+                try {
+                    const response = await fetch('/api/shell/status');
+                    if (response.ok) {
+                        this.isConnected = true;
+                        this.updateConnectionStatus(true);
+                        this.updateShellStatus(true);
+                    } else {
+                        throw new Error('Server not responding');
+                    }
+                } catch (error) {
+                    this.isConnected = false;
+                    this.updateConnectionStatus(false);
+                    this.updateShellStatus(false);
+                    this.showError('Shell service not available - commands will not execute');
+                }
+            }
+            
+            updateConnectionStatus(connected) {
+                this.elements.connectionStatus.className = connected ? 'status-dot connected' : 'status-dot';
+            }
+            
+            updateShellStatus(ready) {
+                this.elements.shellStatus.className = ready ? 'status-dot connected' : 'status-dot';
+            }
+            
+            scrollToBottom() {
+                this.elements.terminalOutput.scrollTop = this.elements.terminalOutput.scrollHeight;
+            }
+            
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                this.elements.errorMessage.classList.add('show');
+                setTimeout(() => {
+                    this.elements.errorMessage.classList.remove('show');
+                }, 5000);
+            }
+            
+            showSuccess(message) {
+                this.elements.successMessage.textContent = message;
+                this.elements.successMessage.classList.add('show');
+                setTimeout(() => {
+                    this.elements.successMessage.classList.remove('show');
+                }, 3000);
+            }
+        }
+        
+        // Initialize shell when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.shell = new LAIKAShell();
+            console.log('LAIKA Shell interface loaded');
+        });
+    </script>
+    
+    <!-- Header/Footer System -->
+    <script>
+        // Load header-footer.js
+        (function() {
+            try {
+                const script = document.createElement('script');
+                script.src = 'js/header-footer.js';
+                script.onerror = function() {
+                    console.warn('Header-footer.js failed to load - continuing without it');
+                };
+                document.head.appendChild(script);
+            } catch (err) {
+                console.error('Error loading header-footer script:', err);
+            }
+        })();
+    </script>
+</body>
+</html>

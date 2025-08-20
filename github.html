@@ -663,8 +663,15 @@
                             this.checkRepositoryStatus();
                         }, 1000);
                     } else {
-                        this.log(`Update failed: ${data.error}`, 'error');
-                        this.showMessage(data.error, 'error');
+                        this.log(`Update failed: ${data.error || 'Unknown error'}`, 'error');
+                        this.showMessage(data.error || 'Update failed', 'error');
+                        
+                        // Log detailed results even on failure
+                        if (data.results) {
+                            data.results.forEach(result => {
+                                this.log(`${result.repository}: ${result.status}`, result.success ? 'success' : 'error');
+                            });
+                        }
                     }
                 } catch (error) {
                     this.log(`Update failed: ${error.message}`, 'error');

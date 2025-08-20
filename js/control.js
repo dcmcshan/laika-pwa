@@ -301,6 +301,90 @@ class LAIKAControl {
         requestAnimationFrame(gamepadLoop);
     }
 
+    connectSocketIO() {
+        // Load SocketIO library if not already loaded
+        if (typeof io === 'undefined') {
+            console.log('📦 Loading SocketIO library...');
+            const script = document.createElement('script');
+            script.src = '/socket.io/socket.io.js';
+            script.onload = () => {
+                console.log('✅ SocketIO library loaded');
+                this.initializeSocketIO();
+            };
+            script.onerror = () => {
+                console.error('❌ Failed to load SocketIO library');
+                this.isConnected = false;
+                this.updateConnectionStatus();
+            };
+            document.head.appendChild(script);
+        } else {
+            this.initializeSocketIO();
+        }
+    }
+
+    initializeSocketIO() {
+        try {
+            console.log('🔗 Connecting to LAIKA via SocketIO...');
+            
+            // Connect to the current origin (ngrok tunnel)
+            this.socket = io(window.location.origin, {
+                transports: ['websocket', 'polling'],
+                upgrade: true,
+                rememberUpgrade: true
+            });
+
+            this.socket.on('connect', () => {
+                console.log('✅ SocketIO connected to LAIKA');
+                this.isConnected = true;
+                this.updateConnectionStatus();
+                
+                // Send initial handshake
+                this.socket.emit('control_connected', {
+                    client_id: 'control_interface',
+                    timestamp: Date.now()
+                });
+            });
+
+            this.socket.on('disconnect', () => {
+                console.log('📡 SocketIO disconnected');
+                this.isConnected = false;
+                this.updateConnectionStatus();
+                setTimeout(() => this.reconnect(), 3000);
+            });
+
+            this.socket.on('control_response', (data) => {
+                console.log('🎮 Control response:', data);
+            });
+
+            this.socket.on('gamepad_response', (data) => {
+                console.log('🎮 Gamepad response:', data);
+            });
+
+            this.socket.on('movement_response', (data) => {
+                console.log('🎮 Movement response:', data);
+            });
+
+            this.socket.on('controller_response', (data) => {
+                console.log('🎮 Controller response:', data);
+            });
+
+            this.socket.on('error_response', (data) => {
+                console.error('❌ LAIKA error:', data);
+            });
+
+            this.socket.on('connect_error', (error) => {
+                console.error('❌ SocketIO connection error:', error);
+                this.isConnected = false;
+                this.updateConnectionStatus();
+            });
+
+        } catch (error) {
+            console.error('❌ Error initializing SocketIO:', error);
+            this.isConnected = false;
+            this.updateConnectionStatus();
+        }
+    }
+
     processGamepadInput(gamepad) {
         // Analog sticks
         const leftStick = {
@@ -356,9 +440,15 @@ class LAIKAControl {
     }
 
     async connectWebSocket() {
-        // LAIKA WebSocket server URLs - using ngrok tunneling
+        // For ngrok environment, use SocketIO through the main tunnel
+        if (window.location.hostname.includes('ngrok')) {
+            console.log('🌐 Detected ngrok environment - using SocketIO through main tunnel');
+            this.connectSocketIO();
+            return;
+        }
+        
+        // LAIKA WebSocket server URLs - for local development
         const wsUrls = [
-            `wss://${window.location.hostname.replace('.ngrok.app', '.ngrok-free.app')}/ws`, // ngrok WebSocket
             `ws://${window.location.hostname}:8765`, // LAIKA WebSocket server port
             'ws://laika.local:8765',
             'ws://localhost:8765'
@@ -537,10 +627,15 @@ class LAIKAControl {
     }
 
     sendLAIKAMessage(message) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        if (this.socket && this.socket.connected) {
+            // Use SocketIO emit with appropriate event name
+            const messageType = message.type || 'robot_command';
+            this.socket.emit(messageType, message);
+        } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            // Fallback to WebSocket for local development
             this.ws.send(JSON.stringify(message));
         } else {
-            console.log('📡 LAIKA WebSocket not connected, message queued');
+            console.log('📡 No LAIKA connection available, message queued');
         }
     }
 
@@ -568,7 +663,16 @@ class LAIKAControl {
             }
         };
 
-        this.sendLAIKAMessage(controllerMessage);
+        // Send via SocketIO with specific event type
+        if (this.socket && this.socket.connected) {
+            this.socket.emit('gamepad_input', {
+                type: 'controller_input',
+                data: controllerMessage.data,
+                timestamp: controllerMessage.timestamp
+            });
+        } else {
+            this.sendLAIKAMessage(controllerMessage);
+        }
         
         // Also send traditional movement command for compatibility
         const linear = {

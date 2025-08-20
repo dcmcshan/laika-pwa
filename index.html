@@ -431,6 +431,34 @@
                 inset 0 0 30px rgba(35, 134, 54, 0.2);
         }
 
+        .nav-card.shell-card:hover {
+            border-color: var(--warning-yellow);
+            box-shadow: 
+                0 10px 30px rgba(255, 215, 0, 0.5),
+                inset 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .nav-card.webble-card:hover {
+            border-color: var(--electric-blue);
+            box-shadow: 
+                0 10px 30px rgba(0, 128, 255, 0.5),
+                inset 0 0 30px rgba(0, 128, 255, 0.2);
+        }
+
+        .nav-card.services-card:hover {
+            border-color: var(--atomic-orange);
+            box-shadow: 
+                0 10px 30px rgba(255, 165, 0, 0.5),
+                inset 0 0 30px rgba(255, 165, 0, 0.2);
+        }
+
+        .nav-card.voice-card:hover {
+            border-color: var(--atomic-pink);
+            box-shadow: 
+                0 10px 30px rgba(255, 107, 192, 0.5),
+                inset 0 0 30px rgba(255, 107, 192, 0.2);
+        }
+
         /* Install Banner */
         .install-banner {
             background: 
@@ -583,6 +611,21 @@
                     </ul>
                 </a>
 
+                <!-- TTS Voice Settings -->
+                <a href="tts-settings" class="nav-card voice-card">
+                    <span class="nav-icon">🗣️</span>
+                    <h3 class="nav-title">Voice Settings</h3>
+                    <p class="nav-description">
+                        Configure LAIKA's text-to-speech voice, provider settings, and audio parameters.
+                    </p>
+                    <ul class="nav-features">
+                        <li>ElevenLabs & Piper voices</li>
+                        <li>Volume & speed control</li>
+                        <li>Voice testing & preview</li>
+                        <li>Female voice selection</li>
+                    </ul>
+                </a>
+
                 <!-- Sensor Dashboard -->
                 <a href="dashboard" class="nav-card dashboard-card" data-link="dashboard">
                     <span class="nav-icon">📊</span>
@@ -625,6 +668,36 @@
                         <li>Camera-LIDAR fusion</li>
                         <li>Click-to-navigate</li>
                         <li>Real-time mapping</li>
+                    </ul>
+                </a>
+
+                <!-- WebBLE WiFi Setup -->
+                <a href="webble" class="nav-card webble-card">
+                    <span class="nav-icon">📶</span>
+                    <h3 class="nav-title">WebBLE Setup</h3>
+                    <p class="nav-description">
+                        Configure LAIKA's WiFi credentials using Web Bluetooth. Connect directly to set up network access.
+                    </p>
+                    <ul class="nav-features">
+                        <li>BLE Improv WiFi setup</li>
+                        <li>Network scanning</li>
+                        <li>Direct credential config</li>
+                        <li>Connection status</li>
+                    </ul>
+                </a>
+
+                <!-- Services Management -->
+                <a href="services" class="nav-card services-card">
+                    <span class="nav-icon">⚙️</span>
+                    <h3 class="nav-title">Services</h3>
+                    <p class="nav-description">
+                        System service management and monitoring. Control and monitor LAIKA's core services.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Service status monitoring</li>
+                        <li>Start/stop/restart services</li>
+                        <li>Real-time updates</li>
+                        <li>System diagnostics</li>
                     </ul>
                 </a>
 
@@ -715,6 +788,21 @@
                         <li>Submodule synchronization</li>
                         <li>Branch management</li>
                         <li>Update status monitoring</li>
+                    </ul>
+                </a>
+
+                <!-- Shell Terminal -->
+                <a href="shell" class="nav-card shell-card">
+                    <span class="nav-icon">💻</span>
+                    <h3 class="nav-title">Shell Terminal</h3>
+                    <p class="nav-description">
+                        Interactive command-line interface for LAIKA system administration. Execute commands, monitor processes, and manage files.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Real-time command execution</li>
+                        <li>Command history & suggestions</li>
+                        <li>Process monitoring & control</li>
+                        <li>File system navigation</li>
                     </ul>
                 </a>
         </div>
