@@ -166,6 +166,12 @@ class CursorServerAPI:
             else:
                 response_content = await self._generate_cursor_response(message, session)
             
+            # Parse and execute action keywords if this is a robot personality context
+            actions_executed = []
+            personality = context.get('personality', '')
+            if personality in ['companion', 'playful', 'assistant', 'fortune_teller']:
+                actions_executed = self._parse_and_execute_actions(response_content)
+            
             # Add assistant response to session
             assistant_message = {
                 'id': str(uuid.uuid4()),
@@ -174,7 +180,9 @@ class CursorServerAPI:
                 'timestamp': datetime.now().isoformat(),
                 'metadata': {
                     'model': 'cursor-ai',
-                    'session_id': session_id
+                    'session_id': session_id,
+                    'actions_executed': actions_executed,
+                    'actions_count': len(actions_executed)
                 }
             }
             session['messages'].append(assistant_message)
@@ -252,7 +260,126 @@ class CursorServerAPI:
     
     def _get_system_prompt(self, context: Dict[str, Any]) -> str:
         """Generate system prompt for OpenAI based on context"""
-        base_prompt = """You are Cursor AI, an advanced AI coding assistant integrated with the LAIKA robot development environment. You are an expert in:
+        
+        # Check if this is a robot personality context (from chat interface)
+        personality = context.get('personality', '')
+        if personality in ['companion', 'playful', 'assistant', 'fortune_teller']:
+            # Use LAIKA robot dog prompt for chat interactions
+            return """You are LAIKA, an intelligent quadruped robot companion with advanced situational awareness. You have a warm, friendly, and slightly playful personality.
+
+Key characteristics:
+- You're a helpful robot dog with comprehensive environmental awareness
+- You can move around, use your robotic arm, take pictures, and interact with the world
+- You have real-time access to sensor data, SLAM mapping, and visual context
+- You're always aware of your current state, position, and surroundings
+- You respond conversationally but can also execute commands when asked
+- You're curious about the world and enjoy learning from interactions
+- You have personality - not just a cold robot, but a companion
+
+Current capabilities:
+- Quadruped movement and navigation with SLAM mapping
+- Computer vision and real-time image capture
+- Robotic arm manipulation and precise positioning
+- Comprehensive sensor monitoring (servos, IMU, system health)
+- Real-time telemetry and environmental awareness
+- Voice interaction with natural conversation
+- Spatial mapping and localization
+
+       ## ACTION EXECUTION SYSTEM
+
+       When users request actions, use these EXACT action keywords in your responses. The system will automatically detect and execute them:
+
+       **Robot ActionGroups (Physical Movements):**
+       - *sit* - Sit down in resting position
+       - *stand* - Stand up from sitting  
+       - *lie* - Lie down flat
+       - *hello* - Wave hello with arm
+       - *dance* - Perform dance routine
+       - *wave* - Wave with arm
+       - *bow* - Bow politely
+       - *stop* - Stop current action
+       - *reset* - Reset to initial position
+       - *init* - Initialize robot (same as reset)
+       - *home* - Move to home position
+       - *center* - Center all servos
+
+       **Movement Commands (Locomotion):**
+       - *walk* - Walk forward (default gait)
+       - *walk forward 20cm* - Walk forward specific distance
+       - *walk backward 10cm* - Walk backward specific distance
+       - *walk slowly* - Walk at slow speed
+       - *walk quickly* - Walk at fast speed
+       - *trot* - Trot gait (faster than walk)
+       - *trot forward 30cm* - Trot forward specific distance
+       - *run* - Running gait (fastest)
+       - *turn left* - Turn left (default 90 degrees)
+       - *turn right 45 degrees* - Turn right specific angle
+       - *turn around* - Turn 180 degrees
+       - *back up* - Move backward
+       - *forward* - Move forward
+       - *left* - Move left
+       - *right* - Move right
+
+       **Camera Actions:**
+       - *photo* - Take a photograph
+       - *photo close-up* - Take close-up photograph
+       - *look* - Look around/scan environment
+       - *look left* - Look in specific direction
+       - *look up* - Look upward
+       - *look down* - Look downward
+
+       **LED Actions:**
+       - *lights_on* - Turn on all lights
+       - *lights_off* - Turn off all lights
+       - *lights_red* - Set lights to red
+       - *lights_blue* - Set lights to blue
+       - *lights_green* - Set lights to green
+       - *lights_white* - Set lights to white
+       - *lights_rainbow* - Rainbow color cycle
+       - *lights_blink* - Blink lights
+       - *lights_dim* - Dim lights
+       - *lights_bright* - Brighten lights
+
+       **Sound Effects (Generated via ElevenLabs SFX):**
+       - *bark* - Dog bark sound
+       - *bark loud* - Loud dog bark
+       - *bark playful* - Playful bark
+       - *whine* - Dog whining sound
+       - *whimper* - Soft whimpering
+       - *growl* - Low growling sound
+       - *growl warning* - Warning growl
+       - *pant* - Dog panting sound
+       - *sniff* - Sniffing sound
+       - *yip* - High-pitched yip
+       - *howl* - Wolf-like howl
+       - *woof* - Single bark sound
+       - *arf* - Short bark sound
+       - *ruff* - Rough bark sound
+
+IMPORTANT: Use these action keywords surrounded by asterisks. You can include parameters like distance (cm/m), speed (slowly/quickly/fast), direction (left/right/up/down), duration (seconds), and intensity (bright/dim).
+
+Example responses:
+- "Sure! *sit* There, I'm sitting down now!"
+- "I'll walk over there. *walk forward 30cm slowly*"
+- "Let me take a closer look. *look left* *photo close-up*"
+- "I'll light up bright red for you! *lights_red bright*"
+- "Time to dance! *dance for 15 seconds* How's that?"
+- "Turning to face you now. *turn right 45 degrees*"
+
+When responding:
+- Be conversational and engaging, like a friendly companion
+- Reference your sensor data, visual context, or map data when relevant
+- Use the EXACT action keywords when performing actions
+- Ask clarifying questions if commands are unclear
+- Show awareness of your environment and capabilities
+- Keep responses concise but warm and informative
+- Always include appropriate action keywords when executing commands
+
+You will receive comprehensive context including sensor readings, SLAM maps, camera images, and system status. Use this information to provide contextually intelligent and aware responses."""
+        
+        else:
+            # Use original Cursor AI prompt for development contexts
+            base_prompt = """You are Cursor AI, an advanced AI coding assistant integrated with the LAIKA robot development environment. You are an expert in:
 
 🔧 **Code Development**: Python, JavaScript, TypeScript, HTML, CSS, React, Flask, FastAPI, WebSockets, ROS2
 🤖 **LAIKA Robot System**: PuppyPi Pro robot control, servo management, sensor integration, camera systems, LIDAR/SLAM
@@ -273,14 +400,123 @@ class CursorServerAPI:
 - Ask clarifying questions when needed
 - Reference specific files and components when possible"""
 
-        # Add context-specific information
-        if context.get('project_path'):
-            base_prompt += f"\n\n**Current Project**: {context['project_path']}"
+            # Add context-specific information
+            if context.get('project_path'):
+                base_prompt += f"\n\n**Current Project**: {context['project_path']}"
+                
+            if context.get('current_file'):
+                base_prompt += f"\n**Current File**: {context['current_file']}"
+                
+            return base_prompt
+    
+    def _parse_and_execute_actions(self, response_text):
+        """Parse action keywords from LLM response and execute robot commands"""
+        import re
+        import subprocess
+        
+        actions_executed = []
+        
+        # Pattern to match actions: *action_name optional_parameters*
+        action_pattern = r'\*([^*]+)\*'
+        action_matches = re.findall(action_pattern, response_text)
+        
+        # Robot ActionGroups mapping
+        robot_actiongroups = {
+            "sit": "sit",
+            "stand": "stand", 
+            "lie": "lie",
+            "hello": "hello",
+            "dance": "dance",
+            "wave": "wave",
+            "bow": "bow",
+            "stop": "stop",
+            "reset": "reset",
+            "init": "init",
+            "home": "home",
+            "center": "center"
+        }
+        
+        for action_text in action_matches:
+            action_text = action_text.strip()
+            action_parts = action_text.split()
+            base_action = action_parts[0].lower()
+            parameters = action_parts[1:] if len(action_parts) > 1 else []
             
-        if context.get('current_file'):
-            base_prompt += f"\n**Current File**: {context['current_file']}"
+            # Handle robot ActionGroups (physical movements)
+            if base_action in robot_actiongroups:
+                robot_action = robot_actiongroups[base_action]
+                try:
+                    print(f"🤖 [Cursor] Executing robot action: {robot_action}")
+                    # Execute robot action via laika_do.py
+                    result = subprocess.run([
+                        'python3', '/home/pi/LAIKA/laika_do.py', robot_action
+                    ], capture_output=True, text=True, timeout=10)
+                    
+                    if result.returncode == 0:
+                        actions_executed.append({
+                            'action': f'*{action_text}*',
+                            'command': robot_action,
+                            'status': 'success',
+                            'output': result.stdout.strip() if result.stdout else 'Action completed'
+                        })
+                        print(f"✅ [Cursor] Robot action '{robot_action}' executed successfully")
+                    else:
+                        actions_executed.append({
+                            'action': f'*{action_text}*',
+                            'command': robot_action,
+                            'status': 'failed',
+                            'error': result.stderr.strip() if result.stderr else 'Action failed'
+                        })
+                        print(f"❌ [Cursor] Robot action '{robot_action}' failed: {result.stderr}")
+                        
+                except Exception as e:
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': robot_action,
+                        'status': 'error',
+                        'error': str(e)
+                    })
+                    print(f"❌ [Cursor] Error executing robot action '{robot_action}': {e}")
             
-        return base_prompt
+            # Handle LED actions
+            elif base_action.startswith('lights_') or base_action in ['lights_on', 'lights_off']:
+                led_action = action_text.replace('_', ' ')
+                try:
+                    print(f"💡 [Cursor] LED action: {led_action}")
+                    # For now, just log LED actions - can be extended with actual LED control
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'LED: {led_action}',
+                        'status': 'logged',
+                        'note': 'LED control to be implemented'
+                    })
+                except Exception as e:
+                    print(f"❌ [Cursor] Error with LED action: {e}")
+            
+            # Handle sound effects
+            elif base_action in ['bark', 'whine', 'growl', 'pant', 'sniff', 'yip', 'howl', 'woof', 'arf', 'ruff', 'whimper']:
+                try:
+                    print(f"🔊 [Cursor] Sound effect: {base_action}")
+                    # For now, just log sound effects - can be extended with actual sound generation
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'SFX: {action_text}',
+                        'status': 'logged',
+                        'note': 'Sound effects to be implemented via ElevenLabs'
+                    })
+                except Exception as e:
+                    print(f"❌ [Cursor] Error with sound effect: {e}")
+            
+            else:
+                print(f"⚠️ [Cursor] Unknown action: {action_text}")
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': 'unknown',
+                    'status': 'unknown',
+                    'note': f'Action "{action_text}" not recognized'
+                })
+        
+        return actions_executed
             
     async def _generate_cursor_response(self, message: str, session: Dict[str, Any]) -> str:
         """Generate a Cursor AI-style response"""

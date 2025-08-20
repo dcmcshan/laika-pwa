@@ -49,7 +49,25 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize SocketIO for WebSocket support
-socketio_app = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+try:
+    socketio_app = SocketIO(
+        app, 
+        cors_allowed_origins="*", 
+        logger=True, 
+        engineio_logger=True,
+        async_mode='threading',
+        # Force compatible protocol versions
+        client_manager=None,
+        allow_upgrades=True,
+        ping_timeout=60,
+        ping_interval=25
+    )
+    SOCKETIO_AVAILABLE = True
+    print("✅ SocketIO initialized successfully")
+except Exception as e:
+    print(f"❌ Failed to initialize SocketIO: {e}")
+    socketio_app = None
+    SOCKETIO_AVAILABLE = False
 
 # Set the template and static folders to the laika-pwa directory
 app.template_folder = '/home/pi/LAIKA/laika-pwa'
@@ -128,16 +146,206 @@ Current capabilities:
 - Voice interaction with natural conversation
 - Spatial mapping and localization
 
+       ## ACTION EXECUTION SYSTEM
+
+       When users request actions, use these EXACT action keywords in your responses. The system will automatically detect and execute them:
+
+       **Robot ActionGroups (Physical Movements):**
+       - *sit* - Sit down in resting position
+       - *stand* - Stand up from sitting  
+       - *lie* - Lie down flat
+       - *hello* - Wave hello with arm
+       - *dance* - Perform dance routine
+       - *wave* - Wave with arm
+       - *bow* - Bow politely
+       - *stop* - Stop current action
+       - *reset* - Reset to initial position
+       - *init* - Initialize robot (same as reset)
+       - *home* - Move to home position
+       - *center* - Center all servos
+
+       **Movement Commands (Locomotion):**
+       - *walk* - Walk forward (default gait)
+       - *walk forward 20cm* - Walk forward specific distance
+       - *walk backward 10cm* - Walk backward specific distance
+       - *walk slowly* - Walk at slow speed
+       - *walk quickly* - Walk at fast speed
+       - *trot* - Trot gait (faster than walk)
+       - *trot forward 30cm* - Trot forward specific distance
+       - *run* - Running gait (fastest)
+       - *turn left* - Turn left (default 90 degrees)
+       - *turn right 45 degrees* - Turn right specific angle
+       - *turn around* - Turn 180 degrees
+       - *back up* - Move backward
+       - *forward* - Move forward
+       - *left* - Move left
+       - *right* - Move right
+
+       **Camera Actions:**
+       - *photo* - Take a photograph
+       - *photo close-up* - Take close-up photograph
+       - *look* - Look around/scan environment
+       - *look left* - Look in specific direction
+       - *look up* - Look upward
+       - *look down* - Look downward
+
+       **LED Actions:**
+       - *lights_on* - Turn on all lights
+       - *lights_off* - Turn off all lights
+       - *lights_red* - Set lights to red
+       - *lights_blue* - Set lights to blue
+       - *lights_green* - Set lights to green
+       - *lights_white* - Set lights to white
+       - *lights_rainbow* - Rainbow color cycle
+       - *lights_blink* - Blink lights
+       - *lights_dim* - Dim lights
+       - *lights_bright* - Brighten lights
+
+       **Sound Effects (Generated via ElevenLabs SFX):**
+       - *bark* - Dog bark sound
+       - *bark loud* - Loud dog bark
+       - *bark playful* - Playful bark
+       - *whine* - Dog whining sound
+       - *whimper* - Soft whimpering
+       - *growl* - Low growling sound
+       - *growl warning* - Warning growl
+       - *pant* - Dog panting sound
+       - *sniff* - Sniffing sound
+       - *yip* - High-pitched yip
+       - *howl* - Wolf-like howl
+       - *woof* - Single bark sound
+       - *arf* - Short bark sound
+       - *ruff* - Rough bark sound
+
+IMPORTANT: Use these action keywords surrounded by asterisks. You can include parameters like distance (cm/m), speed (slowly/quickly/fast), direction (left/right/up/down), duration (seconds), and intensity (bright/dim).
+
+Example responses:
+- "Sure! *sit* There, I'm sitting down now!"
+- "I'll walk over there. *walk forward 30cm slowly*"
+- "Let me take a closer look. *look left* *photo close-up*"
+- "I'll light up bright red for you! *lights_red bright*"
+- "Time to dance! *dance for 15 seconds* How's that?"
+- "Turning to face you now. *turn right 45 degrees*"
+
 When responding:
 - Be conversational and engaging, like a friendly companion
 - Reference your sensor data, visual context, or map data when relevant
-- Offer to help with tasks you can physically perform
+- Use the EXACT action keywords when performing actions
 - Ask clarifying questions if commands are unclear
 - Show awareness of your environment and capabilities
 - Keep responses concise but warm and informative
-- Use contextual information to provide situationally appropriate responses
+- Always include appropriate action keywords when executing commands
 
-You will receive comprehensive context including sensor readings, camera images, and system status. Use this information to provide contextually intelligent and aware responses."""
+You will receive comprehensive context including sensor readings, SLAM maps, camera images, and system status. Use this information to provide contextually intelligent and aware responses."""
+
+def parse_and_execute_actions(response_text):
+    """Parse action keywords from LLM response and execute robot commands"""
+    import re
+    import subprocess
+    
+    actions_executed = []
+    
+    # Pattern to match actions: *action_name optional_parameters*
+    action_pattern = r'\*([^*]+)\*'
+    action_matches = re.findall(action_pattern, response_text)
+    
+    # Robot ActionGroups mapping
+    robot_actiongroups = {
+        "sit": "sit",
+        "stand": "stand", 
+        "lie": "lie",
+        "hello": "hello",
+        "dance": "dance",
+        "wave": "wave",
+        "bow": "bow",
+        "stop": "stop",
+        "reset": "reset",
+        "init": "init",
+        "home": "home",
+        "center": "center"
+    }
+    
+    for action_text in action_matches:
+        action_text = action_text.strip()
+        action_parts = action_text.split()
+        base_action = action_parts[0].lower()
+        parameters = action_parts[1:] if len(action_parts) > 1 else []
+        
+        # Handle robot ActionGroups (physical movements)
+        if base_action in robot_actiongroups:
+            robot_action = robot_actiongroups[base_action]
+            try:
+                print(f"🤖 Executing robot action: {robot_action}")
+                # Execute robot action via laika_do.py
+                result = subprocess.run([
+                    'python3', '/home/pi/LAIKA/laika_do.py', robot_action
+                ], capture_output=True, text=True, timeout=10)
+                
+                if result.returncode == 0:
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': robot_action,
+                        'status': 'success',
+                        'output': result.stdout.strip() if result.stdout else 'Action completed'
+                    })
+                    print(f"✅ Robot action '{robot_action}' executed successfully")
+                else:
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': robot_action,
+                        'status': 'failed',
+                        'error': result.stderr.strip() if result.stderr else 'Action failed'
+                    })
+                    print(f"❌ Robot action '{robot_action}' failed: {result.stderr}")
+                    
+            except Exception as e:
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': robot_action,
+                    'status': 'error',
+                    'error': str(e)
+                })
+                print(f"❌ Error executing robot action '{robot_action}': {e}")
+        
+        # Handle LED actions
+        elif base_action.startswith('lights_') or base_action in ['lights_on', 'lights_off']:
+            led_action = action_text.replace('_', ' ')
+            try:
+                print(f"💡 LED action: {led_action}")
+                # For now, just log LED actions - can be extended with actual LED control
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': f'LED: {led_action}',
+                    'status': 'logged',
+                    'note': 'LED control to be implemented'
+                })
+            except Exception as e:
+                print(f"❌ Error with LED action: {e}")
+        
+        # Handle sound effects
+        elif base_action in ['bark', 'whine', 'growl', 'pant', 'sniff', 'yip', 'howl', 'woof', 'arf', 'ruff', 'whimper']:
+            try:
+                print(f"🔊 Sound effect: {base_action}")
+                # For now, just log sound effects - can be extended with actual sound generation
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': f'SFX: {action_text}',
+                    'status': 'logged',
+                    'note': 'Sound effects to be implemented via ElevenLabs'
+                })
+            except Exception as e:
+                print(f"❌ Error with sound effect: {e}")
+        
+        else:
+            print(f"⚠️ Unknown action: {action_text}")
+            actions_executed.append({
+                'action': f'*{action_text}*',
+                'command': 'unknown',
+                'status': 'unknown',
+                'note': f'Action "{action_text}" not recognized'
+            })
+    
+    return actions_executed
 
 def get_current_context():
     """Gather current context from all available systems"""
@@ -171,68 +379,70 @@ def encode_image_to_base64(image_path):
         return None
 
 def safe_camera_init():
-    """Initialize camera safely in background thread"""
+    """Initialize camera safely - don't hold device"""
     global camera, camera_initialized
     
-    print("📷 Starting camera initialization...")
+    print("📷 Starting lightweight camera initialization...")
     
-    # First try direct OpenCV access to ensure camera is available
+    # Don't hold the camera device during initialization
+    # Just test that it's available and set up a simple interface
     try:
         import cv2
-        print("📷 Testing direct camera access...")
+        print("📷 Testing camera availability...")
         test_cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        if not test_cap.isOpened():
-            print("⚠️ Direct camera access failed")
-            raise Exception("Camera device not accessible")
-        test_cap.release()
-        print("✅ Direct camera access successful")
-    except Exception as e:
-        print(f"⚠️ Direct camera test failed: {e}")
-    
-    try:
-        import sys
-        sys.path.append('/home/pi/LAIKA')
-        from laika_camera_control_service import LAIKACameraController
+        camera_available = test_cap.isOpened()
+        if test_cap.isOpened():
+            test_cap.release()  # Immediately release
         
-        print("📷 Creating LAIKA Camera Controller...")
-        camera = LAIKACameraController()
-        
-        print("📷 Opening camera...")
-        if hasattr(camera, 'open_camera'):
-            success = camera.open_camera()
-            if success:
-                camera_initialized = True
-                print("✅ LAIKA Camera initialized successfully!")
-                
-                # Test frame capture
-                frame = camera.capture_frame()
-                if frame is not None:
-                    print(f"✅ Camera frame test successful: {frame.shape}")
-                else:
-                    print("⚠️ Camera frame test failed")
-            else:
-                raise Exception("Camera controller failed to open camera")
+        if camera_available:
+            print("✅ Camera device is available")
+            
+            # Create a simple camera interface that opens/closes as needed
+            class DirectCamera:
+                def __init__(self):
+                    self.camera_index = 0
+                    
+                def capture_frame(self):
+                    """Capture a single frame - open and close camera each time"""
+                    try:
+                        cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
+                        if cap.isOpened():
+                            ret, frame = cap.read()
+                            cap.release()
+                            return frame if ret else None
+                        return None
+                    except:
+                        return None
+                        
+                def get_frame(self):
+                    """Legacy interface"""
+                    frame = self.capture_frame()
+                    return (True, frame) if frame is not None else (False, None)
+                    
+                def get_parameters(self):
+                    return {}
+                    
+                def get_presets(self):
+                    return {}
+            
+            camera = DirectCamera()
+            camera_initialized = True
+            print("✅ Direct camera interface initialized")
+            
         else:
-            raise Exception("Camera controller missing open_camera method")
+            raise Exception("Camera device not available")
         
     except Exception as e:
         print(f"⚠️ Camera initialization failed: {e}")
         print("🔄 Using mock camera fallback")
         
-        # Mock camera fallback with proper interface
+        # Mock camera fallback
         class MockCamera:
-            def __init__(self):
-                self.is_opened = False
-                
-            def get_frame(self): 
-                return False, None
-                
             def capture_frame(self):
                 return None
                 
-            def open_camera(self): 
-                self.is_opened = True
-                return True
+            def get_frame(self): 
+                return False, None
                 
             def get_parameters(self):
                 return {}
@@ -244,7 +454,7 @@ def safe_camera_init():
         camera_initialized = True
         print("📷 Mock camera initialized")
     
-    print(f"📷 Camera initialization complete. Status: {'Real camera' if hasattr(camera, 'capture_frame') and camera.capture_frame else 'Mock camera'}")
+    print("📷 Camera initialization complete - device not held")
 
 # Routes for all the TRON-styled pages
 @app.route('/')
@@ -327,6 +537,11 @@ def github_page():
 def shell_page():
     """Serve the TRON-styled shell terminal page"""
     return send_file('/home/pi/LAIKA/laika-pwa/shell.html')
+
+@app.route('/tts-settings')
+def tts_settings_page():
+    """Serve the TRON-styled TTS settings page"""
+    return send_file('/home/pi/LAIKA/laika-pwa/tts-settings.html')
 
 # Static file serving
 @app.route('/css/<path:filename>')
@@ -440,6 +655,9 @@ def laika_chat():
                 
                 print(f"🤖 LLM response: '{response_text[:100]}...'")
                 
+                # Parse and execute action keywords from the response
+                actions_executed = parse_and_execute_actions(response_text)
+                
                 return jsonify({
                     'type': 'chat_response',
                     'message': response_text,
@@ -449,7 +667,9 @@ def laika_chat():
                         'model': model,
                         'visual_query': is_visual_query,
                         'context_available': bool(context.get('sensor_telemetry')),
-                        'server': 'tron_server_llm'
+                        'server': 'tron_server_llm',
+                        'actions_executed': actions_executed,
+                        'actions_count': len(actions_executed)
                     },
                     'timestamp': datetime.now().isoformat()
                 })
@@ -566,7 +786,7 @@ def tts_speak():
                 ['python3', laika_say_path, text],
                 capture_output=True,
                 text=True,
-                timeout=30,  # 30 second timeout
+                timeout=45,  # 45 second timeout (increased from 30)
                 cwd='/home/pi/LAIKA'
             )
             
@@ -669,30 +889,30 @@ def camera_presets():
 
 @app.route('/camera/stream')
 def camera_stream():
-    """Camera stream endpoint"""
-    if not camera_initialized or not camera:
-        return jsonify({'error': 'Camera not available'}), 503
+    """Camera stream endpoint with direct camera access"""
+    print("📷 Camera stream requested")
     
     def generate():
         import cv2
+        import time
+        
+        # Use the camera interface - don't hold device open
+        print("📷 Starting camera stream generation...")
+        
         while True:
             try:
                 frame = None
                 
-                # Try capture_frame method first (LAIKACameraController)
-                if hasattr(camera, 'capture_frame'):
+                # Try camera interface
+                if camera_initialized and camera and hasattr(camera, 'capture_frame'):
                     frame = camera.capture_frame()
                     if frame is not None:
-                        # Encode frame to JPEG
                         ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
                         if ret:
                             frame_bytes = buffer.tobytes()
                             yield (b'--frame\r\n'
                                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-                        else:
-                            time.sleep(0.1)
-                    else:
-                        time.sleep(0.1)
+                            continue
                 
                 # Fallback to get_frame method
                 elif hasattr(camera, 'get_frame'):
@@ -983,12 +1203,47 @@ def get_gamepad_status():
 # WEBSOCKET ENDPOINTS FOR REAL-TIME CONTROL
 # ================================
 
-# TODO: Fix SocketIO implementation - temporarily disabled to fix camera
-# The SocketIO section has been commented out due to syntax errors
-# This will be re-enabled once the issues are resolved
-
-# Original SocketIO code was here but had indentation issues
-# SocketIO functionality will be re-implemented properly later
+if SOCKETIO_AVAILABLE and socketio_app:
+    
+    @socketio_app.on('connect')
+    def handle_connect():
+        print(f"🔗 Client connected: {request.sid}")
+        emit('connection_response', {'status': 'connected', 'message': 'Welcome to LAIKA!'})
+    
+    @socketio_app.on('disconnect')
+    def handle_disconnect():
+        print(f"📡 Client disconnected: {request.sid}")
+    
+    @socketio_app.on('control_connected')
+    def handle_control_connected(data):
+        print(f"🎮 Control interface connected: {data}")
+        emit('control_response', {'status': 'acknowledged', 'timestamp': datetime.now().isoformat()})
+    
+    @socketio_app.on('gamepad_action')
+    def handle_gamepad_action(data):
+        print(f"🎮 Gamepad action: {data}")
+        try:
+            # Process gamepad action using existing gamepad processor
+            if 'web_gamepad_processor' in globals():
+                result = web_gamepad_processor.process_gamepad_data(data)
+                emit('gamepad_response', {'status': 'success', 'result': result})
+            else:
+                emit('gamepad_response', {'status': 'error', 'message': 'Gamepad processor not available'})
+        except Exception as e:
+            print(f"❌ Gamepad action error: {e}")
+            emit('error_response', {'error': str(e)})
+    
+    @socketio_app.on('movement_command')
+    def handle_movement_command(data):
+        print(f"🎮 Movement command: {data}")
+        try:
+            # Process movement command
+            emit('movement_response', {'status': 'success', 'command': data})
+        except Exception as e:
+            print(f"❌ Movement command error: {e}")
+            emit('error_response', {'error': str(e)})
+    
+    print("✅ SocketIO event handlers registered")
 
 @app.route('/api/processes')
 def get_processes():
@@ -1365,6 +1620,85 @@ def get_system_status():
             'error': str(e)
         }), 500
 
+@app.route('/api/fan/status')
+def get_fan_status():
+    """Get current fan status and control information"""
+    try:
+        fan_data = get_fan_info()
+        return jsonify({
+            'success': True,
+            'data': fan_data,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/fan/control', methods=['POST'])
+def control_fan():
+    """Control fan speed (if supported)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        new_state = data.get('state')
+        if new_state is None:
+            return jsonify({
+                'success': False,
+                'error': 'Fan state not provided'
+            }), 400
+        
+        # Validate fan state
+        fan_info = get_fan_info()
+        max_state = fan_info.get('maxState', 4)
+        
+        if not (0 <= new_state <= max_state):
+            return jsonify({
+                'success': False,
+                'error': f'Fan state must be between 0 and {max_state}'
+            }), 400
+        
+        # Set fan state (requires root privileges)
+        try:
+            with open('/sys/class/thermal/cooling_device0/cur_state', 'w') as f:
+                f.write(str(new_state))
+            
+            # Get updated fan info
+            updated_fan_info = get_fan_info()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Fan state set to {new_state}',
+                'data': updated_fan_info,
+                'timestamp': datetime.now().isoformat()
+            })
+        except PermissionError:
+            return jsonify({
+                'success': False,
+                'error': 'Permission denied - fan control requires elevated privileges',
+                'timestamp': datetime.now().isoformat()
+            }), 403
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to set fan state: {str(e)}',
+                'timestamp': datetime.now().isoformat()
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 @app.route('/api/dashboard/data')
 def get_dashboard_data():
     """Get comprehensive dashboard data with real sensor information"""
@@ -1393,6 +1727,9 @@ def get_dashboard_data():
         
         # Get real battery data
         dashboard_data['battery'] = get_battery_info_dashboard()
+        
+        # Get real fan data
+        dashboard_data['fan'] = get_fan_info()
         
         # Get IMU data (placeholder for now)
         dashboard_data['imu'] = {
@@ -1455,6 +1792,65 @@ def get_system_temperatures():
         print(f"Error reading temperatures: {e}")
     
     return temps
+
+def get_fan_info():
+    """Get real fan information from thermal cooling device"""
+    fan_info = {
+        'state': 0,
+        'maxState': 4,
+        'speed': 0,
+        'mode': 'Auto',
+        'target': 65,
+        'efficiency': 85,
+        'type': 'pwm-fan'
+    }
+    
+    try:
+        # Read current fan state
+        try:
+            with open('/sys/class/thermal/cooling_device0/cur_state', 'r') as f:
+                fan_info['state'] = int(f.read().strip())
+        except:
+            pass
+        
+        # Read max fan state
+        try:
+            with open('/sys/class/thermal/cooling_device0/max_state', 'r') as f:
+                fan_info['maxState'] = int(f.read().strip())
+        except:
+            pass
+            
+        # Read fan type
+        try:
+            with open('/sys/class/thermal/cooling_device0/type', 'r') as f:
+                fan_info['type'] = f.read().strip()
+        except:
+            pass
+        
+        # Calculate speed percentage
+        if fan_info['maxState'] > 0:
+            fan_info['speed'] = round((fan_info['state'] / fan_info['maxState']) * 100)
+        
+        # Estimate cooling efficiency based on current state and temperature
+        temps = get_system_temperatures()
+        cpu_temp = temps.get('cpu', 45)
+        
+        # Calculate efficiency based on temperature vs fan state
+        if fan_info['state'] == 0:
+            # Fan off - efficiency based on temperature
+            fan_info['efficiency'] = max(50, 100 - (cpu_temp - 40) * 2) if cpu_temp > 40 else 100
+        else:
+            # Fan running - higher efficiency
+            target_temp = fan_info['target']
+            temp_diff = abs(cpu_temp - target_temp)
+            fan_info['efficiency'] = max(60, 100 - temp_diff * 3)
+            
+        fan_info['efficiency'] = round(min(100, max(0, fan_info['efficiency'])))
+        
+    except Exception as e:
+        print(f"Error reading fan info: {e}")
+    
+    return fan_info
 
 def get_network_info_dashboard():
     """Get real network information for dashboard"""
@@ -2173,14 +2569,17 @@ def update_repository(repo_path, repo_name):
         
         if pull_result.returncode != 0:
             # If pull fails due to divergent branches, try merge strategy
-            if 'divergent branches' in pull_result.stderr or 'Need to specify how to reconcile' in pull_result.stderr:
-                merge_result = subprocess.run(['git', 'pull', '--no-rebase', 'origin', current_branch], 
+            if ('divergent branches' in pull_result.stderr or 
+                'Need to specify how to reconcile' in pull_result.stderr or
+                'refusing to merge unrelated histories' in pull_result.stderr):
+                
+                merge_result = subprocess.run(['git', 'pull', '--allow-unrelated-histories', '--no-rebase', 'origin', current_branch], 
                                             cwd=repo_path, capture_output=True, text=True, timeout=60)
                 if merge_result.returncode != 0:
                     return {
                         'repository': repo_name,
                         'success': False,
-                        'status': f'Pull failed after attempting merge: {merge_result.stderr}'
+                        'status': f'Pull failed after attempting merge with unrelated histories: {merge_result.stderr}'
                     }
             else:
                 return {
