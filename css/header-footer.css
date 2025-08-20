@@ -1,26 +1,27 @@
 /* LAIKA PWA Header & Footer Shared Styles */
 
 /* ============= NARROW HEADER ============= */
-.laika-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: 
-        linear-gradient(135deg, var(--panel-bg), #1A1A30),
-        radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
-    border-bottom: 2px solid var(--atomic-cyan);
-    box-shadow: 
-        0 2px 20px var(--glow-cyan),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-}
+        .laika-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30),
+                radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
+            border-bottom: 2px solid var(--atomic-cyan);
+            box-shadow: 
+                0 2px 10px rgba(0, 255, 255, 0.3),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            overflow: hidden; /* Prevent shadows from extending beyond */
+        }
 
 .laika-header::before {
     content: '';
@@ -108,12 +109,12 @@
     background: rgba(0, 0, 0, 0.2);
 }
 
-.nav-link:hover {
-    color: var(--atomic-cyan);
-    background: rgba(0, 255, 255, 0.1);
-    border-color: var(--atomic-cyan);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-}
+        .nav-link:hover {
+            color: var(--atomic-cyan);
+            background: rgba(0, 255, 255, 0.1);
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+        }
 
 .nav-link.active {
     color: var(--atomic-cyan);
@@ -138,37 +139,38 @@
     transition: all 0.3s ease;
 }
 
-.menu-toggle:hover {
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-}
+        .menu-toggle:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
+        }
 
 /* ============= NARROW FOOTER ============= */
-.laika-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    background: 
-        linear-gradient(135deg, var(--atomic-bg), #1A1A30),
-        radial-gradient(circle at center, rgba(0, 255, 255, 0.05), transparent);
-    border-top: 2px solid var(--atomic-cyan);
-    box-shadow: 
-        0 -2px 20px var(--glow-cyan),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    font-family: 'Orbitron', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
+        .laika-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: 
+                linear-gradient(135deg, var(--atomic-bg), #1A1A30),
+                radial-gradient(circle at center, rgba(0, 255, 255, 0.05), transparent);
+            border-top: 2px solid var(--atomic-cyan);
+            box-shadow: 
+                0 -2px 10px rgba(0, 255, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            overflow: hidden; /* Prevent shadows from extending beyond */
+        }
 
 /* Footer Status Items */
 .footer-status {
@@ -372,6 +374,18 @@
     padding-top: 70px; /* Account for fixed header */
     padding-bottom: 60px; /* Account for fixed footer */
     min-height: 100vh;
+    position: relative;
+    z-index: 1; /* Ensure content stays below header/footer */
+}
+
+/* Prevent any content from overlapping header/footer */
+body {
+    overflow-x: hidden;
+}
+
+.laika-header,
+.laika-footer {
+    isolation: isolate; /* Create new stacking context */
 }
 
 /* ============= ANIMATIONS ============= */

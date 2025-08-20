@@ -19,6 +19,9 @@ from PIL import Image
 import subprocess
 import psutil
 from datetime import datetime
+import uuid
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 # Add vendor paths for camera and SLAM functionality
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'vendor', 'puppypi_ros', 'src', 'puppy_pi_common', 'build', 'lib'))
@@ -45,6 +48,17 @@ except ImportError:
 
 app = Flask(__name__)
 CORS(app)
+
+# Import Cursor server functionality
+try:
+    from cursor_server import CursorServerAPI
+    cursor_api = CursorServerAPI()
+    CURSOR_AVAILABLE = True
+    print("✅ Cursor AI integration loaded")
+except ImportError as e:
+    print(f"⚠️ Cursor AI integration not available: {e}")
+    cursor_api = None
+    CURSOR_AVAILABLE = False
 
 class MockCamera:
     """Mock camera for development/testing"""
@@ -1114,6 +1128,130 @@ def kill_process():
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# ================================
+# CURSOR AI ENDPOINTS
+# ================================
+
+@app.route('/cursor/chat', methods=['POST'])
+def cursor_chat():
+    """Handle Cursor AI chat messages"""
+    if not CURSOR_AVAILABLE or not cursor_api:
+        return jsonify({
+            'success': False,
+            'error': 'Cursor AI not available',
+            'message': {
+                'id': str(uuid.uuid4()),
+                'role': 'assistant',
+                'content': 'Cursor AI is not available on this system.',
+                'timestamp': datetime.now().isoformat(),
+                'metadata': {'error': True}
+            }
+        }), 503
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON data required'}), 400
+            
+        session_id = data.get('session_id', str(uuid.uuid4()))
+        message = data.get('message', '').strip()
+        context = data.get('context')
+        
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+        
+        # Use asyncio to run the async method
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                cursor_api.process_chat_message(session_id, message, context)
+            )
+        finally:
+            loop.close()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': {
+                'id': str(uuid.uuid4()),
+                'role': 'assistant',
+                'content': f'Error processing message: {str(e)}',
+                'timestamp': datetime.now().isoformat(),
+                'metadata': {'error': True}
+            }
+        }), 500
+
+@app.route('/cursor/status', methods=['GET'])
+def cursor_status():
+    """Get Cursor AI status"""
+    if not CURSOR_AVAILABLE or not cursor_api:
+        return jsonify({
+            'cursor_available': False,
+            'error': 'Cursor AI not loaded'
+        })
+    
+    try:
+        status = cursor_api.get_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({
+            'cursor_available': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/cursor/session/<session_id>', methods=['GET'])
+def cursor_session_info(session_id):
+    """Get session information"""
+    if not CURSOR_AVAILABLE or not cursor_api:
+        return jsonify({'error': 'Cursor AI not available'}), 503
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                cursor_api.get_session_info(session_id)
+            )
+        finally:
+            loop.close()
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/cursor/session/<session_id>', methods=['DELETE'])
+def cursor_clear_session(session_id):
+    """Clear session messages"""
+    if not CURSOR_AVAILABLE or not cursor_api:
+        return jsonify({'error': 'Cursor AI not available'}), 503
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(
+                cursor_api.clear_session(session_id)
+            )
+        finally:
+            loop.close()
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/cursor.html')
+def cursor_interface():
+    """Serve the Cursor AI interface"""
+    try:
+        with open('cursor.html', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Cursor AI interface not found", 404
 
 if __name__ == '__main__':
     # Initialize ROS2 node

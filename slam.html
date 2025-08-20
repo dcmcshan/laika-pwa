@@ -17,6 +17,9 @@
     <!-- Mobile Optimizations -->
     <link href="css/mobile-landscape.css" rel="stylesheet">
     
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -653,6 +656,12 @@
                 color: var(--text-primary);
             }
         }
+        
+        /* Header/Footer adjustments */
+        .app-container {
+            padding-top: 70px !important; /* Account for fixed header */
+            padding-bottom: 60px !important; /* Account for fixed footer */
+        }
     </style>
 </head>
 <body>
@@ -928,5 +937,8 @@
             console.log('🚀 SLAM view toggle initialized');
         });
     </script>
+    
+    <!-- Header/Footer System -->
+    <script src="js/header-footer.js"></script>
 </body>
 </html>
