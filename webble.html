@@ -299,6 +299,87 @@
             color: var(--atomic-cyan);
         }
 
+        .wifi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .ble-button.small {
+            padding: 8px 16px;
+            font-size: 11px;
+            width: auto;
+            min-width: 100px;
+        }
+
+        .network-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .network-info {
+            flex: 1;
+        }
+
+        .network-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .network-action-btn {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .network-action-btn:hover {
+            background: var(--tron-cyan);
+        }
+
+        .network-action-btn.remove {
+            background: var(--error-red);
+        }
+
+        .saved-networks-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--atomic-cyan);
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .saved-network-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+        }
+
+        .saved-network-item:last-child {
+            border-bottom: none;
+        }
+
+        .saved-network-item.connected {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success-green);
+        }
+
+        .add-network-form {
+            border-top: 1px solid var(--atomic-cyan);
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+
         .input-group {
             display: flex;
             flex-direction: column;
@@ -433,33 +514,30 @@
                 </div>
             </div>
 
-            <!-- WiFi Configuration Form -->
+            <!-- Simple WiFi Configuration -->
             <div class="status-card wifi-form" id="wifiForm">
                 <div class="status-header">
                     <span class="status-icon">📡</span>
-                    <h3 class="status-title">WiFi Configuration</h3>
+                    <h3 class="status-title">Configure WiFi</h3>
+                </div>
+                
+                <p class="status-text">
+                    Enter your WiFi network credentials to configure LAIKA's connection.
+                </p>
+                
+                <div class="input-group">
+                    <label class="input-label" for="ssidInput">Network Name (SSID)</label>
+                    <input type="text" class="input-field" id="ssidInput" placeholder="Enter WiFi network name" maxlength="32" required>
                 </div>
                 
                 <div class="input-group">
-                    <label class="input-label">Available Networks</label>
-                    <div class="networks-list" id="networksList">
-                        <div class="network-item">Scanning for networks...</div>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label class="input-label" for="ssidInput">Network Name (SSID)</label>
-                    <input type="text" class="input-field" id="ssidInput" placeholder="Enter WiFi network name">
-                </div>
-
-                <div class="input-group">
                     <label class="input-label" for="passwordInput">Password</label>
-                    <input type="password" class="input-field" id="passwordInput" placeholder="Enter WiFi password">
+                    <input type="password" class="input-field" id="passwordInput" placeholder="Enter WiFi password" required>
                 </div>
-
+                
                 <div class="form-buttons">
-                    <button class="ble-button" id="cancelWifiButton">Cancel</button>
-                    <button class="ble-button success" id="submitWifiButton">Configure WiFi</button>
+                    <button class="ble-button" id="cancelWifiButton">❌ Cancel</button>
+                    <button class="ble-button success" id="sendWifiButton">📡 Send WiFi Config</button>
                 </div>
             </div>
         </div>
@@ -493,17 +571,22 @@
                     networksList: document.getElementById('networksList'),
                     ssidInput: document.getElementById('ssidInput'),
                     passwordInput: document.getElementById('passwordInput'),
-                    submitWifiButton: document.getElementById('submitWifiButton'),
                     cancelWifiButton: document.getElementById('cancelWifiButton'),
                     
                     errorMessage: document.getElementById('errorMessage'),
                     successMessage: document.getElementById('successMessage')
                 };
                 
+                console.log('📋 UI Elements initialized:', {
+                    wifiForm: !!this.elements.wifiForm,
+                    configureWifiButton: !!this.elements.configureWifiButton,
+                    networksList: !!this.elements.networksList
+                });
+                
                 this.init();
             }
 
-            init() {
+            async init() {
                 console.log('Initializing WebBLE Controller...');
                 
                 // Check BLE support
@@ -519,7 +602,38 @@
                 // Set up UI event listeners
                 this.setupEventListeners();
                 
+                // Try to auto-connect to previously paired devices
+                await this.tryAutoConnect();
+                
                 console.log('WebBLE Controller initialized');
+            }
+
+            async tryAutoConnect() {
+                try {
+                    this.updateStatus('Checking for paired devices...');
+                    this.elements.statusIcon.textContent = '🔍';
+                    
+                    const pairedDevice = await this.bleImprov.checkForPairedDevices();
+                    
+                    if (pairedDevice) {
+                        console.log('Auto-connected to paired device:', pairedDevice.name);
+                        this.isConnected = true;
+                        this.currentDevice = pairedDevice;
+                        this.updateConnectionStatus(pairedDevice);
+                        this.showSuccess(`Automatically connected to ${pairedDevice.name}!`);
+                    } else {
+                        // Reset to ready state if no paired devices
+                        this.elements.statusIcon.textContent = '🔍';
+                        this.elements.statusTitle.textContent = 'Ready to Connect';
+                        this.elements.statusText.textContent = 'Click "Connect to LAIKA" to scan for nearby LAIKA devices using Web Bluetooth. Make sure your device supports Web Bluetooth (Chrome, Edge, or compatible browsers).';
+                    }
+                } catch (error) {
+                    console.warn('Auto-connect failed:', error);
+                    // Don't show error for auto-connect failures, just reset to ready state
+                    this.elements.statusIcon.textContent = '🔍';
+                    this.elements.statusTitle.textContent = 'Ready to Connect';
+                    this.elements.statusText.textContent = 'Click "Connect to LAIKA" to scan for nearby LAIKA devices using Web Bluetooth. Make sure your device supports Web Bluetooth (Chrome, Edge, or compatible browsers).';
+                }
             }
 
             setupBLEHandlers() {
@@ -562,17 +676,42 @@
             setupEventListeners() {
                 this.elements.connectButton.addEventListener('click', () => this.connectToDevice());
                 this.elements.identifyButton.addEventListener('click', () => this.identifyDevice());
-                this.elements.configureWifiButton.addEventListener('click', () => this.showWiFiForm());
+                this.elements.configureWifiButton.addEventListener('click', () => {
+                    console.log('🔧 Configure WiFi button clicked!');
+                    this.showWiFiForm();
+                });
                 this.elements.disconnectButton.addEventListener('click', () => this.disconnectDevice());
                 
-                this.elements.submitWifiButton.addEventListener('click', () => this.submitWiFiConfig());
+                // WiFi management
+                document.getElementById('refreshNetworksButton').addEventListener('click', () => this.refreshNetworks());
+                document.getElementById('addNewNetworkButton').addEventListener('click', () => this.showAddNetworkForm());
+                document.getElementById('addNetworkButton').addEventListener('click', () => this.addNetwork());
+                document.getElementById('cancelAddButton').addEventListener('click', () => this.hideAddNetworkForm());
                 this.elements.cancelWifiButton.addEventListener('click', () => this.hideWiFiForm());
                 
-                // Network selection
+                // Network selection and actions
                 this.elements.networksList.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('network-item')) {
+                    if (e.target.classList.contains('network-action-btn')) {
+                        const action = e.target.dataset.action;
+                        const ssid = e.target.dataset.ssid;
+                        if (action === 'connect') {
+                            this.connectToNetwork(ssid);
+                        }
+                    } else if (e.target.classList.contains('network-item')) {
                         this.selectNetwork(e.target);
                     }
+                });
+
+                // Simple WiFi form handlers
+                document.getElementById('sendWifiButton')?.addEventListener('click', () => this.sendWiFiCredentials());
+                this.elements.cancelWifiButton?.addEventListener('click', () => this.hideWiFiForm());
+                
+                // Enter key support for WiFi form
+                this.elements.ssidInput?.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendWiFiCredentials();
+                });
+                this.elements.passwordInput?.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendWiFiCredentials();
                 });
             }
 
@@ -581,12 +720,44 @@
                     this.elements.connectButton.disabled = true;
                     this.updateStatus('Scanning for devices...');
                     
-                    await this.bleImprov.scan();
+                    // Add debug information
+                    console.log('🔍 Starting WebBLE device scan...');
+                    console.log('🔵 Looking for services:', this.bleImprov.FALLBACK_SERVICES);
+                    
+                    // Try accept all devices first for debugging
+                    let device;
+                    try {
+                        console.log('🔍 Trying acceptAllDevices scan...');
+                        device = await navigator.bluetooth.requestDevice({
+                            acceptAllDevices: true,
+                            optionalServices: this.bleImprov.FALLBACK_SERVICES
+                        });
+                        console.log('📱 Device selected:', device.name, 'ID:', device.id);
+                        this.bleImprov.device = device;
+                        this.bleImprov.setupDeviceListeners();
+                    } catch (acceptAllError) {
+                        console.log('❌ Accept all failed, trying service scan:', acceptAllError);
+                        device = await this.bleImprov.scan();
+                        console.log('📱 Device found via service scan:', device.name, 'ID:', device.id);
+                    }
+                    
+                    this.updateStatus('Connecting to device...');
                     await this.bleImprov.connect();
                     
                 } catch (error) {
                     console.error('Connection failed:', error);
-                    this.showError('Failed to connect: ' + error.message);
+                    let errorMsg = error.message;
+                    
+                    // Provide more helpful error messages
+                    if (errorMsg.includes('User cancelled')) {
+                        errorMsg = 'Device selection was cancelled. Please try again and select a device.';
+                    } else if (errorMsg.includes('No device selected')) {
+                        errorMsg = 'No device was selected. Make sure LAIKA is nearby and powered on.';
+                    } else if (errorMsg.includes('not found')) {
+                        errorMsg = 'LAIKA device not found. Make sure it\'s powered on and in pairing mode.';
+                    }
+                    
+                    this.showError('Failed to connect: ' + errorMsg);
                     this.elements.connectButton.disabled = false;
                 }
             }
@@ -602,13 +773,73 @@
             }
 
             async showWiFiForm() {
+                console.log('🔧 Opening WiFi configuration interface...');
+                this.elements.wifiForm.classList.add('show');
+                
+                // Hide the BLE controls section to focus on WiFi
+                const bleControlsSection = document.getElementById('connectButton')?.closest('.status-card');
+                if (bleControlsSection) {
+                    bleControlsSection.style.display = 'none';
+                }
+                
+                // Focus on SSID input
+                setTimeout(() => {
+                    this.elements.ssidInput?.focus();
+                }, 100);
+            }
+
+            async sendWiFiCredentials() {
                 try {
-                    this.elements.wifiForm.classList.add('show');
-                    this.updateStatus('Scanning for WiFi networks...');
-                    await this.bleImprov.scanNetworks();
+                    const ssid = this.elements.ssidInput?.value?.trim();
+                    const password = this.elements.passwordInput?.value;
+                    
+                    if (!ssid) {
+                        this.showError('Please enter a network name (SSID)');
+                        this.elements.ssidInput?.focus();
+                        return;
+                    }
+                    
+                    if (!password) {
+                        this.showError('Please enter the WiFi password');
+                        this.elements.passwordInput?.focus();
+                        return;
+                    }
+                    
+                    console.log('📡 Sending WiFi credentials:', { ssid, password: '***' });
+                    
+                    // Disable send button during transmission
+                    const sendButton = document.getElementById('sendWifiButton');
+                    if (sendButton) {
+                        sendButton.disabled = true;
+                        sendButton.textContent = '⏳ Sending...';
+                    }
+                    
+                    this.updateStatus('Configuring WiFi...');
+                    
+                    // Send WiFi settings via BLE Improv protocol
+                    await this.bleImprov.sendWiFiSettings(ssid, password);
+                    
+                    this.showSuccess(`WiFi credentials sent successfully!\nSSID: ${ssid}`);
+                    
+                    // Clear form
+                    this.elements.ssidInput.value = '';
+                    this.elements.passwordInput.value = '';
+                    
+                    // Hide form after success
+                    setTimeout(() => {
+                        this.hideWiFiForm();
+                    }, 2000);
+                    
                 } catch (error) {
-                    console.error('Network scan failed:', error);
-                    this.showError('Failed to scan networks: ' + error.message);
+                    console.error('Failed to send WiFi credentials:', error);
+                    this.showError('Failed to send WiFi credentials: ' + error.message);
+                } finally {
+                    // Re-enable send button
+                    const sendButton = document.getElementById('sendWifiButton');
+                    if (sendButton) {
+                        sendButton.disabled = false;
+                        sendButton.textContent = '📡 Send WiFi Config';
+                    }
                 }
             }
 
@@ -616,6 +847,12 @@
                 this.elements.wifiForm.classList.remove('show');
                 this.elements.ssidInput.value = '';
                 this.elements.passwordInput.value = '';
+                
+                // Show the BLE controls section again
+                const bleControlsSection = document.getElementById('connectButton')?.closest('.status-card');
+                if (bleControlsSection) {
+                    bleControlsSection.style.display = 'block';
+                }
             }
 
             async submitWiFiConfig() {
@@ -672,15 +909,139 @@
                 networks.forEach(network => {
                     const networkElement = document.createElement('div');
                     networkElement.className = 'network-item';
-                    networkElement.textContent = network.ssid || network;
+                    networkElement.innerHTML = `
+                        <div class="network-info">
+                            <strong>${network.ssid}</strong>
+                            <div style="font-size: 12px; color: var(--text-dim);">
+                                Signal: ${network.signal}% ${network.security ? '🔒' : '🔓'}
+                            </div>
+                        </div>
+                        <div class="network-actions">
+                            <button class="network-action-btn" data-action="connect" data-ssid="${network.ssid}">
+                                ➕ Add
+                            </button>
+                        </div>
+                    `;
                     this.elements.networksList.appendChild(networkElement);
                 });
+            }
+
+            async refreshNetworks() {
+                try {
+                    this.elements.networksList.innerHTML = '<div class="network-item">Scanning...</div>';
+                    await this.bleImprov.scanNetworks();
+                } catch (error) {
+                    this.showError('Failed to refresh networks: ' + error.message);
+                }
+            }
+
+            showAddNetworkForm() {
+                document.getElementById('addNetworkForm').style.display = 'block';
+                document.getElementById('mainWifiButtons').style.display = 'none';
+                document.getElementById('ssidInput').focus();
+            }
+
+            hideAddNetworkForm() {
+                document.getElementById('addNetworkForm').style.display = 'none';
+                document.getElementById('mainWifiButtons').style.display = 'flex';
+                document.getElementById('ssidInput').value = '';
+                document.getElementById('passwordInput').value = '';
+            }
+
+            async addNetwork() {
+                const ssid = document.getElementById('ssidInput').value.trim();
+                const password = document.getElementById('passwordInput').value;
+
+                if (!ssid) {
+                    this.showError('Please enter a network name (SSID)');
+                    return;
+                }
+
+                try {
+                    document.getElementById('addNetworkButton').disabled = true;
+                    this.updateStatus('Adding network...');
+                    
+                    await this.bleImprov.configureWiFi(ssid, password);
+                    
+                    // Add to saved networks list
+                    this.addToSavedNetworks(ssid, true); // true = connected
+                    this.hideAddNetworkForm();
+                    this.showSuccess(`Successfully added and connected to ${ssid}!`);
+                    
+                } catch (error) {
+                    this.showError('Failed to add network: ' + error.message);
+                } finally {
+                    document.getElementById('addNetworkButton').disabled = false;
+                }
+            }
+
+            connectToNetwork(ssid) {
+                // Pre-fill the form with selected network
+                document.getElementById('ssidInput').value = ssid;
+                this.showAddNetworkForm();
+            }
+
+            addToSavedNetworks(ssid, connected = false) {
+                const savedNetworksList = document.getElementById('savedNetworksList');
+                
+                // Remove "No saved networks" message
+                if (savedNetworksList.children.length === 1 && 
+                    savedNetworksList.children[0].textContent === 'No saved networks') {
+                    savedNetworksList.innerHTML = '';
+                }
+
+                const networkElement = document.createElement('div');
+                networkElement.className = `saved-network-item ${connected ? 'connected' : ''}`;
+                networkElement.innerHTML = `
+                    <div class="network-info">
+                        <strong>${ssid}</strong>
+                        <div style="font-size: 12px;">
+                            ${connected ? '✅ Connected' : '💤 Saved'}
+                        </div>
+                    </div>
+                    <div class="network-actions">
+                        ${!connected ? `<button class="network-action-btn" data-action="connect" data-ssid="${ssid}">🔗 Connect</button>` : ''}
+                        <button class="network-action-btn remove" data-action="remove" data-ssid="${ssid}">❌ Remove</button>
+                    </div>
+                `;
+                savedNetworksList.appendChild(networkElement);
+            }
+
+            async connectToSavedNetwork(ssid) {
+                try {
+                    this.updateStatus(`Connecting to ${ssid}...`);
+                    // In a real implementation, this would connect to a saved network
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate connection
+                    this.showSuccess(`Connected to ${ssid}!`);
+                } catch (error) {
+                    this.showError('Failed to connect: ' + error.message);
+                }
+            }
+
+            removeNetwork(ssid) {
+                if (confirm(`Remove network "${ssid}"?`)) {
+                    const savedNetworksList = document.getElementById('savedNetworksList');
+                    const networkElements = savedNetworksList.querySelectorAll('.saved-network-item');
+                    
+                    networkElements.forEach(element => {
+                        if (element.querySelector('.network-info strong').textContent === ssid) {
+                            element.remove();
+                        }
+                    });
+
+                    // Show "No saved networks" if list is empty
+                    if (savedNetworksList.children.length === 0) {
+                        savedNetworksList.innerHTML = '<div class="saved-network-item">No saved networks</div>';
+                    }
+
+                    this.showSuccess(`Removed network "${ssid}"`);
+                }
             }
 
             updateStatus(status) {
                 this.elements.statusText.textContent = status;
                 
-                if (status.includes('Scanning')) {
+                if (status.includes('Scanning') || status.includes('Checking')) {
                     this.elements.statusIcon.textContent = '🔍';
                     this.elements.statusTitle.textContent = 'Scanning';
                 } else if (status.includes('Connected')) {
@@ -689,13 +1050,16 @@
                 } else if (status.includes('Configuring')) {
                     this.elements.statusIcon.textContent = '⚙️';
                     this.elements.statusTitle.textContent = 'Configuring';
+                } else if (status.includes('Auto-connected')) {
+                    this.elements.statusIcon.textContent = '🔄';
+                    this.elements.statusTitle.textContent = 'Auto-Connected';
                 }
             }
 
             updateConnectionStatus(device) {
                 this.elements.statusIcon.textContent = '✅';
                 this.elements.statusTitle.textContent = 'Connected';
-                this.elements.statusText.textContent = 'Successfully connected to LAIKA device. You can now configure WiFi or identify the device.';
+                this.elements.statusText.textContent = 'Successfully connected to LAIKA device.';
                 
                 document.getElementById('deviceName').textContent = device.name || 'Unknown';
                 document.getElementById('deviceStatus').textContent = 'Connected';
@@ -706,6 +1070,12 @@
                 this.elements.configureWifiButton.disabled = false;
                 this.elements.disconnectButton.disabled = false;
                 this.elements.connectButton.disabled = true;
+                
+                // Automatically show WiFi management interface after connection
+                console.log('🔧 Auto-opening WiFi management after connection...');
+                setTimeout(() => {
+                    this.showWiFiForm();
+                }, 1000); // Small delay to let connection settle
             }
 
             updateDisconnectedStatus() {
