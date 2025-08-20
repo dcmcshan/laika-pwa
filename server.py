@@ -50,6 +50,15 @@ class MockCamera:
         self.width = 640
         self.height = 480
         self.opened = False
+        # Camera parameters
+        self.exposure = -3.0
+        self.brightness = 120
+        self.contrast = 60
+        self.saturation = 80
+        self.gain = 100
+        self.white_balance = 4000
+        self.auto_exposure = False
+        self.auto_white_balance = True
         
     def camera_open(self):
         self.opened = True
@@ -75,7 +84,45 @@ class MockCamera:
         y = int(240 + 50 * np.cos(t))
         cv2.circle(frame, (x, y), 20, (0, 255, 0), -1)
         
+        # Apply brightness and contrast to simulate camera settings
+        frame = cv2.convertScaleAbs(frame, alpha=self.contrast/50.0, beta=self.brightness-100)
+        
         return frame
+    
+    def set_parameter(self, parameter, value):
+        """Set camera parameter"""
+        if parameter == 'exposure':
+            self.exposure = max(-7, min(1, float(value)))
+        elif parameter == 'brightness':
+            self.brightness = max(0, min(255, int(value)))
+        elif parameter == 'contrast':
+            self.contrast = max(0, min(100, int(value)))
+        elif parameter == 'saturation':
+            self.saturation = max(0, min(100, int(value)))
+        elif parameter == 'gain':
+            self.gain = max(0, min(200, int(value)))
+        elif parameter == 'whiteBalance':
+            self.white_balance = max(2800, min(6500, int(value)))
+        elif parameter == 'autoExposure':
+            self.auto_exposure = bool(value)
+        elif parameter == 'autoWhiteBalance':
+            self.auto_white_balance = bool(value)
+        
+        print(f"📸 Camera parameter set: {parameter} = {value}")
+        return True
+    
+    def get_parameters(self):
+        """Get current camera parameters"""
+        return {
+            'exposure': self.exposure,
+            'brightness': self.brightness,
+            'contrast': self.contrast,
+            'saturation': self.saturation,
+            'gain': self.gain,
+            'whiteBalance': self.white_balance,
+            'autoExposure': self.auto_exposure,
+            'autoWhiteBalance': self.auto_white_balance
+        }
 
 class SLAMMapManager:
     """Manages SLAM map data and robot pose"""
@@ -264,6 +311,120 @@ def camera_stream():
     return Response(generate_camera_frames(),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/api/camera/parameters', methods=['GET'])
+def get_camera_parameters():
+    """Get current camera parameters"""
+    try:
+        if hasattr(camera, 'get_parameters'):
+            params = camera.get_parameters()
+        else:
+            # Fallback for real camera
+            params = {
+                'exposure': -1.0,
+                'brightness': 100,
+                'contrast': 50,
+                'saturation': 50,
+                'gain': 50,
+                'whiteBalance': 4000,
+                'autoExposure': True,
+                'autoWhiteBalance': True
+            }
+        
+        return jsonify({'success': True, 'parameters': params})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/camera/parameters', methods=['POST'])
+def set_camera_parameter():
+    """Set camera parameter"""
+    try:
+        data = request.get_json()
+        parameter = data.get('parameter')
+        value = data.get('value')
+        
+        if not parameter or value is None:
+            return jsonify({'success': False, 'error': 'Missing parameter or value'})
+        
+        # Set parameter on camera
+        if hasattr(camera, 'set_parameter'):
+            success = camera.set_parameter(parameter, value)
+        else:
+            # For real camera, use OpenCV properties
+            success = set_real_camera_parameter(parameter, value)
+        
+        if success:
+            return jsonify({'success': True, 'message': f'{parameter} set to {value}'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to set parameter'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/camera/preset', methods=['POST'])
+def apply_camera_preset():
+    """Apply camera preset"""
+    try:
+        data = request.get_json()
+        preset = data.get('preset')
+        settings = data.get('settings', {})
+        
+        if not preset:
+            return jsonify({'success': False, 'error': 'Missing preset name'})
+        
+        # Apply all settings in the preset
+        failed_settings = []
+        for param, value in settings.items():
+            try:
+                if hasattr(camera, 'set_parameter'):
+                    camera.set_parameter(param, value)
+                else:
+                    set_real_camera_parameter(param, value)
+            except Exception as e:
+                failed_settings.append(f"{param}: {str(e)}")
+        
+        if failed_settings:
+            return jsonify({
+                'success': False, 
+                'error': f'Failed to set: {", ".join(failed_settings)}'
+            })
+        else:
+            return jsonify({
+                'success': True, 
+                'message': f'Applied preset: {preset}'
+            })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+def set_real_camera_parameter(parameter, value):
+    """Set parameter on real camera using OpenCV"""
+    if not CAMERA_AVAILABLE or not hasattr(camera, 'camera'):
+        return False
+    
+    try:
+        if parameter == 'exposure':
+            camera.camera.set(cv2.CAP_PROP_EXPOSURE, float(value))
+        elif parameter == 'brightness':
+            camera.camera.set(cv2.CAP_PROP_BRIGHTNESS, int(value))
+        elif parameter == 'contrast':
+            camera.camera.set(cv2.CAP_PROP_CONTRAST, int(value))
+        elif parameter == 'saturation':
+            camera.camera.set(cv2.CAP_PROP_SATURATION, int(value))
+        elif parameter == 'gain':
+            camera.camera.set(cv2.CAP_PROP_GAIN, int(value))
+        elif parameter == 'whiteBalance':
+            camera.camera.set(cv2.CAP_PROP_WB_TEMPERATURE, int(value))
+        elif parameter == 'autoExposure':
+            camera.camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.75 if bool(value) else 0.25)
+        elif parameter == 'autoWhiteBalance':
+            camera.camera.set(cv2.CAP_PROP_AUTO_WB, 1 if bool(value) else 0)
+        
+        print(f"📸 Real camera parameter set: {parameter} = {value}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to set camera parameter {parameter}: {e}")
+        return False
+
 @app.route('/api/slam/map')
 def get_slam_map():
     """Get SLAM map as image"""
@@ -428,6 +589,128 @@ def clear_conversations():
 def conversation_page():
     """Serve the conversation monitoring page"""
     return send_file('conversation.html')
+
+@app.route('/api/pipeline-logs')
+def get_pipeline_logs():
+    """Get comprehensive pipeline logs from the new logging system"""
+    try:
+        # Try to import and get pipeline logs
+        sys.path.append('/home/pi/LAIKA')
+        from laika_pipeline_logger import get_pipeline_logger
+        
+        logger = get_pipeline_logger()
+        
+        # Get recent pipeline executions (formatted for chat view)
+        recent_executions = logger.get_recent_pipeline_executions(limit=50)
+        
+        # Format for chat-style display
+        chat_messages = []
+        for execution in recent_executions:
+            data = execution.get('data', {})
+            timestamp = execution.get('timestamp', '')
+            
+            stt_input = data.get('stt_input', '')
+            llm_response_raw = data.get('llm_response_raw', '')
+            parsed_response = data.get('llm_response_parsed', {})
+            tts_output = data.get('tts_output', '')
+            success_flags = data.get('success_flags', {})
+            context_data = data.get('context_data', {})
+            
+            # Create user message (STT input)
+            if stt_input:
+                chat_messages.append({
+                    'id': f"{execution.get('transaction_id', '')}_user",
+                    'type': 'user',
+                    'timestamp': timestamp,
+                    'content': stt_input,
+                    'meta': {
+                        'stt_success': success_flags.get('stt', False),
+                        'source': 'STT Pipeline'
+                    }
+                })
+            
+            # Create assistant message (LLM response)
+            if llm_response_raw:
+                assistant_message = {
+                    'id': f"{execution.get('transaction_id', '')}_assistant",
+                    'type': 'assistant',
+                    'timestamp': timestamp,
+                    'content': tts_output or parsed_response.get('cleaned_text', llm_response_raw),
+                    'raw_content': llm_response_raw,
+                    'meta': {
+                        'llm_success': success_flags.get('llm', False),
+                        'tts_success': success_flags.get('tts', False),
+                        'source': 'LLM Pipeline',
+                        'parsed_elements': {
+                            'actions': parsed_response.get('actions_found', []),
+                            'voice_commands': parsed_response.get('voice_commands', []),
+                            'sound_effects': parsed_response.get('sound_effects', []),
+                            'generic_actions': parsed_response.get('generic_actions', [])
+                        },
+                        'context_available': bool(context_data),
+                        'parse_time_ms': parsed_response.get('parse_time_ms', 0)
+                    }
+                }
+                
+                # Add full context if available
+                if context_data:
+                    assistant_message['context'] = context_data
+                
+                chat_messages.append(assistant_message)
+        
+        # Sort by timestamp (newest first for chat display)
+        chat_messages.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        # Get system status
+        summary = logger.get_logs_summary(hours=1)
+        
+        return jsonify({
+            'success': True,
+            'messages': chat_messages[:100],  # Limit to 100 most recent
+            'status': {
+                'stt_running': summary.get('stt_events', 0) > 0,
+                'llm_running': summary.get('llm_events', 0) > 0,
+                'tts_available': summary.get('tts_events', 0) > 0,
+                'timestamp': datetime.now().isoformat() if 'datetime' in globals() else None,
+                'pipeline_activity': {
+                    'complete_pipelines': summary.get('complete_pipelines', 0),
+                    'stt_events': summary.get('stt_events', 0),
+                    'llm_events': summary.get('llm_events', 0),
+                    'tts_events': summary.get('tts_events', 0),
+                    'parser_events': summary.get('parser_events', 0)
+                }
+            },
+            'total_messages': len(chat_messages)
+        })
+        
+    except ImportError:
+        # Fallback: return empty chat with status
+        return jsonify({
+            'success': False,
+            'error': 'Pipeline logger not available',
+            'messages': [],
+            'status': {
+                'stt_running': False,
+                'llm_running': False,
+                'tts_available': False,
+                'timestamp': None
+            },
+            'total_messages': 0
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'messages': [],
+            'status': {
+                'stt_running': False,
+                'llm_running': False,
+                'tts_available': False,
+                'timestamp': None
+            },
+            'total_messages': 0
+        })
 
 if __name__ == '__main__':
     # Initialize ROS2 node

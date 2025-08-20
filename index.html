@@ -416,6 +416,13 @@
                 inset 0 0 30px rgba(255, 27, 141, 0.2);
         }
 
+        .nav-card.pipeline-card:hover {
+            border-color: #9D4EDD;
+            box-shadow: 
+                0 10px 30px rgba(157, 78, 221, 0.5),
+                inset 0 0 30px rgba(157, 78, 221, 0.2);
+        }
+
         .nav-card.dashboard-card:hover {
             border-color: var(--electric-blue);
             box-shadow: 
@@ -530,6 +537,21 @@
                         <li>LLM brain integration</li>
                         <li>Personality switching</li>
                         <li>Command execution</li>
+                    </ul>
+                </a>
+
+                <!-- Pipeline Chat & Debug Logs -->
+                <a href="conversation.html" class="nav-card pipeline-card">
+                    <span class="nav-icon">🔍</span>
+                    <h3 class="nav-title">Pipeline Debug</h3>
+                    <p class="nav-description">
+                        Chat-style view of the STT→LLM→TTS pipeline. Debug voice interactions with full context.
+                    </p>
+                    <ul class="nav-features">
+                        <li>STT transcription logs</li>
+                        <li>LLM reasoning & parsing</li>
+                        <li>Voice commands & actions</li>
+                        <li>Real-time chat interface</li>
                     </ul>
                 </a>
 
