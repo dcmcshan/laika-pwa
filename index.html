@@ -445,6 +445,13 @@
                 inset 0 0 30px rgba(255, 215, 0, 0.2);
         }
 
+        .nav-card.pipeline-card:hover {
+            border-color: var(--atomic-cyan);
+            box-shadow: 
+                0 10px 30px rgba(0, 255, 255, 0.5),
+                inset 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
         /* Install Banner */
         .install-banner {
             background: 
@@ -538,6 +545,21 @@
                         <li>LLM brain integration</li>
                         <li>Personality switching</li>
                         <li>Command execution</li>
+                    </ul>
+                </a>
+
+                <!-- Pipeline Debug -->
+                <a href="conversation.html" class="nav-card pipeline-card">
+                    <span class="nav-icon">🔍</span>
+                    <h3 class="nav-title">Pipeline Debug</h3>
+                    <p class="nav-description">
+                        Real-time STT-LLM-TTS pipeline monitoring. Debug voice commands, AI responses, and system flow.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Live conversation log</li>
+                        <li>Pipeline status tracking</li>
+                        <li>Error diagnostics</li>
+                        <li>Performance metrics</li>
                     </ul>
                 </a>
 
@@ -797,5 +819,8 @@
             });
         }
     </script>
+    
+    <!-- Gamepad Navigation System -->
+    <script src="js/gamepad-navigation.js"></script>
 </body>
 </html>
