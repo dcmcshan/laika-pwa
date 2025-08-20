@@ -475,6 +475,117 @@
             accent-color: var(--atomic-cyan);
         }
 
+        .tts-input-section {
+            position: fixed;
+            bottom: 6rem;
+            left: 2rem;
+            right: 2rem;
+            z-index: 60;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tts-input-container {
+            display: flex;
+            gap: 1rem;
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 15px;
+            padding: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        #tts-input {
+            flex: 1;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid var(--grid-color);
+            border-radius: 10px;
+            padding: 0.8rem 1.2rem;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #tts-input:focus {
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.08);
+        }
+
+        #tts-input::placeholder {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        .tts-button {
+            background: linear-gradient(135deg, var(--tts-color), #FF6600);
+            border: none;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(255, 136, 0, 0.3);
+            min-width: 120px;
+        }
+
+        .tts-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 136, 0, 0.5);
+            background: linear-gradient(135deg, #FF9900, #FF6600);
+        }
+
+        .tts-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tts-button.speaking {
+            background: linear-gradient(135deg, var(--stt-color), #00CC77);
+            animation: pulse 1.5s infinite;
+        }
+
+        .tts-status {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tts-status.show {
+            opacity: 1;
+        }
+
+        .tts-status.success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--stt-color);
+            color: var(--stt-color);
+        }
+
+        .tts-status.error {
+            background: rgba(255, 107, 53, 0.2);
+            border: 1px solid var(--atomic-orange);
+            color: var(--atomic-orange);
+        }
+
+        .tts-status.speaking {
+            background: rgba(255, 136, 0, 0.2);
+            border: 1px solid var(--tts-color);
+            color: var(--tts-color);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -497,6 +608,21 @@
                 bottom: 1rem;
                 right: 1rem;
                 flex-direction: column;
+            }
+            
+            .tts-input-section {
+                bottom: 5rem;
+                left: 1rem;
+                right: 1rem;
+            }
+            
+            .tts-input-container {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .tts-button {
+                width: 100%;
             }
         }
     </style>
@@ -527,6 +653,17 @@
                 <p>Speak to LAIKA to see the STT → LLM → TTS loop in action!</p>
             </div>
         </div>
+    </div>
+
+    <!-- TTS Input Section -->
+    <div class="tts-input-section">
+        <div class="tts-input-container">
+            <input type="text" id="tts-input" placeholder="Type text for LAIKA to say..." maxlength="500">
+            <button class="tts-button" id="tts-speak-btn" onclick="speakText()">
+                🗣️ Speak
+            </button>
+        </div>
+        <div class="tts-status" id="tts-status-message"></div>
     </div>
 
     <div class="controls">
@@ -843,6 +980,83 @@
                 }
             }
         }
+
+        async function speakText() {
+            const input = document.getElementById('tts-input');
+            const button = document.getElementById('tts-speak-btn');
+            const status = document.getElementById('tts-status-message');
+            
+            const text = input.value.trim();
+            if (!text) {
+                showTTSStatus('Please enter some text to speak', 'error');
+                return;
+            }
+            
+            // Disable button and show speaking state
+            button.disabled = true;
+            button.classList.add('speaking');
+            button.innerHTML = '🔊 Speaking...';
+            
+            showTTSStatus('Sending text to LAIKA TTS system...', 'speaking');
+            
+            try {
+                const response = await fetch('/api/tts/speak', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showTTSStatus(`✅ LAIKA said: "${text}"`, 'success');
+                    input.value = ''; // Clear input after successful TTS
+                    
+                    // Auto-refresh to show the TTS in the chat if STT picks it up
+                    setTimeout(() => {
+                        refreshConversations();
+                    }, 1000);
+                } else {
+                    showTTSStatus(`❌ TTS Error: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('TTS request failed:', error);
+                showTTSStatus(`❌ Network Error: ${error.message}`, 'error');
+            }
+            
+            // Reset button state
+            button.disabled = false;
+            button.classList.remove('speaking');
+            button.innerHTML = '🗣️ Speak';
+        }
+        
+        function showTTSStatus(message, type) {
+            const status = document.getElementById('tts-status-message');
+            status.textContent = message;
+            status.className = `tts-status show ${type}`;
+            
+            // Auto-hide success/error messages after 5 seconds
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    status.classList.remove('show');
+                }, 5000);
+            }
+        }
+        
+        // Allow Enter key to trigger TTS
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('tts-input');
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        speakText();
+                    }
+                });
+            }
+        });
 
         // Handle visibility change to pause/resume auto-refresh
         document.addEventListener('visibilitychange', function() {

@@ -11,6 +11,11 @@ class LAIKAControl {
         this.commandRate = 0;
         this.lastCommandTime = Date.now();
         
+        // Audio/Video feed state
+        this.videoEnabled = false;
+        this.audioEnabled = false;
+        this.streamConnected = false;
+        
         // Enhanced gamepad manager
         this.gamepadManager = null;
         

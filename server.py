@@ -16,6 +16,9 @@ from flask_cors import CORS
 import base64
 import io
 from PIL import Image
+import subprocess
+import psutil
+from datetime import datetime
 
 # Add vendor paths for camera and SLAM functionality
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'vendor', 'puppypi_ros', 'src', 'puppy_pi_common', 'build', 'lib'))
@@ -270,11 +273,15 @@ def init_ros_node():
 def generate_camera_frames():
     """Generate camera frames for streaming"""
     while True:
-        if CAMERA_AVAILABLE and camera.opened:
-            frame = camera.frame
+        frame = None
+        
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'capture_frame'):
+            frame = camera.capture_frame()
+        elif CAMERA_AVAILABLE and hasattr(camera, 'opened') and camera.opened:
+            frame = getattr(camera, 'frame', None)
         elif ROS2_AVAILABLE and ros_node and ros_node.latest_camera_frame is not None:
             frame = ros_node.latest_camera_frame
-        else:
+        elif hasattr(camera, 'get_frame'):
             frame = camera.get_frame()
             
         if frame is not None:
@@ -306,8 +313,17 @@ def get_status():
 def start_camera():
     """Start camera"""
     try:
-        camera.camera_open()
-        return jsonify({'success': True, 'message': 'Camera started'})
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'open_camera'):
+            success = camera.open_camera()
+            if success:
+                return jsonify({'success': True, 'message': 'Camera started'})
+            else:
+                return jsonify({'success': False, 'error': 'Failed to open camera'})
+        elif hasattr(camera, 'camera_open'):
+            camera.camera_open()
+            return jsonify({'success': True, 'message': 'Camera started'})
+        else:
+            return jsonify({'success': False, 'error': 'Camera control not available'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -315,8 +331,14 @@ def start_camera():
 def stop_camera():
     """Stop camera"""
     try:
-        camera.camera_close()
-        return jsonify({'success': True, 'message': 'Camera stopped'})
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'close_camera'):
+            camera.close_camera()
+            return jsonify({'success': True, 'message': 'Camera stopped'})
+        elif hasattr(camera, 'camera_close'):
+            camera.camera_close()
+            return jsonify({'success': True, 'message': 'Camera stopped'})
+        else:
+            return jsonify({'success': False, 'error': 'Camera control not available'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -330,10 +352,19 @@ def camera_stream():
 def get_camera_parameters():
     """Get current camera parameters"""
     try:
-        if hasattr(camera, 'get_parameters'):
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'get_parameters'):
+            params = camera.get_parameters()
+            # Convert parameter names for frontend compatibility
+            if 'white_balance' in params:
+                params['whiteBalance'] = params.pop('white_balance')
+            if 'auto_exposure' in params:
+                params['autoExposure'] = params.pop('auto_exposure')
+            if 'auto_white_balance' in params:
+                params['autoWhiteBalance'] = params.pop('auto_white_balance')
+        elif hasattr(camera, 'get_parameters'):
             params = camera.get_parameters()
         else:
-            # Fallback for real camera
+            # Fallback for basic camera
             params = {
                 'exposure': -1.0,
                 'brightness': 100,
@@ -361,10 +392,12 @@ def set_camera_parameter():
             return jsonify({'success': False, 'error': 'Missing parameter or value'})
         
         # Set parameter on camera
-        if hasattr(camera, 'set_parameter'):
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'set_parameter'):
+            success = camera.set_parameter(parameter, value)
+        elif hasattr(camera, 'set_parameter'):
             success = camera.set_parameter(parameter, value)
         else:
-            # For real camera, use OpenCV properties
+            # For basic camera, use OpenCV properties
             success = set_real_camera_parameter(parameter, value)
         
         if success:
@@ -386,11 +419,22 @@ def apply_camera_preset():
         if not preset:
             return jsonify({'success': False, 'error': 'Missing preset name'})
         
-        # Apply all settings in the preset
+        # Try to apply preset directly if enhanced camera is available
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'apply_preset'):
+            success = camera.apply_preset(preset)
+            if success:
+                return jsonify({
+                    'success': True, 
+                    'message': f'Applied preset: {preset}'
+                })
+        
+        # Fallback: Apply all settings in the preset individually
         failed_settings = []
         for param, value in settings.items():
             try:
-                if hasattr(camera, 'set_parameter'):
+                if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'set_parameter'):
+                    camera.set_parameter(param, value)
+                elif hasattr(camera, 'set_parameter'):
                     camera.set_parameter(param, value)
                 else:
                     set_real_camera_parameter(param, value)
@@ -408,6 +452,45 @@ def apply_camera_preset():
                 'message': f'Applied preset: {preset}'
             })
             
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/camera/presets', methods=['GET'])
+def get_camera_presets():
+    """Get available camera presets"""
+    try:
+        if ENHANCED_CAMERA_AVAILABLE and hasattr(camera, 'get_presets'):
+            presets = camera.get_presets()
+        else:
+            # Fallback presets for basic camera
+            presets = {
+                'daylight': {
+                    'name': 'Daylight',
+                    'description': 'Optimized for bright outdoor conditions',
+                    'parameters': {
+                        'exposure': -1.0, 'brightness': 100, 'contrast': 50, 'saturation': 70,
+                        'gain': 50, 'whiteBalance': 5500, 'autoExposure': False, 'autoWhiteBalance': True
+                    }
+                },
+                'lowlight': {
+                    'name': 'Low Light',
+                    'description': 'Enhanced settings for dark environments',
+                    'parameters': {
+                        'exposure': -3.0, 'brightness': 140, 'contrast': 70, 'saturation': 80,
+                        'gain': 150, 'whiteBalance': 3200, 'autoExposure': False, 'autoWhiteBalance': False
+                    }
+                },
+                'indoor': {
+                    'name': 'Indoor',
+                    'description': 'Balanced settings for indoor use',
+                    'parameters': {
+                        'exposure': -2.0, 'brightness': 120, 'contrast': 60, 'saturation': 75,
+                        'gain': 80, 'whiteBalance': 4000, 'autoExposure': True, 'autoWhiteBalance': True
+                    }
+                }
+            }
+        
+        return jsonify({'success': True, 'presets': presets})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -726,6 +809,158 @@ def get_pipeline_logs():
             },
             'total_messages': 0
         })
+
+@app.route('/api/processes')
+def get_processes():
+    """Get system processes like top command"""
+    try:
+        processes = []
+        
+        # Get all running processes with their details
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'memory_info', 'create_time', 'status', 'username']):
+            try:
+                pinfo = proc.info
+                
+                # Calculate CPU usage (this may take a moment for first call)
+                cpu_percent = proc.cpu_percent()
+                
+                # Get memory info
+                memory_info = pinfo.get('memory_info', psutil._psutil_linux.pmem())
+                memory_mb = memory_info.rss / 1024 / 1024 if memory_info else 0
+                
+                # Get process age
+                create_time = pinfo.get('create_time', 0)
+                if create_time:
+                    age_seconds = time.time() - create_time
+                    if age_seconds < 60:
+                        age = f"{int(age_seconds)}s"
+                    elif age_seconds < 3600:
+                        age = f"{int(age_seconds/60)}m"
+                    elif age_seconds < 86400:
+                        age = f"{int(age_seconds/3600)}h"
+                    else:
+                        age = f"{int(age_seconds/86400)}d"
+                else:
+                    age = "unknown"
+                
+                processes.append({
+                    'pid': pinfo.get('pid', 0),
+                    'name': pinfo.get('name', 'unknown'),
+                    'cpu_percent': round(cpu_percent, 1),
+                    'memory_percent': round(pinfo.get('memory_percent', 0), 1),
+                    'memory_mb': round(memory_mb, 1),
+                    'status': pinfo.get('status', 'unknown'),
+                    'username': pinfo.get('username', 'unknown'),
+                    'age': age
+                })
+                
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                # Process disappeared or access denied, skip it
+                continue
+        
+        # Sort by CPU usage (descending)
+        processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+        
+        # Get system stats
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        boot_time = psutil.boot_time()
+        uptime_seconds = time.time() - boot_time
+        
+        # Format uptime
+        if uptime_seconds < 3600:
+            uptime = f"{int(uptime_seconds/60)}m"
+        elif uptime_seconds < 86400:
+            uptime = f"{int(uptime_seconds/3600)}h {int((uptime_seconds % 3600)/60)}m"
+        else:
+            days = int(uptime_seconds/86400)
+            hours = int((uptime_seconds % 86400)/3600)
+            uptime = f"{days}d {hours}h"
+        
+        # Get load averages (Linux only)
+        try:
+            load_avg = os.getloadavg()
+        except (OSError, AttributeError):
+            load_avg = [0, 0, 0]
+        
+        return jsonify({
+            'success': True,
+            'processes': processes[:50],  # Return top 50 processes
+            'total_processes': len(processes),
+            'system_stats': {
+                'cpu_percent': round(cpu_usage, 1),
+                'memory_percent': round(memory.percent, 1),
+                'memory_total_gb': round(memory.total / 1024 / 1024 / 1024, 2),
+                'memory_used_gb': round(memory.used / 1024 / 1024 / 1024, 2),
+                'memory_free_gb': round(memory.free / 1024 / 1024 / 1024, 2),
+                'disk_percent': round(disk.percent, 1),
+                'disk_total_gb': round(disk.total / 1024 / 1024 / 1024, 2),
+                'disk_used_gb': round(disk.used / 1024 / 1024 / 1024, 2),
+                'disk_free_gb': round(disk.free / 1024 / 1024 / 1024, 2),
+                'uptime': uptime,
+                'load_avg': [round(load, 2) for load in load_avg],
+                'timestamp': datetime.now().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'processes': [],
+            'system_stats': {}
+        })
+
+@app.route('/api/processes/kill', methods=['POST'])
+def kill_process():
+    """Kill a process by PID"""
+    try:
+        data = request.get_json()
+        pid = data.get('pid')
+        
+        if not pid:
+            return jsonify({'success': False, 'error': 'PID is required'})
+        
+        # Get process info first
+        try:
+            proc = psutil.Process(pid)
+            process_name = proc.name()
+            
+            # Safety check - don't kill critical system processes
+            critical_processes = ['init', 'kernel', 'systemd', 'ssh', 'NetworkManager']
+            if any(critical in process_name.lower() for critical in critical_processes):
+                return jsonify({
+                    'success': False, 
+                    'error': f'Cannot kill critical system process: {process_name}'
+                })
+            
+            # Kill the process
+            proc.terminate()
+            
+            # Wait a bit and check if it's really gone
+            time.sleep(0.5)
+            if proc.is_running():
+                proc.kill()  # Force kill if terminate didn't work
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Process {process_name} (PID: {pid}) terminated'
+            })
+            
+        except psutil.NoSuchProcess:
+            return jsonify({
+                'success': False, 
+                'error': f'Process with PID {pid} not found'
+            })
+        except psutil.AccessDenied:
+            return jsonify({
+                'success': False, 
+                'error': f'Access denied - cannot kill process {pid}'
+            })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     # Initialize ROS2 node

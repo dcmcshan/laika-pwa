@@ -664,9 +664,12 @@
                 <!-- Video Stream Container -->
                 <div class="video-container">
                     <div class="video-wrapper">
-                        <video id="videoStream" autoplay muted playsinline poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTFhIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJPcmJpdHJvbiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzAwZDlmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxBSUtBIENhbWVyYSBTdHJlYW08L3RleHQ+Cjwvc3ZnPg==">
-                            Camera stream not available
+                        <video id="videoStream" autoplay playsinline poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8rcmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTFhIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJPcmJpdHJvbiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzAwZDlmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxBSUtBIEF1ZGlvL1ZpZGVvIFN0cmVhbTwvdGV4dD4KPC9zdmc+">
+                            Audio/Video stream not available
                         </video>
+                        
+                        <!-- Audio Stream Element -->
+                        <audio id="audioStream" autoplay style="display: none;"></audio>
                         
                         <!-- Video Overlay for AI Detection -->
                         <div class="video-overlay" id="videoOverlay"></div>
@@ -701,6 +704,12 @@
                             </button>
                             <button class="control-btn" id="micBtn" title="Microphone">
                                 <i class="fas fa-microphone"></i>
+                            </button>
+                            <button class="control-btn" id="speakerBtn" title="Speaker">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button class="control-btn" id="talkBtn" title="Push to Talk">
+                                <i class="fas fa-walkie-talkie"></i>
                             </button>
                         </div>
                     </div>
@@ -844,6 +853,73 @@
                                 <button class="preset-btn" data-preset="lowlight">🌙 Low Light</button>
                                 <button class="preset-btn" data-preset="indoor">🏠 Indoor</button>
                                 <button class="preset-btn" data-preset="reset">🔄 Reset</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Controls -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-microphone-alt"></i> Audio Controls</h3>
+                        <div class="ai-features">
+                            <div class="feature-toggle" data-feature="audioStream">
+                                <span>Audio Stream</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="microphoneInput">
+                                <span>Microphone Input</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="voiceActivation">
+                                <span>Voice Activation</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="feature-toggle" data-feature="noiseCancellation">
+                                <span>Noise Cancellation</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Audio Settings -->
+                        <div class="camera-settings" style="margin-top: 15px;">
+                            <div class="setting-group">
+                                <label for="volumeSlider">Volume</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="volumeDownBtn"><i class="fas fa-volume-down"></i></button>
+                                    <input type="range" class="setting-slider" id="volumeSlider" min="0" max="100" value="80" step="5">
+                                    <button class="control-btn small" id="volumeUpBtn"><i class="fas fa-volume-up"></i></button>
+                                </div>
+                                <span class="setting-value" id="volumeValue">80%</span>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label for="micGainSlider">Microphone Gain</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="micGainDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="micGainSlider" min="0" max="100" value="50" step="5">
+                                    <button class="control-btn small" id="micGainUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="micGainValue">50%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="ai-info">
+                            <div class="ai-stats">
+                                <div class="stat-item">
+                                    <span>Audio Level:</span>
+                                    <span class="stat-value" id="audioLevel">0 dB</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Mic Level:</span>
+                                    <span class="stat-value" id="micLevel">0 dB</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Quality:</span>
+                                    <span class="stat-value" id="audioQuality">48kHz</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span>Latency:</span>
+                                    <span class="stat-value" id="audioLatency">< 50ms</span>
+                                </div>
                             </div>
                         </div>
                     </div>

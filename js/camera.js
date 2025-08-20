@@ -11,11 +11,23 @@ class LAIKACamera {
         this.isFullscreen = false;
         this.currentZoom = 1.0;
         this.streamQuality = '1080p';
+        this.audioEnabled = false;
+        this.microphoneEnabled = false;
+        this.audioStream = null;
+        this.microphoneStream = null;
         this.aiFeatures = {
             objectDetection: false,
             faceRecognition: false,
             motionTracking: false,
             sceneAnalysis: false
+        };
+        
+        // Audio features
+        this.audioFeatures = {
+            audioStream: false,
+            microphoneInput: false,
+            voiceActivation: false,
+            noiseCancellation: false
         };
         
         // Camera settings
@@ -46,6 +58,15 @@ class LAIKACamera {
         this.panPosition = 0;    // -180 to 180 degrees
         this.tiltPosition = 0;   // -90 to 90 degrees
         
+        // Audio settings
+        this.audioSettings = {
+            volume: 80,
+            micGain: 50,
+            sampleRate: 48000,
+            channels: 2,
+            latency: 50
+        };
+        
         this.init();
     }
 
@@ -72,6 +93,8 @@ class LAIKACamera {
         document.getElementById('photoBtn').addEventListener('click', () => this.takePhoto());
         document.getElementById('recordBtn').addEventListener('click', () => this.toggleRecording());
         document.getElementById('micBtn').addEventListener('click', () => this.toggleMicrophone());
+        document.getElementById('speakerBtn').addEventListener('click', () => this.toggleSpeaker());
+        document.getElementById('talkBtn').addEventListener('click', () => this.togglePushToTalk());
 
         // Pan/Tilt controls
         document.querySelectorAll('.pan-tilt-btn').forEach(btn => {
@@ -103,7 +126,7 @@ class LAIKACamera {
         // AI feature toggles
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
             if (toggle.dataset.feature) {
-                toggle.addEventListener('click', (e) => this.toggleAIFeature(e.currentTarget.dataset.feature));
+                toggle.addEventListener('click', (e) => this.toggleFeature(e.currentTarget.dataset.feature));
             } else if (toggle.dataset.setting) {
                 toggle.addEventListener('click', (e) => this.toggleCameraSetting(e.currentTarget.dataset.setting));
             }
@@ -135,6 +158,14 @@ class LAIKACamera {
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.applyCameraPreset(e.target.dataset.preset));
         });
+
+        // Audio controls
+        document.getElementById('volumeSlider')?.addEventListener('input', (e) => this.setVolume(parseInt(e.target.value)));
+        document.getElementById('volumeUpBtn')?.addEventListener('click', () => this.adjustVolume(5));
+        document.getElementById('volumeDownBtn')?.addEventListener('click', () => this.adjustVolume(-5));
+        document.getElementById('micGainSlider')?.addEventListener('input', (e) => this.setMicGain(parseInt(e.target.value)));
+        document.getElementById('micGainUpBtn')?.addEventListener('click', () => this.adjustMicGain(5));
+        document.getElementById('micGainDownBtn')?.addEventListener('click', () => this.adjustMicGain(-5));
 
         // Video element events
         const video = document.getElementById('videoStream');
@@ -464,6 +495,231 @@ class LAIKACamera {
         });
         this.updateUI();
         console.log('⏹️ Recording stopped');
+    }
+
+    toggleSpeaker() {
+        this.audioEnabled = !this.audioEnabled;
+        
+        if (this.audioEnabled) {
+            this.startAudioStream();
+        } else {
+            this.stopAudioStream();
+        }
+        
+        this.updateUI();
+        console.log(`🔊 Speaker ${this.audioEnabled ? 'enabled' : 'disabled'}`);
+    }
+
+    togglePushToTalk() {
+        // Toggle push-to-talk mode
+        console.log('📻 Push-to-talk activated');
+        // Implementation for push-to-talk functionality
+    }
+
+    async startAudioStream() {
+        try {
+            const audio = document.getElementById('audioStream');
+            if (audio) {
+                // For live audio from LAIKA, we'd connect to an audio stream endpoint
+                // This could be WebRTC audio or WebSocket audio stream
+                audio.src = `${this.getServerUrl()}/api/audio/stream`;
+                await audio.play();
+                this.audioStream = audio;
+                console.log('🎵 Audio stream started');
+            }
+        } catch (error) {
+            console.error('❌ Failed to start audio stream:', error);
+        }
+    }
+
+    stopAudioStream() {
+        const audio = document.getElementById('audioStream');
+        if (audio) {
+            audio.pause();
+            audio.src = '';
+            this.audioStream = null;
+            console.log('🔇 Audio stream stopped');
+        }
+    }
+
+    async startMicrophoneInput() {
+        try {
+            this.microphoneStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    sampleRate: this.audioSettings.sampleRate,
+                    channelCount: this.audioSettings.channels,
+                    echoCancellation: this.audioFeatures.noiseCancellation,
+                    noiseSuppression: this.audioFeatures.noiseCancellation
+                } 
+            });
+            
+            // Send microphone data to LAIKA via WebRTC or WebSocket
+            this.sendMicrophoneData();
+            console.log('🎤 Microphone input started');
+        } catch (error) {
+            console.error('❌ Failed to access microphone:', error);
+        }
+    }
+
+    stopMicrophoneInput() {
+        if (this.microphoneStream) {
+            this.microphoneStream.getTracks().forEach(track => track.stop());
+            this.microphoneStream = null;
+            console.log('🎤 Microphone input stopped');
+        }
+    }
+
+    sendMicrophoneData() {
+        // Implementation to send microphone data to LAIKA
+        // This would typically use WebRTC data channels or WebSocket
+        if (this.microphoneStream) {
+            // Create audio context for processing
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(this.microphoneStream);
+            
+            // Add audio processing here (gain, filters, etc.)
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = this.audioSettings.micGain / 100;
+            
+            source.connect(gainNode);
+            // Connect to WebRTC or WebSocket for transmission
+        }
+    }
+
+    setVolume(volume) {
+        this.audioSettings.volume = Math.max(0, Math.min(100, volume));
+        
+        const audio = document.getElementById('audioStream');
+        if (audio) {
+            audio.volume = this.audioSettings.volume / 100;
+        }
+        
+        this.updateAudioSettingsUI();
+        console.log(`🔊 Volume set to ${this.audioSettings.volume}%`);
+    }
+
+    adjustVolume(delta) {
+        this.setVolume(this.audioSettings.volume + delta);
+    }
+
+    setMicGain(gain) {
+        this.audioSettings.micGain = Math.max(0, Math.min(100, gain));
+        this.updateAudioSettingsUI();
+        
+        // Apply gain to microphone input if active
+        if (this.microphoneStream) {
+            this.sendMicrophoneData(); // Reapply gain
+        }
+        
+        console.log(`🎤 Microphone gain set to ${this.audioSettings.micGain}%`);
+    }
+
+    adjustMicGain(delta) {
+        this.setMicGain(this.audioSettings.micGain + delta);
+    }
+
+    updateAudioSettingsUI() {
+        // Update volume slider and display
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        if (volumeSlider) volumeSlider.value = this.audioSettings.volume;
+        if (volumeValue) volumeValue.textContent = `${this.audioSettings.volume}%`;
+        
+        // Update mic gain slider and display
+        const micGainSlider = document.getElementById('micGainSlider');
+        const micGainValue = document.getElementById('micGainValue');
+        if (micGainSlider) micGainSlider.value = this.audioSettings.micGain;
+        if (micGainValue) micGainValue.textContent = `${this.audioSettings.micGain}%`;
+    }
+
+    toggleFeature(featureName) {
+        // Handle both AI and audio features
+        if (featureName in this.aiFeatures) {
+            this.aiFeatures[featureName] = !this.aiFeatures[featureName];
+            console.log(`🧠 AI Feature ${featureName}: ${this.aiFeatures[featureName] ? 'ON' : 'OFF'}`);
+            
+            // Send AI feature command to server
+            this.sendMessage({
+                type: 'ai-feature',
+                feature: featureName,
+                enabled: this.aiFeatures[featureName]
+            });
+        } else if (featureName in this.audioFeatures) {
+            this.audioFeatures[featureName] = !this.audioFeatures[featureName];
+            console.log(`🎵 Audio Feature ${featureName}: ${this.audioFeatures[featureName] ? 'ON' : 'OFF'}`);
+            
+            // Handle specific audio features
+            switch (featureName) {
+                case 'audioStream':
+                    if (this.audioFeatures.audioStream) {
+                        this.startAudioStream();
+                    } else {
+                        this.stopAudioStream();
+                    }
+                    break;
+                case 'microphoneInput':
+                    if (this.audioFeatures.microphoneInput) {
+                        this.startMicrophoneInput();
+                    } else {
+                        this.stopMicrophoneInput();
+                    }
+                    break;
+                case 'voiceActivation':
+                    // Handle voice activation toggle
+                    this.sendMessage({
+                        type: 'audio-feature',
+                        feature: 'voice-activation',
+                        enabled: this.audioFeatures.voiceActivation
+                    });
+                    break;
+                case 'noiseCancellation':
+                    // Update microphone settings if active
+                    if (this.microphoneStream) {
+                        this.stopMicrophoneInput();
+                        this.startMicrophoneInput(); // Restart with new settings
+                    }
+                    break;
+            }
+        }
+        
+        this.updateFeatureUI();
+    }
+
+    updateFeatureUI() {
+        // Update AI feature toggles
+        Object.entries(this.aiFeatures).forEach(([feature, enabled]) => {
+            const toggle = document.querySelector(`[data-feature="${feature}"]`);
+            if (toggle) {
+                const switchElement = toggle.querySelector('.toggle-switch');
+                if (switchElement) {
+                    switchElement.classList.toggle('active', enabled);
+                }
+                toggle.classList.toggle('active', enabled);
+            }
+        });
+        
+        // Update audio feature toggles
+        Object.entries(this.audioFeatures).forEach(([feature, enabled]) => {
+            const toggle = document.querySelector(`[data-feature="${feature}"]`);
+            if (toggle) {
+                const switchElement = toggle.querySelector('.toggle-switch');
+                if (switchElement) {
+                    switchElement.classList.toggle('active', enabled);
+                }
+                toggle.classList.toggle('active', enabled);
+            }
+        });
+        
+        // Update audio stats
+        this.updateAudioStats();
+    }
+
+    updateAudioStats() {
+        // Update audio level indicators (would be updated from actual audio analysis)
+        document.getElementById('audioLevel').textContent = this.audioEnabled ? '0 dB' : 'Off';
+        document.getElementById('micLevel').textContent = this.microphoneEnabled ? '0 dB' : 'Off';
+        document.getElementById('audioQuality').textContent = `${this.audioSettings.sampleRate/1000}kHz`;
+        document.getElementById('audioLatency').textContent = `< ${this.audioSettings.latency}ms`;
     }
 
     // Pan/Tilt Control

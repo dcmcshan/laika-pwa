@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
+    <title>Process Monitor - LAIKA</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --success-green: #00FF88;
+            --warning-yellow: #FFD700;
+            --danger-red: #FF4444;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--atomic-cyan);
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan));
+            color: var(--atomic-bg);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--atomic-cyan);
+            box-shadow: 0 4px 20px var(--glow-cyan);
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            background: var(--atomic-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--atomic-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--text-cyan);
+            padding: 10px 20px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-button:hover {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .refresh-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--atomic-cyan);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: var(--atomic-cyan);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            background: var(--atomic-bg);
+            transform: translateX(18px);
+        }
+
+        /* System Stats */
+        .system-stats {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        .stat-card h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            color: var(--atomic-cyan);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-cyan);
+            margin-bottom: 5px;
+        }
+
+        .stat-detail {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        /* Process Table */
+        .process-container {
+            padding: 20px;
+        }
+
+        .process-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .process-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .process-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sort-select {
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--text-cyan);
+            padding: 8px 12px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 12px;
+        }
+
+        .process-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .process-table th {
+            background: linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan));
+            color: var(--atomic-bg);
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--atomic-cyan);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .process-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--grid-color);
+            vertical-align: middle;
+        }
+
+        .process-table tr:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .process-name {
+            color: var(--text-cyan);
+            font-weight: 600;
+        }
+
+        .cpu-usage {
+            color: var(--warning-yellow);
+            font-weight: 600;
+        }
+
+        .cpu-usage.high {
+            color: var(--danger-red);
+        }
+
+        .memory-usage {
+            color: var(--electric-blue);
+        }
+
+        .memory-usage.high {
+            color: var(--atomic-orange);
+        }
+
+        .process-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .status-running {
+            background: var(--success-green);
+            color: var(--atomic-bg);
+        }
+
+        .status-sleeping {
+            background: var(--electric-blue);
+            color: white;
+        }
+
+        .status-stopped {
+            background: var(--atomic-orange);
+            color: white;
+        }
+
+        .status-zombie {
+            background: var(--danger-red);
+            color: white;
+        }
+
+        .kill-button {
+            background: var(--danger-red);
+            border: 1px solid var(--danger-red);
+            color: white;
+            padding: 4px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .kill-button:hover {
+            background: white;
+            color: var(--danger-red);
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        }
+
+        .kill-button:disabled {
+            background: var(--text-dim);
+            border-color: var(--text-dim);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Loading and Error States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 2px solid var(--danger-red);
+            color: var(--danger-red);
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--success-green);
+            color: var(--success-green);
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                border-left: none;
+                border-right: none;
+            }
+
+            .system-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .process-table {
+                font-size: 10px;
+            }
+
+            .process-table th,
+            .process-table td {
+                padding: 6px 4px;
+            }
+
+            .nav-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .refresh-controls {
+                justify-content: center;
+            }
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .updating {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🖥️ Process Monitor</h1>
+            <p>Real-time System Process Monitoring</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <div>
+                <a href="index.html" class="nav-button">← Home</a>
+                <a href="dashboard.html" class="nav-button">Dashboard</a>
+            </div>
+            <div class="refresh-controls">
+                <button id="refreshBtn" class="nav-button">Refresh</button>
+                <div class="auto-refresh-toggle">
+                    <span>Auto-refresh</span>
+                    <div id="autoRefreshToggle" class="toggle-switch"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="system-stats" id="systemStats">
+            <div class="stat-card">
+                <h3>CPU Usage</h3>
+                <div class="stat-value" id="cpuUsage">--</div>
+                <div class="stat-detail">Load: <span id="loadAvg">-- -- --</span></div>
+            </div>
+            <div class="stat-card">
+                <h3>Memory</h3>
+                <div class="stat-value" id="memoryUsage">--</div>
+                <div class="stat-detail"><span id="memoryDetail">-- GB / -- GB</span></div>
+            </div>
+            <div class="stat-card">
+                <h3>Disk Usage</h3>
+                <div class="stat-value" id="diskUsage">--</div>
+                <div class="stat-detail"><span id="diskDetail">-- GB / -- GB</span></div>
+            </div>
+            <div class="stat-card">
+                <h3>Uptime</h3>
+                <div class="stat-value" id="uptime">--</div>
+                <div class="stat-detail">System running</div>
+            </div>
+        </div>
+
+        <!-- Process Container -->
+        <div class="process-container">
+            <div class="process-header">
+                <h2 class="process-title">Running Processes</h2>
+                <div class="process-controls">
+                    <select id="sortSelect" class="sort-select">
+                        <option value="cpu">Sort by CPU</option>
+                        <option value="memory">Sort by Memory</option>
+                        <option value="name">Sort by Name</option>
+                        <option value="pid">Sort by PID</option>
+                    </select>
+                    <span id="processCount" class="nav-button" style="cursor: default;">-- processes</span>
+                </div>
+            </div>
+
+            <!-- Process Table -->
+            <div style="max-height: 600px; overflow-y: auto;">
+                <table class="process-table" id="processTable">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Name</th>
+                            <th>CPU %</th>
+                            <th>Memory %</th>
+                            <th>Memory MB</th>
+                            <th>Status</th>
+                            <th>User</th>
+                            <th>Age</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processTableBody">
+                        <tr>
+                            <td colspan="9" class="loading">Loading processes...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messageContainer"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        class ProcessMonitor {
+            constructor() {
+                this.autoRefresh = false;
+                this.refreshInterval = null;
+                this.sortBy = 'cpu';
+                this.processes = [];
+                this.systemStats = {};
+                
+                this.initializeEventListeners();
+                this.loadProcesses();
+            }
+
+            initializeEventListeners() {
+                // Refresh button
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadProcesses();
+                });
+
+                // Auto-refresh toggle
+                document.getElementById('autoRefreshToggle').addEventListener('click', () => {
+                    this.toggleAutoRefresh();
+                });
+
+                // Sort select
+                document.getElementById('sortSelect').addEventListener('change', (e) => {
+                    this.sortBy = e.target.value;
+                    this.renderProcessTable();
+                });
+            }
+
+            toggleAutoRefresh() {
+                this.autoRefresh = !this.autoRefresh;
+                const toggle = document.getElementById('autoRefreshToggle');
+                
+                if (this.autoRefresh) {
+                    toggle.classList.add('active');
+                    this.refreshInterval = setInterval(() => {
+                        this.loadProcesses();
+                    }, 3000); // Refresh every 3 seconds
+                } else {
+                    toggle.classList.remove('active');
+                    if (this.refreshInterval) {
+                        clearInterval(this.refreshInterval);
+                        this.refreshInterval = null;
+                    }
+                }
+            }
+
+            async loadProcesses() {
+                try {
+                    document.getElementById('systemStats').classList.add('updating');
+                    document.getElementById('processTable').classList.add('updating');
+
+                    const response = await fetch('/api/processes');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.processes = data.processes;
+                        this.systemStats = data.system_stats;
+                        
+                        this.renderSystemStats();
+                        this.renderProcessTable();
+                        this.updateProcessCount(data.total_processes);
+                        this.clearMessages();
+                    } else {
+                        this.showError(`Failed to load processes: ${data.error}`);
+                    }
+                } catch (error) {
+                    this.showError(`Network error: ${error.message}`);
+                } finally {
+                    document.getElementById('systemStats').classList.remove('updating');
+                    document.getElementById('processTable').classList.remove('updating');
+                }
+            }
+
+            renderSystemStats() {
+                const stats = this.systemStats;
+                
+                document.getElementById('cpuUsage').textContent = `${stats.cpu_percent || 0}%`;
+                document.getElementById('loadAvg').textContent = 
+                    stats.load_avg ? stats.load_avg.join(' ') : '-- -- --';
+                
+                document.getElementById('memoryUsage').textContent = `${stats.memory_percent || 0}%`;
+                document.getElementById('memoryDetail').textContent = 
+                    `${stats.memory_used_gb || 0} GB / ${stats.memory_total_gb || 0} GB`;
+                
+                document.getElementById('diskUsage').textContent = `${stats.disk_percent || 0}%`;
+                document.getElementById('diskDetail').textContent = 
+                    `${stats.disk_used_gb || 0} GB / ${stats.disk_total_gb || 0} GB`;
+                
+                document.getElementById('uptime').textContent = stats.uptime || '--';
+            }
+
+            renderProcessTable() {
+                const tbody = document.getElementById('processTableBody');
+                
+                // Sort processes
+                const sortedProcesses = [...this.processes].sort((a, b) => {
+                    switch (this.sortBy) {
+                        case 'cpu':
+                            return b.cpu_percent - a.cpu_percent;
+                        case 'memory':
+                            return b.memory_percent - a.memory_percent;
+                        case 'name':
+                            return a.name.localeCompare(b.name);
+                        case 'pid':
+                            return a.pid - b.pid;
+                        default:
+                            return b.cpu_percent - a.cpu_percent;
+                    }
+                });
+
+                tbody.innerHTML = '';
+
+                sortedProcesses.forEach(process => {
+                    const row = document.createElement('tr');
+                    
+                    const cpuClass = process.cpu_percent > 50 ? 'cpu-usage high' : 'cpu-usage';
+                    const memClass = process.memory_percent > 10 ? 'memory-usage high' : 'memory-usage';
+                    const statusClass = `status-${process.status.toLowerCase()}`;
+                    
+                    // Safety check for kill button
+                    const criticalProcesses = ['init', 'kernel', 'systemd', 'ssh', 'networkmanager'];
+                    const isCritical = criticalProcesses.some(critical => 
+                        process.name.toLowerCase().includes(critical));
+                    
+                    row.innerHTML = `
+                        <td>${process.pid}</td>
+                        <td class="process-name">${process.name}</td>
+                        <td class="${cpuClass}">${process.cpu_percent}%</td>
+                        <td class="${memClass}">${process.memory_percent}%</td>
+                        <td>${process.memory_mb} MB</td>
+                        <td><span class="process-status ${statusClass}">${process.status}</span></td>
+                        <td>${process.username}</td>
+                        <td>${process.age}</td>
+                        <td>
+                            <button 
+                                class="kill-button" 
+                                onclick="processMonitor.killProcess(${process.pid}, '${process.name}')"
+                                ${isCritical ? 'disabled title="Critical system process"' : ''}
+                            >
+                                ${isCritical ? 'Protected' : 'Kill'}
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            updateProcessCount(total) {
+                document.getElementById('processCount').textContent = 
+                    `${total} processes (showing ${this.processes.length})`;
+            }
+
+            async killProcess(pid, name) {
+                if (!confirm(`Are you sure you want to kill process "${name}" (PID: ${pid})?`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/processes/kill', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ pid: pid })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.showSuccess(data.message);
+                        // Refresh process list after a short delay
+                        setTimeout(() => this.loadProcesses(), 1000);
+                    } else {
+                        this.showError(data.error);
+                    }
+                } catch (error) {
+                    this.showError(`Failed to kill process: ${error.message}`);
+                }
+            }
+
+            showError(message) {
+                this.showMessage(message, 'error');
+            }
+
+            showSuccess(message) {
+                this.showMessage(message, 'success');
+            }
+
+            showMessage(message, type) {
+                const container = document.getElementById('messageContainer');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = type;
+                messageDiv.textContent = message;
+                
+                container.appendChild(messageDiv);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.parentNode.removeChild(messageDiv);
+                    }
+                }, 5000);
+            }
+
+            clearMessages() {
+                document.getElementById('messageContainer').innerHTML = '';
+            }
+        }
+
+        // Initialize the process monitor when the page loads
+        let processMonitor;
+        document.addEventListener('DOMContentLoaded', () => {
+            processMonitor = new ProcessMonitor();
+        });
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

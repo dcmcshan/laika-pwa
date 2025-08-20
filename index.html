@@ -43,6 +43,7 @@
             --glow-cyan: #00FFFF80;
             --atomic-orange: #FF6B35;
             --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
         }
 
         body {
@@ -416,13 +417,6 @@
                 inset 0 0 30px rgba(255, 27, 141, 0.2);
         }
 
-        .nav-card.pipeline-card:hover {
-            border-color: #9D4EDD;
-            box-shadow: 
-                0 10px 30px rgba(157, 78, 221, 0.5),
-                inset 0 0 30px rgba(157, 78, 221, 0.2);
-        }
-
         .nav-card.dashboard-card:hover {
             border-color: var(--electric-blue);
             box-shadow: 
@@ -442,6 +436,13 @@
             box-shadow: 
                 0 10px 30px rgba(0, 188, 212, 0.5),
                 inset 0 0 30px rgba(0, 188, 212, 0.2);
+        }
+
+        .nav-card.process-card:hover {
+            border-color: var(--warning-yellow);
+            box-shadow: 
+                0 10px 30px rgba(255, 215, 0, 0.5),
+                inset 0 0 30px rgba(255, 215, 0, 0.2);
         }
 
         /* Install Banner */
@@ -540,21 +541,6 @@
                     </ul>
                 </a>
 
-                <!-- Pipeline Chat & Debug Logs -->
-                <a href="conversation.html" class="nav-card pipeline-card">
-                    <span class="nav-icon">🔍</span>
-                    <h3 class="nav-title">Pipeline Debug</h3>
-                    <p class="nav-description">
-                        Chat-style view of the STT→LLM→TTS pipeline. Debug voice interactions with full context.
-                    </p>
-                    <ul class="nav-features">
-                        <li>STT transcription logs</li>
-                        <li>LLM reasoning & parsing</li>
-                        <li>Voice commands & actions</li>
-                        <li>Real-time chat interface</li>
-                    </ul>
-                </a>
-
                 <!-- Sensor Dashboard -->
                 <a href="dashboard.html" class="nav-card dashboard-card">
                     <span class="nav-icon">📊</span>
@@ -586,7 +572,7 @@
                 </a>
 
                 <!-- SLAM Map -->
-                <a href="slam.html" class="nav-card map-card">
+                <a href="#" class="nav-card map-card" data-page="map">
                     <span class="nav-icon">🗺️</span>
                     <h3 class="nav-title">SLAM Map</h3>
                     <p class="nav-description">
@@ -627,6 +613,21 @@
                         <li>ROS2 command integration</li>
                         <li>Bluetooth controller support</li>
                         <li>Emergency stop controls</li>
+                    </ul>
+                </a>
+
+                <!-- Process Monitor -->
+                <a href="processes.html" class="nav-card process-card">
+                    <span class="nav-icon">🖥️</span>
+                    <h3 class="nav-title">Process Monitor</h3>
+                    <p class="nav-description">
+                        Real-time system process monitoring like top command. View CPU, memory usage, and manage processes.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Live process monitoring</li>
+                        <li>CPU & memory tracking</li>
+                        <li>System stats dashboard</li>
+                        <li>Process management</li>
                     </ul>
                 </a>
             </div>

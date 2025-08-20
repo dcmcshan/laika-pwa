@@ -130,6 +130,24 @@
             flex: 1;
         }
 
+        .video-feed-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+            position: relative;
+        }
+
+        .video-wrapper {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+
         .gamepad-container {
             background: var(--card-bg);
             border: 1px solid var(--border-glow);
@@ -738,6 +756,34 @@
             </div>
 
             <div class="control-main">
+                <!-- Video Feed Container -->
+                <div class="video-feed-container">
+                    <div class="video-wrapper">
+                        <video id="controlVideoStream" autoplay muted playsinline style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-glow);">
+                            Live feed not available
+                        </video>
+                        <audio id="controlAudioStream" autoplay style="display: none;"></audio>
+                        
+                        <!-- Video Status Overlay -->
+                        <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 12px; font-size: 11px; color: var(--primary-cyan);">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div id="controlStreamIndicator" style="width: 6px; height: 6px; border-radius: 50%; background: var(--error); animation: pulse 2s infinite;"></div>
+                                <span id="controlStreamStatus">Disconnected</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Audio/Video Controls -->
+                        <div style="position: absolute; bottom: 10px; right: 10px; display: flex; gap: 5px;">
+                            <button class="control-btn small" id="controlVideoToggle" title="Toggle Video">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="control-btn small" id="controlAudioToggle" title="Toggle Audio">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Gamepad Interface -->
                 <div class="gamepad-container">
                     <h2 class="gamepad-title">LAIKA Command Interface</h2>
