@@ -42,7 +42,7 @@ class LAIKAHeaderFooter {
         const header = document.createElement('header');
         header.className = 'laika-header header-slide-in';
         header.innerHTML = `
-            <a href="index.html" class="header-brand">
+            <a href="/" class="header-brand">
                 <span class="brand-icon">🐕</span>
                 <span>LAIKA</span>
             </a>
@@ -50,40 +50,58 @@ class LAIKAHeaderFooter {
             <nav class="header-nav">
                 <ul class="nav-menu" id="navMenu">
                     <li class="nav-item">
-                        <a href="index.html" class="nav-link" data-page="home">
+                        <a href="/" class="nav-link" data-page="home">
                             <span class="nav-icon">🏠</span>
                             <span>Home</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="chat.html" class="nav-link" data-page="chat">
+                        <a href="chat" class="nav-link" data-page="chat">
                             <span class="nav-icon">💬</span>
                             <span>Chat</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="dashboard.html" class="nav-link" data-page="dashboard">
+                        <a href="dashboard" class="nav-link" data-page="dashboard">
                             <span class="nav-icon">📊</span>
                             <span>Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link disabled" data-page="camera" title="Coming Soon">
+                        <a href="camera" class="nav-link" data-page="camera">
                             <span class="nav-icon">📹</span>
                             <span>Camera</span>
-                        </span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link disabled" data-page="control" title="Coming Soon">
+                        <a href="control" class="nav-link" data-page="control">
                             <span class="nav-icon">🎮</span>
                             <span>Control</span>
-                        </span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link disabled" data-page="slam" title="Coming Soon">
+                        <a href="slam" class="nav-link" data-page="slam">
                             <span class="nav-icon">🗺️</span>
-                            <span>Map</span>
-                        </span>
+                            <span>SLAM</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="internal" class="nav-link" data-page="internal">
+                            <span class="nav-icon">🎯</span>
+                            <span>STT-LLM-TTS</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="processes" class="nav-link" data-page="processes">
+                            <span class="nav-icon">🖥️</span>
+                            <span>Processes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="logs" class="nav-link" data-page="logs">
+                            <span class="nav-icon">📋</span>
+                            <span>Logs</span>
+                        </a>
                     </li>
                 </ul>
                 

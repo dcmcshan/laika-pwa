@@ -80,6 +80,25 @@ class LAIKAMusic {
         // Attempt to connect
         await this.connectWebSocket();
         
+        // Auto-start audio on load (with user interaction fallback)
+        setTimeout(async () => {
+            try {
+                await this.startAudio();
+            } catch (error) {
+                console.log('🎤 Auto-start failed (user interaction required):', error.message);
+                // Show a subtle notification that user can click to start audio
+                this.showAudioStartPrompt();
+            }
+        }, 1000);
+        
+        // Load music data
+        this.loadDetectedTracks();
+        
+        // Auto-refresh tracks every 5 minutes
+        setInterval(() => {
+            this.loadDetectedTracks();
+        }, 300000);
+        
         console.log('🎵 LAIKA Music & Audio initialized');
     }
 
@@ -125,6 +144,14 @@ class LAIKAMusic {
                 this.toggleBehavior(behavior);
             });
         });
+
+        // Track history refresh button
+        const refreshBtn = document.getElementById('refreshTracks');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadDetectedTracks();
+            });
+        }
 
         // Settings
         document.getElementById('gainSlider').addEventListener('input', (e) => this.setGain(e.target.value));
@@ -560,19 +587,24 @@ class LAIKAMusic {
         statusEl.textContent = 'Listening for music...';
         
         try {
-            // Record 10 seconds of audio for recognition
-            await this.recordForRecognition(10000);
+            // Trigger manual music identification via API
+            const response = await fetch('/api/music/identify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             
-            statusEl.textContent = 'Analyzing audio...';
+            const result = await response.json();
             
-            // Send to AudD API (simulated for now)
-            const result = await this.callAuddAPI();
-            
-            if (result && result.title) {
-                this.displayRecognitionResult(result);
-                statusEl.textContent = 'Song identified!';
+            if (response.ok) {
+                statusEl.textContent = 'Music identification triggered - check back in 30 seconds';
+                // Refresh track list after a delay
+                setTimeout(() => {
+                    this.loadDetectedTracks();
+                }, 35000);
             } else {
-                statusEl.textContent = 'Song not found in database';
+                statusEl.textContent = result.error || 'Identification failed';
             }
             
         } catch (error) {
@@ -586,6 +618,154 @@ class LAIKAMusic {
             setTimeout(() => {
                 statusEl.textContent = 'Ready to identify music';
             }, 3000);
+        }
+    }
+
+    async loadDetectedTracks() {
+        try {
+            const response = await fetch('/api/music/tracks?limit=20');
+            const data = await response.json();
+            
+            if (response.ok && data.tracks) {
+                this.displayTrackHistory(data.tracks);
+                this.loadMusicStats();
+            } else {
+                console.warn('No music tracks found:', data.message);
+            }
+        } catch (error) {
+            console.error('❌ Failed to load detected tracks:', error);
+        }
+    }
+
+    async loadMusicStats() {
+        try {
+            const response = await fetch('/api/music/stats');
+            const data = await response.json();
+            
+            if (response.ok && data.stats) {
+                this.displayMusicStats(data.stats);
+            }
+        } catch (error) {
+            console.error('❌ Failed to load music stats:', error);
+        }
+    }
+
+    displayTrackHistory(tracks) {
+        const historyContainer = document.getElementById('trackHistory');
+        if (!historyContainer) return;
+
+        if (tracks.length === 0) {
+            historyContainer.innerHTML = `
+                <div class="no-tracks">
+                    <i class="fas fa-music"></i>
+                    <p>No music tracks detected yet</p>
+                    <small>Enable AudD service to start detecting music</small>
+                </div>
+            `;
+            return;
+        }
+
+        const tracksHtml = tracks.map(track => {
+            const date = new Date(track.timestamp);
+            const timeAgo = this.getTimeAgo(date);
+            
+            return `
+                <div class="track-item" data-track-id="${track.id}">
+                    <div class="track-info">
+                        <div class="track-title">${track.title || 'Unknown Title'}</div>
+                        <div class="track-artist">${track.artist || 'Unknown Artist'}</div>
+                        ${track.album ? `<div class="track-album">${track.album}</div>` : ''}
+                    </div>
+                    <div class="track-meta">
+                        <div class="track-time">${timeAgo}</div>
+                        <div class="track-confidence">
+                            <i class="fas fa-chart-bar"></i>
+                            ${Math.round((track.confidence || 0.8) * 100)}%
+                        </div>
+                    </div>
+                    <div class="track-links">
+                        ${track.spotify_url ? `<a href="${track.spotify_url}" target="_blank" class="spotify-link"><i class="fab fa-spotify"></i></a>` : ''}
+                        ${track.apple_music_url ? `<a href="${track.apple_music_url}" target="_blank" class="apple-link"><i class="fab fa-apple"></i></a>` : ''}
+                        ${track.deezer_url ? `<a href="${track.deezer_url}" target="_blank" class="deezer-link"><i class="fab fa-deezer"></i></a>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        historyContainer.innerHTML = `
+            <h3><i class="fas fa-history"></i> Recently Detected Tracks</h3>
+            <div class="tracks-list">
+                ${tracksHtml}
+            </div>
+        `;
+    }
+
+    displayMusicStats(stats) {
+        const statsContainer = document.getElementById('musicStats');
+        if (!statsContainer) return;
+
+        const topArtistsHtml = stats.top_artists.slice(0, 5).map(artist => `
+            <div class="artist-stat">
+                <span class="artist-name">${artist.artist}</span>
+                <span class="artist-count">${artist.count}</span>
+            </div>
+        `).join('');
+
+        statsContainer.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_tracks}</div>
+                    <div class="stat-label">Total Tracks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.today_tracks}</div>
+                    <div class="stat-label">Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Top Artists</div>
+                    <div class="top-artists">
+                        ${topArtistsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    getTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return date.toLocaleDateString();
+    }
+
+    showAudioStartPrompt() {
+        // Create a subtle prompt for user to start audio
+        const audioStatus = document.getElementById('audioStatus');
+        if (audioStatus) {
+            audioStatus.innerHTML = '<i class="fas fa-hand-pointer"></i> Click to start audio';
+            audioStatus.style.cursor = 'pointer';
+            audioStatus.style.opacity = '0.8';
+            
+            const startAudioHandler = async () => {
+                try {
+                    await this.startAudio();
+                    audioStatus.removeEventListener('click', startAudioHandler);
+                    audioStatus.style.cursor = 'default';
+                    audioStatus.style.opacity = '1';
+                } catch (error) {
+                    console.error('Failed to start audio:', error);
+                }
+            };
+            
+            audioStatus.addEventListener('click', startAudioHandler);
         }
     }
 
@@ -921,3 +1101,4 @@ window.addEventListener('beforeunload', () => {
         }
     }
 });
+

@@ -45,7 +45,11 @@ class LAIKAGamepadNavigation {
         console.log('🎮 LAIKA Gamepad Navigation initialized');
         this.createNavigationUI();
         this.setupEventListeners();
-        this.highlightCurrentTile();
+        // Only show navigation if gamepad is connected
+        if (this.isGamepadConnected()) {
+            this.highlightCurrentTile();
+            this.showNavigationMode(true);
+        }
     }
     
     buildGridLayout() {
@@ -82,7 +86,7 @@ class LAIKAGamepadNavigation {
         `;
         document.body.appendChild(this.highlightOverlay);
         
-        // Create navigation indicator
+        // Create navigation indicator (hidden by default)
         this.navigationIndicator = document.createElement('div');
         this.navigationIndicator.className = 'gamepad-navigation-indicator';
         this.navigationIndicator.style.cssText = `
@@ -98,6 +102,7 @@ class LAIKAGamepadNavigation {
             font-size: 12px;
             font-weight: 700;
             z-index: 1000;
+            display: none;
             min-width: 180px;
             text-align: center;
             box-shadow: 
@@ -368,6 +373,11 @@ class LAIKAGamepadNavigation {
         }
         
         this.updateNavigationUI();
+    }
+    
+    isGamepadConnected() {
+        const gamepads = navigator.getGamepads();
+        return Array.from(gamepads).some(gamepad => gamepad !== null);
     }
     
     showNavigationMode(show) {

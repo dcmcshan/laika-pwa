@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/header-footer.css">
     
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -57,6 +58,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            padding-top: 70px; /* Account for fixed header */
         }
 
         .logs-page {
@@ -70,57 +72,42 @@
             gap: 20px;
         }
 
-        .logs-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
+        .page-title-section {
             background: var(--card-bg);
             border: 1px solid var(--border-glow);
             border-radius: 12px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+            padding: 20px 25px;
+            margin-bottom: 20px;
         }
 
-        .header-title {
+        .page-title {
             display: flex;
             align-items: center;
             gap: 15px;
+            margin-bottom: 8px;
         }
 
-        .header-title h1 {
-            font-size: 1.5rem;
+        .page-title h1 {
+            font-size: 1.8rem;
             font-weight: 700;
             color: var(--primary-cyan);
             text-shadow: 0 0 10px var(--primary-cyan);
+            margin: 0;
         }
 
         .logs-icon {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: var(--accent-orange);
             filter: drop-shadow(0 0 8px var(--accent-orange));
         }
 
-        .back-button {
-            background: var(--glass-bg);
-            border: 1px solid var(--border-glow);
-            color: var(--text-primary);
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-family: 'Orbitron', monospace;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .back-button:hover {
-            background: var(--primary-cyan);
-            color: var(--dark-bg);
-            box-shadow: 0 0 20px var(--primary-cyan);
-            transform: translateY(-2px);
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-left: 45px;
+            opacity: 0.8;
         }
 
         .logs-controls {
@@ -606,21 +593,59 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Error message styling */
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            text-align: center;
+            gap: 20px;
+        }
+
+        .error-message i {
+            font-size: 3rem;
+            color: var(--accent-orange);
+            margin-bottom: 10px;
+        }
+
+        .retry-button {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .retry-button:hover {
+            background: var(--accent-orange);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
         <div class="logs-page">
-            <!-- Logs Header -->
-            <div class="logs-header">
-                <div class="header-title">
+            <!-- Page Title Section (site header will be injected above) -->
+            <div class="page-title-section">
+                <div class="page-title">
                     <i class="fas fa-file-alt logs-icon"></i>
-                    <h1>LAIKA System Logs</h1>
+                    <h1>System Logs</h1>
                 </div>
-                <a href="index.html" class="back-button">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Home
-                </a>
+                <div class="page-subtitle">
+                    Real-time system monitoring and diagnostics
+                </div>
             </div>
 
             <!-- Logs Controls -->
@@ -737,5 +762,14 @@
     </div>
 
     <script src="js/logs.js"></script>
+    <!-- Header/Footer System -->
+    <script src="js/header-footer.js"></script>
+    
+    <script>
+        // Initialize logs system and expose globally for retry functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            window.laikaLogs = new LAIKALogs();
+        });
+    </script>
 </body>
 </html>

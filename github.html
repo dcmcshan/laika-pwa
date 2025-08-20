@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#238636">
+    <title>GitHub Manager - LAIKA Controller</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
+            --github-green: #238636;
+            --github-dark: #0D1117;
+            --success-green: #28A745;
+            --error-red: #DC3545;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: 
+                linear-gradient(135deg, var(--github-green), #2EA043),
+                linear-gradient(45deg, transparent 30%, rgba(35, 134, 54, 0.1) 50%, transparent 70%);
+            color: white;
+            padding: 60px 20px 40px;
+            text-align: center;
+            position: relative;
+            border-bottom: 2px solid var(--github-green);
+            box-shadow: 
+                0 4px 20px rgba(35, 134, 54, 0.5),
+                inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+            margin-top: 70px;
+        }
+
+        .github-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            display: block;
+            text-shadow: 
+                0 0 10px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(0, 0, 0, 0.3);
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+            animation: atomicPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes atomicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 
+                0 0 10px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-subtitle {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        /* Status Panel */
+        .status-panel {
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30),
+                radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
+            border: 2px solid var(--atomic-cyan);
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .panel-header {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--atomic-cyan);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--glow-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .repo-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .repo-info {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid var(--dark-cyan);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .repo-name {
+            font-weight: 600;
+            color: var(--atomic-cyan);
+            margin-bottom: 5px;
+        }
+
+        .repo-detail {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 3px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.up-to-date {
+            background: var(--success-green);
+            color: white;
+        }
+
+        .status-badge.needs-update {
+            background: var(--warning-yellow);
+            color: var(--atomic-bg);
+        }
+
+        .status-badge.error {
+            background: var(--error-red);
+            color: white;
+        }
+
+        .status-badge.updating {
+            background: var(--electric-blue);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-button {
+            background: 
+                linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            color: var(--text-cyan);
+            padding: 12px 20px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 150px;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 5px 15px var(--glow-cyan),
+                inset 0 0 15px rgba(0, 255, 255, 0.1);
+            border-color: var(--tron-cyan);
+        }
+
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .action-button.primary {
+            border-color: var(--github-green);
+            color: var(--github-green);
+        }
+
+        .action-button.primary:hover {
+            border-color: #2EA043;
+            box-shadow: 
+                0 5px 15px rgba(35, 134, 54, 0.5),
+                inset 0 0 15px rgba(35, 134, 54, 0.1);
+        }
+
+        .action-button.danger {
+            border-color: var(--error-red);
+            color: var(--error-red);
+        }
+
+        .action-button.danger:hover {
+            border-color: #E55A5A;
+            box-shadow: 
+                0 5px 15px rgba(220, 53, 69, 0.5),
+                inset 0 0 15px rgba(220, 53, 69, 0.1);
+        }
+
+        /* Log Output */
+        .log-output {
+            background: var(--atomic-bg);
+            border: 1px solid var(--dark-cyan);
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: var(--text-cyan);
+        }
+
+        .log-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-output::-webkit-scrollbar-track {
+            background: var(--panel-bg);
+        }
+
+        .log-output::-webkit-scrollbar-thumb {
+            background: var(--atomic-cyan);
+            border-radius: 4px;
+        }
+
+        .log-line {
+            margin-bottom: 2px;
+        }
+
+        .log-line.success {
+            color: var(--success-green);
+        }
+
+        .log-line.error {
+            color: var(--error-red);
+        }
+
+        .log-line.warning {
+            color: var(--warning-yellow);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-dim);
+            border-top: 2px solid var(--atomic-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message Banner */
+        .message-banner {
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message-banner.show {
+            display: block;
+        }
+
+        .message-banner.success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid var(--success-green);
+            color: var(--success-green);
+        }
+
+        .message-banner.error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid var(--error-red);
+            color: var(--error-red);
+        }
+
+        .message-banner.warning {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid var(--warning-yellow);
+            color: var(--warning-yellow);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .page-title {
+                font-size: 28px;
+                letter-spacing: 2px;
+            }
+            
+            .main-content {
+                padding: 20px 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-button {
+                width: 100%;
+            }
+            
+            .repo-status {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <span class="github-icon">🐙</span>
+            <h1 class="page-title">GitHub Manager</h1>
+            <p class="page-subtitle">Repository Update & Synchronization</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-grid">
+                <!-- Repository Status Panel -->
+                <div class="status-panel">
+                    <h2 class="panel-header">
+                        <span>📊</span>
+                        Repository Status
+                    </h2>
+                    
+                    <div class="repo-status" id="repoStatus">
+                        <!-- Repository status will be populated here -->
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-button primary" id="checkStatusBtn">
+                            <span id="checkStatusSpinner" class="loading-spinner" style="display: none;"></span>
+                            Check Status
+                        </button>
+                        
+                        <button class="action-button primary" id="updateAllBtn">
+                            <span id="updateAllSpinner" class="loading-spinner" style="display: none;"></span>
+                            Update All Repositories
+                        </button>
+                        
+                        <button class="action-button" id="updateMainBtn">
+                            <span id="updateMainSpinner" class="loading-spinner" style="display: none;"></span>
+                            Update Main Repo Only
+                        </button>
+                        
+                        <button class="action-button" id="refreshSubmodulesBtn">
+                            <span id="refreshSubmodulesSpinner" class="loading-spinner" style="display: none;"></span>
+                            Refresh Submodules
+                        </button>
+                        
+                        <button class="action-button danger" id="resetHardBtn">
+                            <span id="resetHardSpinner" class="loading-spinner" style="display: none;"></span>
+                            Hard Reset (Dangerous)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Operation Log Panel -->
+                <div class="status-panel">
+                    <h2 class="panel-header">
+                        <span>📋</span>
+                        Operation Log
+                    </h2>
+                    
+                    <div class="log-output" id="logOutput">
+                        <div class="log-line">GitHub Manager initialized. Ready for operations.</div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-button" id="clearLogBtn">Clear Log</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Banner -->
+        <div class="message-banner" id="messageBanner">
+            <span id="messageText"></span>
+        </div>
+
+        <!-- Header and Footer will be automatically inserted by header-footer.js -->
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        class GitHubManager {
+            constructor() {
+                this.isOperationInProgress = false;
+                this.repositories = [
+                    {
+                        name: 'LAIKA (Main)',
+                        path: '/home/pi/LAIKA',
+                        type: 'main',
+                        status: 'unknown',
+                        lastCheck: null,
+                        branch: 'main',
+                        commits_behind: 0
+                    },
+                    {
+                        name: 'laika-pwa',
+                        path: '/home/pi/LAIKA/laika-pwa',
+                        type: 'submodule',
+                        status: 'unknown',
+                        lastCheck: null,
+                        branch: 'main',
+                        commits_behind: 0
+                    }
+                ];
+                
+                this.init();
+            }
+
+            init() {
+                console.log('Initializing GitHub Manager...');
+                this.setupEventListeners();
+                this.renderRepositoryStatus();
+                this.log('GitHub Manager initialized. Ready for operations.');
+                
+                // Auto-check status on load
+                setTimeout(() => {
+                    this.checkRepositoryStatus();
+                }, 1000);
+            }
+
+            setupEventListeners() {
+                document.getElementById('checkStatusBtn').addEventListener('click', () => {
+                    this.checkRepositoryStatus();
+                });
+                
+                document.getElementById('updateAllBtn').addEventListener('click', () => {
+                    this.updateAllRepositories();
+                });
+                
+                document.getElementById('updateMainBtn').addEventListener('click', () => {
+                    this.updateMainRepository();
+                });
+                
+                document.getElementById('refreshSubmodulesBtn').addEventListener('click', () => {
+                    this.refreshSubmodules();
+                });
+                
+                document.getElementById('resetHardBtn').addEventListener('click', () => {
+                    this.resetHard();
+                });
+                
+                document.getElementById('clearLogBtn').addEventListener('click', () => {
+                    this.clearLog();
+                });
+            }
+
+            async checkRepositoryStatus() {
+                if (this.isOperationInProgress) return;
+                
+                this.setOperationInProgress(true);
+                this.setButtonLoading('checkStatusBtn', true);
+                this.log('Checking repository status...');
+                
+                try {
+                    const response = await fetch('/api/github/status');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.repositories = data.repositories || this.repositories;
+                        this.renderRepositoryStatus();
+                        this.log('Repository status updated successfully.');
+                        this.showMessage('Repository status checked successfully', 'success');
+                    } else {
+                        this.log(`Error: ${data.error}`, 'error');
+                        this.showMessage(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Failed to check status: ${error.message}`, 'error');
+                    this.showMessage('Failed to check repository status', 'error');
+                } finally {
+                    this.setButtonLoading('checkStatusBtn', false);
+                    this.setOperationInProgress(false);
+                }
+            }
+
+            async updateAllRepositories() {
+                if (this.isOperationInProgress) return;
+                
+                const confirmed = confirm('This will update all repositories recursively. This may take several minutes. Continue?');
+                if (!confirmed) return;
+                
+                this.setOperationInProgress(true);
+                this.setButtonLoading('updateAllBtn', true);
+                this.log('Starting recursive repository update...');
+                
+                try {
+                    const response = await fetch('/api/github/update-all', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            recursive: true,
+                            update_submodules: true
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.log('Repository update completed successfully.', 'success');
+                        this.showMessage('All repositories updated successfully', 'success');
+                        
+                        // Log detailed results
+                        if (data.results) {
+                            data.results.forEach(result => {
+                                this.log(`${result.repository}: ${result.status}`, result.success ? 'success' : 'error');
+                            });
+                        }
+                        
+                        // Refresh status
+                        setTimeout(() => {
+                            this.checkRepositoryStatus();
+                        }, 1000);
+                    } else {
+                        this.log(`Update failed: ${data.error}`, 'error');
+                        this.showMessage(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Update failed: ${error.message}`, 'error');
+                    this.showMessage('Failed to update repositories', 'error');
+                } finally {
+                    this.setButtonLoading('updateAllBtn', false);
+                    this.setOperationInProgress(false);
+                }
+            }
+
+            async updateMainRepository() {
+                if (this.isOperationInProgress) return;
+                
+                this.setOperationInProgress(true);
+                this.setButtonLoading('updateMainBtn', true);
+                this.log('Updating main repository...');
+                
+                try {
+                    const response = await fetch('/api/github/update-main', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.log('Main repository updated successfully.', 'success');
+                        this.showMessage('Main repository updated successfully', 'success');
+                        
+                        setTimeout(() => {
+                            this.checkRepositoryStatus();
+                        }, 1000);
+                    } else {
+                        this.log(`Update failed: ${data.error}`, 'error');
+                        this.showMessage(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Update failed: ${error.message}`, 'error');
+                    this.showMessage('Failed to update main repository', 'error');
+                } finally {
+                    this.setButtonLoading('updateMainBtn', false);
+                    this.setOperationInProgress(false);
+                }
+            }
+
+            async refreshSubmodules() {
+                if (this.isOperationInProgress) return;
+                
+                this.setOperationInProgress(true);
+                this.setButtonLoading('refreshSubmodulesBtn', true);
+                this.log('Refreshing submodules...');
+                
+                try {
+                    const response = await fetch('/api/github/refresh-submodules', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.log('Submodules refreshed successfully.', 'success');
+                        this.showMessage('Submodules refreshed successfully', 'success');
+                        
+                        setTimeout(() => {
+                            this.checkRepositoryStatus();
+                        }, 1000);
+                    } else {
+                        this.log(`Submodule refresh failed: ${data.error}`, 'error');
+                        this.showMessage(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Submodule refresh failed: ${error.message}`, 'error');
+                    this.showMessage('Failed to refresh submodules', 'error');
+                } finally {
+                    this.setButtonLoading('refreshSubmodulesBtn', false);
+                    this.setOperationInProgress(false);
+                }
+            }
+
+            async resetHard() {
+                if (this.isOperationInProgress) return;
+                
+                const confirmed = confirm('WARNING: This will perform a hard reset and may lose local changes. Are you sure?');
+                if (!confirmed) return;
+                
+                const doubleConfirmed = confirm('This action cannot be undone. All uncommitted changes will be lost. Proceed?');
+                if (!doubleConfirmed) return;
+                
+                this.setOperationInProgress(true);
+                this.setButtonLoading('resetHardBtn', true);
+                this.log('Performing hard reset...', 'warning');
+                
+                try {
+                    const response = await fetch('/api/github/reset-hard', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.log('Hard reset completed successfully.', 'success');
+                        this.showMessage('Hard reset completed successfully', 'success');
+                        
+                        setTimeout(() => {
+                            this.checkRepositoryStatus();
+                        }, 1000);
+                    } else {
+                        this.log(`Hard reset failed: ${data.error}`, 'error');
+                        this.showMessage(data.error, 'error');
+                    }
+                } catch (error) {
+                    this.log(`Hard reset failed: ${error.message}`, 'error');
+                    this.showMessage('Failed to perform hard reset', 'error');
+                } finally {
+                    this.setButtonLoading('resetHardBtn', false);
+                    this.setOperationInProgress(false);
+                }
+            }
+
+            renderRepositoryStatus() {
+                const container = document.getElementById('repoStatus');
+                
+                container.innerHTML = this.repositories.map(repo => `
+                    <div class="repo-info">
+                        <div class="repo-name">${repo.name}</div>
+                        <div class="repo-detail">Branch: ${repo.branch}</div>
+                        <div class="repo-detail">Path: ${repo.path}</div>
+                        <div class="repo-detail">
+                            Status: <span class="status-badge ${repo.status.replace(' ', '-').toLowerCase()}">${repo.status}</span>
+                        </div>
+                        ${repo.commits_behind > 0 ? `<div class="repo-detail">Behind by: ${repo.commits_behind} commits</div>` : ''}
+                        ${repo.lastCheck ? `<div class="repo-detail">Last checked: ${new Date(repo.lastCheck).toLocaleString()}</div>` : ''}
+                    </div>
+                `).join('');
+            }
+
+            setOperationInProgress(inProgress) {
+                this.isOperationInProgress = inProgress;
+                
+                // Disable all action buttons when operation is in progress
+                const buttons = document.querySelectorAll('.action-button');
+                buttons.forEach(button => {
+                    if (button.id !== 'clearLogBtn') {
+                        button.disabled = inProgress;
+                    }
+                });
+            }
+
+            setButtonLoading(buttonId, loading) {
+                const button = document.getElementById(buttonId);
+                const spinner = document.getElementById(buttonId.replace('Btn', 'Spinner'));
+                
+                if (loading) {
+                    spinner.style.display = 'inline-block';
+                } else {
+                    spinner.style.display = 'none';
+                }
+            }
+
+            log(message, type = 'info') {
+                const logOutput = document.getElementById('logOutput');
+                const timestamp = new Date().toLocaleTimeString();
+                const logLine = document.createElement('div');
+                logLine.className = `log-line ${type}`;
+                logLine.textContent = `[${timestamp}] ${message}`;
+                
+                logOutput.appendChild(logLine);
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+
+            clearLog() {
+                const logOutput = document.getElementById('logOutput');
+                logOutput.innerHTML = '<div class="log-line">Log cleared.</div>';
+            }
+
+            showMessage(message, type) {
+                const banner = document.getElementById('messageBanner');
+                const messageText = document.getElementById('messageText');
+                
+                messageText.textContent = message;
+                banner.className = `message-banner ${type} show`;
+                
+                setTimeout(() => {
+                    banner.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.githubManager = new GitHubManager();
+        });
+    </script>
+    
+    <!-- Header/Footer System -->
+    <script>
+        // Load header-footer.js
+        (function() {
+            try {
+                const script = document.createElement('script');
+                script.src = 'js/header-footer.js';
+                script.onerror = function() {
+                    console.warn('Header-footer.js failed to load');
+                };
+                document.head.appendChild(script);
+            } catch (err) {
+                console.error('Error loading header-footer script:', err);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -190,6 +190,32 @@ class LAIKACamera {
     }
 
     async connectWebSocket() {
+        // For ngrok environment, we'll use HTTP streaming instead of WebSocket
+        console.log('🌐 Connecting to LAIKA camera service via ngrok...');
+        
+        try {
+            // Check if we're running under ngrok
+            const isNgrok = window.location.hostname.includes('ngrok.app') || window.location.hostname.includes('ngrok.io');
+            const baseUrl = isNgrok ? window.location.origin : 'http://localhost:5000';
+            
+            // Test camera status
+            const response = await fetch(`${baseUrl}/api/camera/status`);
+            if (response.ok) {
+                const status = await response.json();
+                console.log('✅ Camera service connected:', status);
+                this.isConnected = true;
+                this.baseUrl = baseUrl;
+                this.updateConnectionStatus();
+                
+                // Start HTTP streaming instead of WebRTC
+                this.startHttpStream();
+                return;
+            }
+        } catch (error) {
+            console.log('❌ Failed to connect to camera service:', error.message);
+        }
+        
+        // Fallback to WebSocket for local development
         const wsUrls = [
             `ws://${window.location.hostname}:8765`,
             'ws://laika.local:8765',
@@ -249,6 +275,98 @@ class LAIKACamera {
                 }
             }
         }
+    }
+
+    startHttpStream() {
+        try {
+            console.log('📺 Starting HTTP camera stream...');
+            const video = document.getElementById('videoStream');
+            const streamUrl = `${this.baseUrl}/camera/stream`;
+            
+            // For HTTP streaming, we'll use an img element instead of video
+            if (video.tagName === 'VIDEO') {
+                // Replace video with img for MJPEG stream
+                const img = document.createElement('img');
+                img.id = 'videoStream';
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.background = 'linear-gradient(45deg, #1a1a1a, #2a2a2a)';
+                
+                img.onload = () => {
+                    console.log('✅ Camera stream started');
+                    this.isStreaming = true;
+                    this.updateUI();
+                    this.updateConnectionStatus();
+                };
+                
+                img.onerror = () => {
+                    console.error('❌ Failed to load camera stream');
+                    this.enableSimulationMode();
+                };
+                
+                img.src = streamUrl;
+                video.parentNode.replaceChild(img, video);
+            } else {
+                // Already an img element, just update src
+                video.src = streamUrl;
+                this.isStreaming = true;
+                this.updateUI();
+                this.updateConnectionStatus();
+            }
+            
+        } catch (error) {
+            console.error('❌ HTTP stream initialization failed:', error);
+            this.enableSimulationMode();
+        }
+    }
+
+    toggleStream() {
+        if (this.isStreaming) {
+            this.pauseStream();
+        } else {
+            this.resumeStream();
+        }
+    }
+
+    pauseStream() {
+        const video = document.getElementById('videoStream');
+        if (video) {
+            if (video.tagName === 'VIDEO' && video.pause) {
+                video.pause();
+            } else if (video.tagName === 'IMG') {
+                // For IMG element, hide it to simulate pause
+                video.style.opacity = '0.5';
+                video.style.filter = 'grayscale(100%)';
+            }
+        }
+        this.isStreaming = false;
+        this.updateUI();
+        this.updateConnectionStatus();
+        console.log('⏸️ Stream paused');
+    }
+
+    resumeStream() {
+        const video = document.getElementById('videoStream');
+        if (video) {
+            if (video.tagName === 'VIDEO' && video.play) {
+                video.play().catch(error => {
+                    console.error('❌ Failed to resume stream:', error);
+                });
+            } else if (video.tagName === 'IMG') {
+                // For IMG element, restore normal appearance and refresh stream
+                video.style.opacity = '1';
+                video.style.filter = 'none';
+                if (this.baseUrl) {
+                    const timestamp = Date.now();
+                    video.src = `${this.baseUrl}/camera/stream?t=${timestamp}`;
+                }
+            }
+        }
+        this.isStreaming = true;
+        this.updateUI();
+        this.updateConnectionStatus();
+        console.log('▶️ Stream resumed');
     }
 
     async initializeWebRTC() {
@@ -1389,22 +1507,44 @@ class LAIKACamera {
     }
 
     updateConnectionStatus() {
-        const statusIndicator = document.getElementById('streamStatus');
+        const videoStatus = document.getElementById('videoStatus');
+        const audioStatus = document.getElementById('audioStatus');
         const statusText = document.getElementById('streamStatusText');
         const connectionStatus = document.getElementById('connectionStatus');
         
         if (this.isConnected && this.isStreaming) {
-            statusIndicator.classList.add('connected');
-            statusText.textContent = 'Live';
-            connectionStatus.textContent = 'Connected';
+            if (videoStatus) {
+                videoStatus.classList.remove('disconnected', 'connecting');
+                videoStatus.classList.add('connected');
+            }
+            if (audioStatus) {
+                audioStatus.classList.remove('disconnected', 'connecting');
+                audioStatus.classList.add(this.audioEnabled ? 'connected' : 'disconnected');
+            }
+            if (statusText) statusText.textContent = 'Live Stream';
+            if (connectionStatus) connectionStatus.textContent = 'Connected';
         } else if (this.isConnected) {
-            statusIndicator.classList.remove('connected');
-            statusText.textContent = 'Connected';
-            connectionStatus.textContent = 'Connected';
+            if (videoStatus) {
+                videoStatus.classList.remove('disconnected', 'connected');
+                videoStatus.classList.add('connecting');
+            }
+            if (audioStatus) {
+                audioStatus.classList.remove('connected', 'connecting');
+                audioStatus.classList.add('disconnected');
+            }
+            if (statusText) statusText.textContent = 'Connected';
+            if (connectionStatus) connectionStatus.textContent = 'Connected';
         } else {
-            statusIndicator.classList.remove('connected');
-            statusText.textContent = 'Disconnected';
-            connectionStatus.textContent = 'Disconnected';
+            if (videoStatus) {
+                videoStatus.classList.remove('connected', 'connecting');
+                videoStatus.classList.add('disconnected');
+            }
+            if (audioStatus) {
+                audioStatus.classList.remove('connected', 'connecting');
+                audioStatus.classList.add('disconnected');
+            }
+            if (statusText) statusText.textContent = 'Disconnected';
+            if (connectionStatus) connectionStatus.textContent = 'Disconnected';
         }
     }
 

@@ -82,8 +82,8 @@ class LAIKASLAMMap {
         this.startStatusUpdates();
         this.startRenderLoop();
         
-        // Attempt to connect
-        await this.connectWebSocket();
+        // Attempt to connect to API
+        await this.connectToAPI();
         
         console.log('🗺️ LAIKA SLAM Map initialized');
     }
@@ -171,70 +171,130 @@ class LAIKASLAMMap {
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    async connectWebSocket() {
-        const wsUrls = [
-            `ws://${window.location.hostname}/ws/slam`,
-            'ws://laika.local/ws/slam',
-            'ws://localhost/ws/slam'
+    async connectToAPI() {
+        const apiUrls = [
+            `${window.location.protocol}//${window.location.hostname}:8081/api/slam`,
+            `${window.location.protocol}//${window.location.hostname}/api/slam`,
+            'http://laika.local:8081/api/slam',
+            'http://localhost:8081/api/slam'
         ];
 
-        for (const url of wsUrls) {
+        for (const baseUrl of apiUrls) {
             try {
-                console.log(`🔗 Attempting WebSocket connection to ${url}`);
+                console.log(`🔗 Attempting API connection to ${baseUrl}`);
                 
-                this.ws = new WebSocket(url);
-                
-                this.ws.onopen = () => {
-                    console.log('✅ WebSocket connected to LAIKA SLAM service');
-                    this.isConnected = true;
-                    this.updateConnectionStatus();
-                    
-                    // Request initial map data
-                    this.sendMessage({
-                        type: 'request-map',
-                        include_robot_pose: true
-                    });
-                };
-
-                this.ws.onmessage = (event) => {
-                    this.handleWebSocketMessage(JSON.parse(event.data));
-                };
-
-                this.ws.onclose = () => {
-                    console.log('📡 WebSocket disconnected');
-                    this.isConnected = false;
-                    this.updateConnectionStatus();
-                    setTimeout(() => this.reconnect(), 3000);
-                };
-
-                this.ws.onerror = (error) => {
-                    console.error('❌ WebSocket error:', error);
-                };
-
-                // Wait for connection
-                await new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Connection timeout')), 3000);
-                    this.ws.onopen = () => {
-                        clearTimeout(timeout);
-                        resolve();
-                    };
-                    this.ws.onerror = () => {
-                        clearTimeout(timeout);
-                        reject(new Error('Connection failed'));
-                    };
-                });
-
-                break; // Success, exit loop
-
+                // Test connection with health check
+                const response = await fetch(`${baseUrl}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        this.apiBaseUrl = baseUrl;
+                        this.isConnected = true;
+                        console.log('✅ Connected to LAIKA SLAM API');
+                        this.updateConnectionStatus();
+                        
+                        // Start polling for data
+                        this.startDataPolling();
+                        return;
+                    }
+                }
             } catch (error) {
-                console.log(`❌ Failed to connect to ${url}:`, error.message);
-                this.ws = null;
+                console.log(`❌ Failed to connect to ${baseUrl}:`, error.message);
+            }
+        }
+        
+        console.log('🔄 All API connection attempts failed');
+        this.isConnected = false;
+        this.updateConnectionStatus();
+        setTimeout(() => this.reconnect(), 5000);
+    }
+    
+    startDataPolling() {
+        // Poll for data updates every 500ms
+        this.dataPollingInterval = setInterval(async () => {
+            if (!this.isConnected) return;
+            
+            try {
+                // Get map data
+                await this.fetchMapData();
                 
-                if (url === wsUrls[wsUrls.length - 1]) {
-                    console.log('🔄 All connection attempts failed, using simulation mode');
-                    this.enableSimulationMode();
+                // Get robot status
+                await this.fetchRobotStatus();
+                
+                // Get SLAM stats
+                await this.fetchSLAMStats();
+                
+            } catch (error) {
+                console.error('❌ Data polling error:', error);
+                // Don't disconnect on single error, just log it
+            }
+        }, 500);
+        
+        console.log('📊 Started data polling');
+    }
+    
+    async fetchMapData() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/map`);
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    this.updateMapData(result.data);
                 }
             }
+        } catch (error) {
+            console.debug('Map data fetch error:', error);
+        }
+    }
+    
+    async fetchRobotStatus() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/robot_status`);
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    this.updateRobotPose(result.data.pose);
+                }
+            }
+        } catch (error) {
+            console.debug('Robot status fetch error:', error);
+        }
+    }
+    
+    async fetchSLAMStats() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/status`);
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data) {
+                    this.updateSLAMStats(result.data);
+                    this.slamActive = result.data.is_mapping || result.data.is_exploring;
+                }
+            }
+        } catch (error) {
+            console.debug('SLAM stats fetch error:', error);
+        }
+    }
+    
+    async apiCall(endpoint, method = 'GET', data = null) {
+        try {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(`${this.apiBaseUrl}${endpoint}`, options);
+            return await response.json();
+            
+        } catch (error) {
+            console.error(`❌ API call error (${endpoint}):`, error);
+            return { success: false, error: error.message };
         }
     }
 
@@ -306,12 +366,9 @@ class LAIKASLAMMap {
         this.currentLidarScan = scan;
     }
 
+    // Legacy method - now handled by API calls
     sendMessage(message) {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(message));
-        } else {
-            console.log('📡 WebSocket not connected, message queued');
-        }
+        console.warn('⚠️ sendMessage called - use API calls instead');
     }
 
     // Rendering methods
@@ -514,38 +571,62 @@ class LAIKASLAMMap {
         this.updateUI();
     }
 
-    toggleExploreMode() {
-        this.isExploring = !this.isExploring;
-        
+    async toggleExploreMode() {
         const btn = document.getElementById('explorerBtn');
+        
         if (this.isExploring) {
-            btn.classList.add('active');
-            btn.innerHTML = '<i class="fas fa-stop"></i> Stop Exploring';
-            this.sendMessage({ type: 'start-exploration' });
+            // Stop exploration
+            const result = await this.apiCall('/exploration/stop', 'POST');
+            if (result.success) {
+                this.isExploring = false;
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-search"></i> Explore Mode';
+                console.log('✅ Exploration stopped');
+            } else {
+                console.error('❌ Failed to stop exploration:', result.error);
+            }
         } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '<i class="fas fa-search"></i> Explore Mode';
-            this.sendMessage({ type: 'stop-exploration' });
+            // Start exploration
+            const result = await this.apiCall('/exploration/start', 'POST');
+            if (result.success) {
+                this.isExploring = true;
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-stop"></i> Stop Exploring';
+                console.log('✅ Exploration started');
+            } else {
+                console.error('❌ Failed to start exploration:', result.error);
+            }
         }
     }
 
-    returnHome() {
-        this.sendMessage({
-            type: 'navigate-to-pose',
-            pose: { x: 0, y: 0, theta: 0 }
+    async returnHome() {
+        const result = await this.apiCall('/navigation', 'POST', {
+            waypoint_name: 'Home'
         });
+        
+        if (result.success) {
+            console.log('✅ Returning home');
+        } else {
+            console.error('❌ Failed to return home:', result.error);
+        }
     }
 
-    stopNavigation() {
-        this.isNavigating = false;
-        this.isExploring = false;
-        this.sendMessage({ type: 'cancel-navigation' });
+    async stopNavigation() {
+        const result = await this.apiCall('/navigation/stop', 'POST');
         
-        // Reset button states
-        document.getElementById('navigateBtn').classList.remove('active');
-        document.getElementById('explorerBtn').classList.remove('active');
-        
-        this.updateUI();
+        if (result.success) {
+            this.isNavigating = false;
+            this.isExploring = false;
+            
+            // Reset button states
+            document.getElementById('navigateBtn').classList.remove('active');
+            document.getElementById('explorerBtn').classList.remove('active');
+            
+            this.updateUI();
+            console.log('✅ Navigation stopped');
+        } else {
+            console.error('❌ Failed to stop navigation:', result.error);
+        }
     }
 
     navigateToPoint(worldX, worldY) {
@@ -709,13 +790,21 @@ class LAIKASLAMMap {
     }
 
     // Map management
-    saveMap() {
-        this.sendMessage({ type: 'save-map', name: `map_${Date.now()}` });
+    async saveMap() {
+        const result = await this.apiCall('/map/save', 'POST', {
+            name: `map_${Date.now()}`
+        });
+        
+        if (result.success) {
+            console.log('✅ Map saved');
+        } else {
+            console.error('❌ Failed to save map:', result.error);
+        }
     }
 
-    loadMap() {
-        // For now, just request the current map
-        this.sendMessage({ type: 'request-map' });
+    async loadMap() {
+        // Refresh current map data
+        await this.fetchMapData();
     }
 
     exportMap() {
@@ -726,12 +815,14 @@ class LAIKASLAMMap {
         link.click();
     }
 
-    clearMap() {
+    async clearMap() {
         if (confirm('Are you sure you want to clear the current map? This action cannot be undone.')) {
-            this.sendMessage({ type: 'clear-map' });
+            // For now, just clear local data - would need API endpoint for full clear
             this.robotPath = [];
             this.plannedPath = [];
             this.waypoints = [];
+            
+            console.log('🗑️ Local map data cleared');
         }
     }
 
@@ -833,102 +924,20 @@ class LAIKASLAMMap {
         }, 500);
     }
 
-    enableSimulationMode() {
-        console.log('🎭 Enabling SLAM simulation mode');
-        
-        // Simulate connection
-        setTimeout(() => {
-            this.isConnected = true;
-            this.slamActive = true;
-            this.updateConnectionStatus();
-        }, 1000);
-        
-        // Generate simulated map data
-        this.generateSimulatedMap();
-        
-        // Simulate robot movement
-        setInterval(() => {
-            this.simulateRobotMovement();
-        }, 100);
-        
-        // Simulate SLAM updates
-        setInterval(() => {
-            this.simulateSLAMStats();
-        }, 2000);
-    }
-
-    generateSimulatedMap() {
-        const width = 200;
-        const height = 200;
-        const grid = new Uint8Array(width * height);
-        
-        // Generate a simple room with obstacles
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const i = y * width + x;
-                
-                // Walls around the edges
-                if (x < 5 || x >= width - 5 || y < 5 || y >= height - 5) {
-                    grid[i] = 100; // Occupied
-                }
-                // Some obstacles in the middle
-                else if ((x > 50 && x < 70 && y > 80 && y < 120) ||
-                         (x > 130 && x < 150 && y > 60 && y < 100)) {
-                    grid[i] = 100; // Occupied
-                }
-                // Free space
-                else if (Math.random() > 0.1) {
-                    grid[i] = 0; // Free
-                }
-                // Unknown space
-                else {
-                    grid[i] = -1; // Unknown
-                }
-            }
+    // Cleanup method
+    cleanup() {
+        if (this.dataPollingInterval) {
+            clearInterval(this.dataPollingInterval);
+            this.dataPollingInterval = null;
         }
         
-        this.mapData = {
-            occupancyGrid: grid,
-            width: width,
-            height: height,
-            resolution: 0.05,
-            origin: { x: -width/2, y: -height/2, theta: 0 }
-        };
-    }
-
-    simulateRobotMovement() {
-        if (this.isNavigating || this.isExploring) {
-            this.robotPose.x += (Math.random() - 0.5) * 0.1;
-            this.robotPose.y += (Math.random() - 0.5) * 0.1;
-            this.robotPose.theta += (Math.random() - 0.5) * 0.2;
-            
-            this.updateRobotPose(this.robotPose);
-        }
-    }
-
-    simulateSLAMStats() {
-        this.slamStats.mapCoverage = Math.min(100, this.slamStats.mapCoverage + Math.random() * 2);
-        this.slamStats.loopClosures = Math.floor(this.slamStats.mapCoverage / 10);
-        this.slamStats.landmarkCount = Math.floor(this.slamStats.mapCoverage / 5);
-        this.slamStats.scanRate = 8 + Math.random() * 4;
-        
-        if (this.slamStats.mapCoverage > 80) {
-            this.slamStats.mapQuality = 'Excellent';
-        } else if (this.slamStats.mapCoverage > 60) {
-            this.slamStats.mapQuality = 'Good';
-        } else if (this.slamStats.mapCoverage > 30) {
-            this.slamStats.mapQuality = 'Fair';
-        } else {
-            this.slamStats.mapQuality = 'Poor';
-        }
-        
-        this.updateStatsDisplay();
+        console.log('🧹 SLAM interface cleaned up');
     }
 
     async reconnect() {
         if (!this.isConnected) {
             console.log('🔄 Attempting to reconnect...');
-            await this.connectWebSocket();
+            await this.connectToAPI();
         }
     }
 }
@@ -990,7 +999,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle page unload
 window.addEventListener('beforeunload', () => {
-    if (window.laikaSLAM && window.laikaSLAM.ws) {
-        window.laikaSLAM.ws.close();
+    if (window.laikaSLAM) {
+        window.laikaSLAM.cleanup();
     }
 });

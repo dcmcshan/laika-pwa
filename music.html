@@ -13,6 +13,9 @@
     <!-- Mobile Optimizations -->
     <link href="css/mobile-landscape.css" rel="stylesheet">
     
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -819,6 +822,35 @@
             </div>
         </div>
 
+        <!-- Music Statistics -->
+        <div class="music-section" style="margin-top: 20px;">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary-cyan); margin: 0;"><i class="fas fa-chart-line"></i> Music Statistics</h3>
+            </div>
+            <div id="musicStats" class="music-stats">
+                <div class="loading-stats" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading music statistics...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track History -->
+        <div class="music-section" style="margin-top: 20px;">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary-cyan); margin: 0;"><i class="fas fa-history"></i> Detected Tracks</h3>
+                <button id="refreshTracks" class="control-btn" style="padding: 8px 15px; background: var(--glass-bg); border: 1px solid var(--border-glow); border-radius: 8px; color: var(--text-primary); cursor: pointer;">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+            <div id="trackHistory" class="track-history">
+                <div class="loading-tracks" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading detected tracks...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Status Bar -->
         <div class="status-bar">
             <div class="status-item">
@@ -837,5 +869,8 @@
     </div>
 
     <script src="js/music.js"></script>
+    <!-- Header/Footer System -->
+    <script src="js/header-footer.js"></script>
 </body>
 </html>
+

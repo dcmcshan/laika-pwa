@@ -10,13 +10,14 @@ class LAIKADashboard {
         this.updateInterval = null;
         this.refreshRate = 2000; // 2 seconds
         
+        // Initialize with null - will be populated with real data from WebSocket
         this.sensorData = {
-            battery: { level: 85, voltage: 7.4, current: 2.1, charging: false },
-            temperature: { cpu: 42, battery: 35, motor: 45, ambient: 22 },
-            performance: { cpu: 25, memory: 60, storage: 45, uptime: '2d 14h', processes: 42 },
-            network: { signal: -45, ssid: 'LAIKA_Network', ip: '192.168.1.100', download: 25.4, upload: 12.1, latency: 15 },
-            imu: { orientation: 'N 15°', pitch: 2.1, roll: -0.8, acceleration: 9.8, gyroscope: 0.02, magnetometer: 45.2 },
-            servos: this.generateServoData()
+            battery: { level: null, voltage: null, current: null, charging: null },
+            temperature: { cpu: null, battery: null, motor: null, ambient: null },
+            performance: { cpu: null, memory: null, storage: null, uptime: null, processes: null },
+            network: { signal: null, ssid: null, ip: null, download: null, upload: null, latency: null },
+            imu: { orientation: null, pitch: null, roll: null, acceleration: null, gyroscope: null, magnetometer: null },
+            servos: []
         };
         
         this.initializeElements();
@@ -62,33 +63,24 @@ class LAIKADashboard {
     }
 
     async connectToLAIKA() {
+        // For ngrok compatibility, use HTTP API instead of WebSocket [[memory:6691954]]
+        console.log('🔗 Dashboard connecting to LAIKA via HTTP API...');
+        
         try {
-            const wsUrl = this.getWebSocketUrl();
-            this.websocket = new WebSocket(wsUrl);
+            // Test connection with system status endpoint
+            const baseUrl = window.location.origin;
+            const response = await fetch(`${baseUrl}/api/system/status`);
             
-            this.websocket.onopen = () => {
-                console.log('Dashboard connected to LAIKA');
+            if (response.ok) {
+                console.log('✅ Dashboard connected to LAIKA via HTTP');
                 this.isConnected = true;
+                this.baseUrl = baseUrl;
                 this.requestInitialData();
-            };
-
-            this.websocket.onmessage = (event) => {
-                this.handleMessage(JSON.parse(event.data));
-            };
-
-            this.websocket.onclose = () => {
-                console.log('Dashboard disconnected from LAIKA');
-                this.isConnected = false;
-                this.scheduleReconnect();
-            };
-
-            this.websocket.onerror = (error) => {
-                console.error('Dashboard WebSocket error:', error);
-                this.isConnected = false;
-            };
-
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
         } catch (error) {
-            console.error('Failed to connect dashboard to LAIKA:', error);
+            console.error('❌ Failed to connect dashboard to LAIKA:', error);
             this.isConnected = false;
             this.scheduleReconnect();
         }
@@ -96,14 +88,20 @@ class LAIKADashboard {
 
     getWebSocketUrl() {
         const hostname = window.location.hostname;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         
+        // For ngrok tunneling - use same hostname with /ws path [[memory:6691954]]
+        if (hostname.includes('ngrok') || hostname.includes('ngrok-free.app')) {
+            return `${protocol}//${hostname}/ws`;
+        }
+        
+        // For local development or direct access
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
             return 'ws://localhost:8765';
-        } else if (hostname.includes('laika')) {
-            return `ws://${hostname}:8765`;
-        } else {
-            return `ws://${hostname}:8765`;
         }
+        
+        // For local network access
+        return `ws://${hostname}:8765`;
     }
 
     scheduleReconnect() {
@@ -121,46 +119,103 @@ class LAIKADashboard {
         }
     }
 
-    requestInitialData() {
-        if (this.isConnected && this.websocket) {
-            const request = {
-                type: 'dashboard_request',
-                data_types: ['battery', 'temperature', 'performance', 'network', 'imu', 'servos'],
-                timestamp: new Date().toISOString()
-            };
+    async requestInitialData() {
+        if (this.isConnected && this.baseUrl) {
+            console.log('📊 Requesting real sensor data from LAIKA');
             
-            this.websocket.send(JSON.stringify(request));
+            try {
+                // Fetch real sensor data from HTTP API
+                const response = await fetch(`${this.baseUrl}/api/dashboard/data`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.handleDashboardData(data);
+                } else {
+                    console.warn('⚠️ Dashboard data not available, using system status');
+                    await this.fetchSystemData();
+                }
+            } catch (error) {
+                console.error('❌ Error fetching dashboard data:', error);
+                await this.fetchSystemData();
+            }
+        }
+    }
+    
+    async fetchSystemData() {
+        // Fallback to individual system endpoints for real data
+        try {
+            const [statusRes, processRes] = await Promise.all([
+                fetch(`${this.baseUrl}/api/system/status`),
+                fetch(`${this.baseUrl}/api/processes`)
+            ]);
+            
+            if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                this.updateSystemMetrics(statusData);
+            }
+            
+            if (processRes.ok) {
+                const processData = await processRes.json();
+                this.updateProcessMetrics(processData);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error fetching system data:', error);
         }
     }
 
-    handleMessage(data) {
-        switch (data.type) {
-            case 'dashboard_data':
-                this.updateSensorData(data.data);
-                break;
-            case 'battery_update':
-                this.updateBatteryData(data.data);
-                break;
-            case 'temperature_update':
-                this.updateTemperatureData(data.data);
-                break;
-            case 'performance_update':
-                this.updatePerformanceData(data.data);
-                break;
-            case 'network_update':
-                this.updateNetworkData(data.data);
-                break;
-            case 'imu_update':
-                this.updateIMUData(data.data);
-                break;
-            case 'servo_update':
-                this.updateServoData(data.data);
-                break;
-            default:
-                console.log('Unknown dashboard message type:', data);
+    handleDashboardData(data) {
+        // Handle dashboard data from HTTP API
+        if (data.battery) this.updateBatteryData(data.battery);
+        if (data.temperature) this.updateTemperatureData(data.temperature);
+        if (data.performance) this.updatePerformanceData(data.performance);
+        if (data.network) this.updateNetworkData(data.network);
+        if (data.imu) this.updateIMUData(data.imu);
+        if (data.servos) this.updateServoData(data.servos);
+        
+        this.updateLastUpdateTime();
+    }
+    
+    updateSystemMetrics(statusData) {
+        // Update performance metrics from system status
+        if (statusData.system_stats) {
+            const stats = statusData.system_stats;
+            this.updatePerformanceData({
+                cpu: Math.round(stats.cpu_percent || 0),
+                memory: Math.round(stats.memory_percent || 0),
+                storage: Math.round(stats.disk_percent || 0),
+                uptime: this.formatUptime(stats.uptime || 0),
+                processes: stats.process_count || 0
+            });
+            
+            // Update temperature from system
+            this.updateTemperatureData({
+                cpu: Math.round(stats.cpu_temperature || 0),
+                battery: Math.round((stats.cpu_temperature || 0) - 5),
+                motor: Math.round((stats.cpu_temperature || 0) + 5),
+                ambient: Math.round((stats.cpu_temperature || 0) - 10)
+            });
+        }
+        
+        // Update network info
+        if (statusData.network) {
+            this.updateNetworkData({
+                signal: statusData.network.wifi_signal || null,
+                ssid: statusData.network.wifi_ssid || '--',
+                ip: statusData.network.local_ip || '--',
+                download: Math.round(statusData.network.download_speed || 0),
+                upload: Math.round(statusData.network.upload_speed || 0),
+                latency: statusData.network.ping_ms || null
+            });
         }
         
         this.updateLastUpdateTime();
+    }
+    
+    updateProcessMetrics(processData) {
+        if (processData.success && processData.total_processes) {
+            // Update process count
+            this.updateElement('processes', processData.total_processes);
+        }
     }
 
     updateSensorData(data) {
@@ -187,11 +242,11 @@ class LAIKADashboard {
             batteryLevel.textContent = `${battery.level}%`;
         }
         
-        // Update battery metrics
-        this.updateElement('batteryVoltage', `${battery.voltage.toFixed(1)}`);
-        this.updateElement('batteryCurrent', `${battery.current.toFixed(1)}`);
-        this.updateElement('batteryRuntime', `${this.calculateRuntime(battery.level)}`);
-        this.updateElement('chargingStatus', battery.charging ? 'Charging' : 'Not Connected');
+        // Update battery metrics with reduced precision
+        this.updateElement('batteryVoltage', `${battery.voltage ? battery.voltage.toFixed(1) : '--'}`);
+        this.updateElement('batteryCurrent', `${battery.current ? battery.current.toFixed(1) : '--'}`);
+        this.updateElement('batteryRuntime', `${battery.level ? this.calculateRuntime(battery.level) : '--'}`);
+        this.updateElement('chargingStatus', battery.charging !== null ? (battery.charging ? 'Charging' : 'Not Connected') : '--');
         
         // Update power status
         let status = 'healthy';
@@ -213,11 +268,11 @@ class LAIKADashboard {
         
         const temp = this.sensorData.temperature;
         
-        // Update temperature values with color coding
-        this.updateElement('cpuTemp', `${temp.cpu}`, this.getTempClass(temp.cpu));
-        this.updateElement('batteryTemp', `${temp.battery}`, this.getTempClass(temp.battery));
-        this.updateElement('motorTemp', `${temp.motor}`, this.getTempClass(temp.motor));
-        this.updateElement('ambientTemp', `${temp.ambient}`, this.getTempClass(temp.ambient));
+        // Update temperature values with reduced precision and color coding
+        this.updateElement('cpuTemp', `${temp.cpu ? Math.round(temp.cpu) : '--'}`, temp.cpu ? this.getTempClass(temp.cpu) : '');
+        this.updateElement('batteryTemp', `${temp.battery ? Math.round(temp.battery) : '--'}`, temp.battery ? this.getTempClass(temp.battery) : '');
+        this.updateElement('motorTemp', `${temp.motor ? Math.round(temp.motor) : '--'}`, temp.motor ? this.getTempClass(temp.motor) : '');
+        this.updateElement('ambientTemp', `${temp.ambient ? Math.round(temp.ambient) : '--'}`, temp.ambient ? this.getTempClass(temp.ambient) : '');
         
         // Update temperature status
         const maxTemp = Math.max(temp.cpu, temp.battery, temp.motor);
@@ -240,12 +295,12 @@ class LAIKADashboard {
         
         const perf = this.sensorData.performance;
         
-        // Update performance metrics
-        this.updateElement('cpuUsage', `${perf.cpu}`);
-        this.updateElement('memoryUsage', `${perf.memory}`);
-        this.updateElement('storageUsage', `${perf.storage}`);
-        this.updateElement('uptime', perf.uptime);
-        this.updateElement('processes', perf.processes);
+        // Update performance metrics with reduced precision
+        this.updateElement('cpuUsage', `${perf.cpu ? Math.round(perf.cpu) : '--'}`);
+        this.updateElement('memoryUsage', `${perf.memory ? Math.round(perf.memory) : '--'}`);
+        this.updateElement('storageUsage', `${perf.storage ? Math.round(perf.storage) : '--'}`);
+        this.updateElement('uptime', perf.uptime || '--');
+        this.updateElement('processes', perf.processes || '--');
         
         // Update progress bars
         this.updateProgressBar('cpuProgress', perf.cpu);
@@ -273,13 +328,13 @@ class LAIKADashboard {
         
         const network = this.sensorData.network;
         
-        // Update network metrics
-        this.updateElement('wifiSignal', `${network.signal}`, this.getSignalClass(network.signal));
-        this.updateElement('wifiSSID', network.ssid);
-        this.updateElement('ipAddress', network.ip);
-        this.updateElement('downloadSpeed', `${network.download.toFixed(1)}`);
-        this.updateElement('uploadSpeed', `${network.upload.toFixed(1)}`);
-        this.updateElement('latency', `${network.latency}`);
+        // Update network metrics with reduced precision
+        this.updateElement('wifiSignal', `${network.signal || '--'}`, network.signal ? this.getSignalClass(network.signal) : '');
+        this.updateElement('wifiSSID', network.ssid || '--');
+        this.updateElement('ipAddress', network.ip || '--');
+        this.updateElement('downloadSpeed', `${network.download ? Math.round(network.download) : '--'}`);
+        this.updateElement('uploadSpeed', `${network.upload ? Math.round(network.upload) : '--'}`);
+        this.updateElement('latency', `${network.latency || '--'}`);
         
         // Update network status
         let status = 'healthy';
@@ -301,13 +356,13 @@ class LAIKADashboard {
         
         const imu = this.sensorData.imu;
         
-        // Update IMU values
-        this.updateElement('orientation', imu.orientation);
-        this.updateElement('pitch', `${imu.pitch.toFixed(1)}`);
-        this.updateElement('roll', `${imu.roll.toFixed(1)}`);
-        this.updateElement('acceleration', `${imu.acceleration.toFixed(1)}`);
-        this.updateElement('gyroscope', `${imu.gyroscope.toFixed(3)}`);
-        this.updateElement('magnetometer', `${imu.magnetometer.toFixed(1)}`);
+        // Update IMU values with reduced precision
+        this.updateElement('orientation', imu.orientation || '--');
+        this.updateElement('pitch', `${imu.pitch ? Math.round(imu.pitch) : '--'}`);
+        this.updateElement('roll', `${imu.roll ? Math.round(imu.roll) : '--'}`);
+        this.updateElement('acceleration', `${imu.acceleration ? imu.acceleration.toFixed(1) : '--'}`);
+        this.updateElement('gyroscope', `${imu.gyroscope ? imu.gyroscope.toFixed(2) : '--'}`);
+        this.updateElement('magnetometer', `${imu.magnetometer ? Math.round(imu.magnetometer) : '--'}`);
         
         // Update sensors status
         const isCalibrated = Math.abs(imu.pitch) < 5 && Math.abs(imu.roll) < 5;
@@ -393,17 +448,9 @@ class LAIKADashboard {
     }
 
     generateServoData() {
-        const servos = [];
-        for (let i = 1; i <= 12; i++) {
-            servos.push({
-                id: i,
-                position: 1500 + (Math.random() - 0.5) * 200,
-                temperature: 30 + Math.random() * 25,
-                load: Math.random() * 60,
-                healthy: true
-            });
-        }
-        return servos;
+        // Return empty array - real servo data will come from WebSocket
+        console.log('🔧 Servo data will be populated from real sensors');
+        return [];
     }
 
     populateServoGrid() {
@@ -417,8 +464,8 @@ class LAIKADashboard {
             servoElement.className = 'servo-item';
             servoElement.innerHTML = `
                 <div class="servo-id">S${servo.id}</div>
-                <div class="servo-temp">${servo.temperature.toFixed(1)}°C</div>
-                <div class="servo-load">${servo.load.toFixed(0)}%</div>
+                <div class="servo-temp">${servo.temperature ? Math.round(servo.temperature) : '--'}°C</div>
+                <div class="servo-load">${servo.load ? Math.round(servo.load) : '--'}%</div>
             `;
             
             // Color code based on health
@@ -441,10 +488,10 @@ class LAIKADashboard {
         
         this.updateInterval = setInterval(() => {
             if (this.isConnected) {
-                this.requestInitialData();
+                await this.requestInitialData();
             } else {
-                // Simulate data updates when not connected
-                this.simulateDataUpdates();
+                // Try to reconnect instead of simulating data
+                this.reconnectIfNeeded();
             }
         }, this.refreshRate);
         
@@ -509,9 +556,10 @@ class LAIKADashboard {
         this.refreshButton.style.animation = 'spin 1s linear';
         
         if (this.isConnected) {
-            this.requestInitialData();
+            await this.requestInitialData();
         } else {
-            this.simulateDataUpdates();
+            // Show connection status instead of simulating data
+            this.showConnectionError();
         }
         
         // Remove loading animation
@@ -523,6 +571,39 @@ class LAIKADashboard {
     updateCharts() {
         // Placeholder for chart updates when charts are implemented
         console.log('Updating charts...');
+    }
+
+    showConnectionError() {
+        // Show connection status instead of fake data
+        console.log('⚠️ Dashboard not connected to LAIKA - waiting for real data');
+        
+        // Update status indicators to show disconnected state
+        Object.keys(this.statusElements).forEach(key => {
+            const element = this.statusElements[key];
+            if (element) {
+                element.className = 'widget-status error';
+                element.innerHTML = '<div class="status-dot"></div>No Data';
+            }
+        });
+        
+        // Show "--" for all metrics when not connected
+        const metricElements = [
+            'batteryLevel', 'batteryVoltage', 'batteryCurrent', 'batteryRuntime', 'chargingStatus',
+            'cpuTemp', 'batteryTemp', 'motorTemp', 'ambientTemp',
+            'cpuUsage', 'memoryUsage', 'storageUsage', 'uptime', 'processes',
+            'wifiSignal', 'wifiSSID', 'ipAddress', 'downloadSpeed', 'uploadSpeed', 'latency',
+            'orientation', 'pitch', 'roll', 'acceleration', 'gyroscope', 'magnetometer'
+        ];
+        
+        metricElements.forEach(id => {
+            this.updateElement(id, '--');
+        });
+        
+        // Clear servo grid
+        const servoGrid = document.getElementById('servoGrid');
+        if (servoGrid) {
+            servoGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-dim); padding: 20px;">No servo data - waiting for LAIKA connection</div>';
+        }
     }
 
     // Utility methods

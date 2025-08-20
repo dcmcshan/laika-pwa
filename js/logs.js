@@ -109,8 +109,12 @@ class LAIKALogs {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.pauseUpdates();
+                this.stopPolling();
             } else {
                 this.resumeUpdates();
+                if (this.isConnected) {
+                    this.startRealTimePolling();
+                }
             }
         });
     }
@@ -179,8 +183,8 @@ class LAIKALogs {
                 this.ws = null;
                 
                 if (url === wsUrls[wsUrls.length - 1]) {
-                    console.log('🔄 All connection attempts failed, using simulation mode');
-                    this.enableSimulationMode();
+                    console.log('🔄 All WebSocket connections failed, trying HTTP API...');
+                    await this.loadRealLogs();
                 }
             }
         }
@@ -529,69 +533,94 @@ class LAIKALogs {
         this.isPaused = false;
     }
 
-    enableSimulationMode() {
-        console.log('🎭 Enabling logs simulation mode');
+    async loadRealLogs() {
+        console.log('📋 Loading real system logs...');
         
-        // Simulate connection
-        setTimeout(() => {
-            this.isConnected = true;
-            this.updateConnectionStatus();
-        }, 1000);
-        
-        // Simulate log entries
-        const logSources = [
-            'robot_brain', 'camera_service', 'slam_system', 'servo_controller',
-            'sensor_fusion', 'network_manager', 'websocket_server', 'api_gateway'
-        ];
-        
-        const logLevels = ['error', 'warning', 'info', 'debug', 'trace'];
-        
-        const sampleMessages = [
-            'System initialized successfully',
-            'Camera stream started',
-            'SLAM mapping active',
-            'Servo calibration complete',
-            'Network connection established',
-            'WebSocket client connected',
-            'Processing navigation command',
-            'Object detection enabled',
-            'Battery level check',
-            'Temperature reading normal',
-            'Wi-Fi signal strength: excellent',
-            'Motion planning complete',
-            'Face recognition activated',
-            'Audio stream processing',
-            'Error: Connection timeout',
-            'Warning: High CPU usage detected',
-            'Debug: Processing frame 12345',
-            'Trace: Function entry point',
-            'Emergency stop triggered',
-            'Obstacle detected at 2.5m'
-        ];
-        
-        // Add initial sample logs
-        for (let i = 0; i < 50; i++) {
-            this.addLogEntry({
-                timestamp: Date.now() - (50 - i) * 1000,
-                level: logLevels[Math.floor(Math.random() * logLevels.length)],
-                source: logSources[Math.floor(Math.random() * logSources.length)],
-                message: sampleMessages[Math.floor(Math.random() * sampleMessages.length)]
-            }, false);
+        try {
+            // Use HTTP API for logs since we're on ngrok
+            const baseUrl = window.location.origin;
+            const response = await fetch(`${baseUrl}/api/system/logs?limit=100`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.logs) {
+                    console.log(`✅ Loaded ${data.logs.length} real log entries`);
+                    
+                    // Clear existing logs and add real ones
+                    this.logs = [];
+                    this.logCounts = { total: 0, error: 0, warning: 0, info: 0, debug: 0, trace: 0 };
+                    
+                    data.logs.forEach(log => {
+                        this.addLogEntry(log, false);
+                    });
+                    
+                    this.applyFilters();
+                    this.updateUI();
+                    
+                    // Start polling for new logs
+                    this.startRealTimePolling();
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('❌ Failed to load real logs:', error);
+            this.showError(`Failed to load system logs: ${error.message}`);
+        }
+    }
+
+    startRealTimePolling() {
+        // Clear any existing polling interval
+        if (this.logPollingInterval) {
+            clearInterval(this.logPollingInterval);
         }
         
-        this.applyFilters();
-        this.updateUI();
-        
-        // Continue adding logs periodically
-        setInterval(() => {
-            if (!this.isPaused && Math.random() > 0.3) {
-                this.addLogEntry({
-                    level: logLevels[Math.floor(Math.random() * logLevels.length)],
-                    source: logSources[Math.floor(Math.random() * logSources.length)],
-                    message: sampleMessages[Math.floor(Math.random() * sampleMessages.length)]
-                });
+        // Poll for new logs every 2 seconds
+        this.logPollingInterval = setInterval(async () => {
+            if (this.isPaused) return;
+            
+            try {
+                const baseUrl = window.location.origin;
+                const lastTimestamp = this.logs.length > 0 ? this.logs[0].timestamp : null;
+                const params = lastTimestamp ? `?since=${encodeURIComponent(lastTimestamp)}` : '?limit=10';
+                
+                const response = await fetch(`${baseUrl}/api/system/logs${params}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.logs && data.logs.length > 0) {
+                        data.logs.forEach(log => {
+                            this.addLogEntry(log, false);
+                        });
+                        this.applyFilters();
+                        this.updateUI();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error polling for new logs:', error);
             }
-        }, 500 + Math.random() * 2000);
+        }, 2000);
+    }
+
+    stopPolling() {
+        if (this.logPollingInterval) {
+            clearInterval(this.logPollingInterval);
+            this.logPollingInterval = null;
+        }
+    }
+
+    showError(message) {
+        const logsDisplay = document.getElementById('logsDisplay');
+        logsDisplay.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+                <button onclick="window.laikaLogs.loadRealLogs()" class="retry-button">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+        `;
     }
 
     async reconnect() {

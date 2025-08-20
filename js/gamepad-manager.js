@@ -408,9 +408,13 @@ class GamepadManager {
             changes: changes
         };
 
-        // Send via WebSocket to robot
-        if (this.control && this.control.sendMessage) {
+        // Send raw gamepad data to LAIKA
+        if (this.control && this.control.sendLAIKAMessage) {
+            this.control.sendLAIKAMessage(gamepadData);
+        } else if (this.control && this.control.sendMessage) {
             this.control.sendMessage(gamepadData);
+        } else {
+            console.log('📡 No control interface available for gamepad data');
         }
     }
 
@@ -418,12 +422,17 @@ class GamepadManager {
         const message = {
             type: 'controller_input',
             source: source,
-            timestamp: controllerData.timestamp,
+            timestamp: controllerData.timestamp || Date.now(),
             data: controllerData
         };
 
-        if (this.control && this.control.sendMessage) {
+        // Send to LAIKA via control interface
+        if (this.control && this.control.sendLAIKAMessage) {
+            this.control.sendLAIKAMessage(message);
+        } else if (this.control && this.control.sendMessage) {
             this.control.sendMessage(message);
+        } else {
+            console.log('📡 No control interface available for controller data');
         }
     }
 

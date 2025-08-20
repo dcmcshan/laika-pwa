@@ -356,10 +356,12 @@ class LAIKAControl {
     }
 
     async connectWebSocket() {
+        // LAIKA WebSocket server URLs - using ngrok tunneling
         const wsUrls = [
-            `ws://${window.location.hostname}:9090`, // ROSBridge default port
-            'ws://laika.local:9090',
-            'ws://localhost:9090'
+            `wss://${window.location.hostname.replace('.ngrok.app', '.ngrok-free.app')}/ws`, // ngrok WebSocket
+            `ws://${window.location.hostname}:8765`, // LAIKA WebSocket server port
+            'ws://laika.local:8765',
+            'ws://localhost:8765'
         ];
 
         for (const url of wsUrls) {
@@ -369,14 +371,26 @@ class LAIKAControl {
                 this.ws = new WebSocket(url);
                 
                 this.ws.onopen = () => {
-                    console.log('✅ WebSocket connected to ROSBridge');
+                    console.log('✅ WebSocket connected to LAIKA');
                     this.isConnected = true;
                     this.updateConnectionStatus();
                     this.subscribeToTopics();
+                    
+                    // Send initial handshake to LAIKA
+                    this.sendLAIKAMessage({
+                        type: 'control_connected',
+                        client_id: 'control_interface',
+                        timestamp: Date.now()
+                    });
                 };
 
                 this.ws.onmessage = (event) => {
-                    this.handleROSMessage(JSON.parse(event.data));
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.handleLAIKAMessage(data);
+                    } catch (error) {
+                        console.error('❌ Error parsing WebSocket message:', error);
+                    }
                 };
 
                 this.ws.onclose = () => {
@@ -435,20 +449,28 @@ class LAIKAControl {
         });
     }
 
-    handleROSMessage(message) {
-        switch (message.op) {
-            case 'publish':
-                this.handleTopicMessage(message.topic, message.msg);
-                break;
-            case 'service_response':
-                this.handleServiceResponse(message);
-                break;
+    handleLAIKAMessage(message) {
+        switch (message.type) {
             case 'status':
-                console.log('ROS Status:', message.msg);
+                this.handleStatusUpdate(message.data);
+                break;
+            case 'telemetry':
+                this.handleTelemetryUpdate(message.data);
+                break;
+            case 'response':
+                this.handleCommandResponse(message.data);
+                break;
+            case 'error':
+                console.error('LAIKA Error:', message.data);
                 break;
             default:
-                console.log('Unknown ROS message:', message);
+                console.log('LAIKA Message:', message);
         }
+    }
+
+    // Legacy compatibility method
+    handleROSMessage(message) {
+        this.handleLAIKAMessage(message);
     }
 
     handleTopicMessage(topic, msg) {
@@ -477,12 +499,54 @@ class LAIKAControl {
         this.updateTelemetryDisplay();
     }
 
-    sendROSMessage(message) {
+    handleStatusUpdate(data) {
+        if (data.battery !== undefined) {
+            this.telemetry.battery = data.battery;
+        }
+        if (data.wifi) {
+            console.log('WiFi status:', data.wifi);
+        }
+        this.updateTelemetryDisplay();
+    }
+
+    handleTelemetryUpdate(data) {
+        if (data.linearVel !== undefined) {
+            this.telemetry.linearVel = data.linearVel;
+        }
+        if (data.angularVel !== undefined) {
+            this.telemetry.angularVel = data.angularVel;
+        }
+        if (data.battery !== undefined) {
+            this.telemetry.battery = data.battery;
+        }
+        if (data.temperature !== undefined) {
+            this.telemetry.temperature = data.temperature;
+        }
+        if (data.imuStatus !== undefined) {
+            this.telemetry.imuStatus = data.imuStatus;
+        }
+        this.updateTelemetryDisplay();
+    }
+
+    handleCommandResponse(data) {
+        if (data.success) {
+            console.log('✅ Command executed successfully:', data.message);
+        } else {
+            console.error('❌ Command failed:', data.error);
+        }
+    }
+
+    sendLAIKAMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         } else {
-            console.log('📡 ROSBridge not connected, message queued');
+            console.log('📡 LAIKA WebSocket not connected, message queued');
         }
+    }
+
+    // Legacy compatibility method
+    sendROSMessage(message) {
+        this.sendLAIKAMessage(message);
     }
 
     sendMovementCommand() {
@@ -491,14 +555,28 @@ class LAIKAControl {
         const leftStick = this.controlState.leftStick;
         const rightStick = this.controlState.rightStick;
         
-        // Left stick controls linear movement
+        // Send raw controller state to LAIKA for processing
+        const controllerMessage = {
+            type: 'controller_input',
+            timestamp: Date.now(),
+            data: {
+                leftStick: leftStick,
+                rightStick: rightStick,
+                buttons: Array.from(this.controlState.buttons),
+                triggers: this.controlState.triggers,
+                mode: this.currentMode
+            }
+        };
+
+        this.sendLAIKAMessage(controllerMessage);
+        
+        // Also send traditional movement command for compatibility
         const linear = {
             x: leftStick.y * 2.0, // Forward/backward, max 2 m/s
             y: leftStick.x * 1.0, // Strafe left/right, max 1 m/s
             z: 0.0
         };
         
-        // Right stick controls rotation
         const angular = {
             x: 0.0,
             y: 0.0,
@@ -507,25 +585,27 @@ class LAIKAControl {
 
         // Apply speed modifiers
         if (this.controlState.buttons.has('l1')) {
-            // Precision mode - reduce speed
             linear.x *= 0.3;
             linear.y *= 0.3;
             angular.z *= 0.3;
         }
         
         if (this.controlState.buttons.has('r1')) {
-            // Speed boost mode
             linear.x *= 1.5;
             linear.y *= 1.5;
             angular.z *= 1.5;
         }
 
         const cmdVel = {
-            linear: linear,
-            angular: angular
+            type: 'movement_command',
+            timestamp: Date.now(),
+            data: {
+                linear: linear,
+                angular: angular
+            }
         };
 
-        this.publishTwist(cmdVel);
+        this.sendLAIKAMessage(cmdVel);
         this.updateCommandRate();
     }
 
@@ -546,6 +626,16 @@ class LAIKAControl {
             button.classList.add('active');
         }
 
+        // Send raw button press event to LAIKA
+        this.sendLAIKAMessage({
+            type: 'button_press',
+            timestamp: Date.now(),
+            data: {
+                button: buttonName,
+                pressed: true
+            }
+        });
+
         // Execute mapped command
         const command = this.buttonMappings[buttonName];
         if (command && this.currentMode === 'manual') {
@@ -563,6 +653,16 @@ class LAIKAControl {
         if (button) {
             button.classList.remove('active');
         }
+
+        // Send raw button release event to LAIKA
+        this.sendLAIKAMessage({
+            type: 'button_press',
+            timestamp: Date.now(),
+            data: {
+                button: buttonName,
+                pressed: false
+            }
+        });
 
         // Stop continuous commands
         if (['dpad-up', 'dpad-down', 'dpad-left', 'dpad-right'].includes(buttonName)) {
@@ -975,10 +1075,11 @@ class LAIKAControl {
             const video = document.getElementById('controlVideoStream');
             if (video) {
                 // Use lower frame rate for control page (5-10 fps is plenty)
-                video.src = `${this.getServerUrl()}/api/camera/stream?fps=5&quality=low`;
+                const streamUrl = `${this.getServerUrl()}/camera/stream?fps=5&quality=low`;
+                video.src = streamUrl;
                 this.videoEnabled = true;
                 this.updateVideoUI();
-                console.log('✅ Control video feed auto-started');
+                console.log('✅ Control video feed auto-started:', streamUrl);
             }
         }, 1000); // Small delay to ensure page is fully loaded
     }
@@ -1013,9 +1114,10 @@ class LAIKAControl {
         const video = document.getElementById('controlVideoStream');
         if (video && this.isConnected) {
             // Use the same camera stream as the camera page
-            video.src = this.getServerUrl() + '/api/camera/stream';
+            const streamUrl = this.getServerUrl() + '/camera/stream';
+            video.src = streamUrl;
             this.videoEnabled = true;
-            console.log('📹 Video feed started');
+            console.log('📹 Video feed started:', streamUrl);
         }
     }
 
@@ -1048,7 +1150,10 @@ class LAIKAControl {
     }
 
     getServerUrl() {
-        // Return the server URL for API calls
+        // Return the server URL for API calls - use ngrok tunneling if available
+        if (window.location.hostname.includes('ngrok')) {
+            return `${window.location.protocol}//${window.location.hostname}`;
+        }
         return `${window.location.protocol}//${window.location.hostname}:5000`;
     }
 

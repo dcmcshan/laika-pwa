@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00FFFF">
-    <title>LAIKA Internal Systems</title>
+    <title>LAIKA STT-LLM-TTS</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -667,8 +667,11 @@
     </style>
 </head>
 <body>
+    <!-- LAIKA Navigation Header -->
+    <div id="laika-header"></div>
+    
     <div class="header">
-        <h1>🔧 LAIKA INTERNAL SYSTEMS</h1>
+        <h1>🎯 LAIKA STT-LLM-TTS</h1>
         <div class="status-bar">
             <div class="status-indicator">
                 <div class="status-dot" id="stt-status"></div>
@@ -688,7 +691,7 @@
     <div class="container">
         <div class="conversation-feed" id="conversation-feed">
             <div class="empty-state">
-                <h2>Monitoring Internal Systems...</h2>
+                <h2>Monitoring STT-LLM-TTS Pipeline...</h2>
                 <p>Speak to LAIKA to see the STT → LLM → TTS pipeline in action!</p>
             </div>
         </div>
@@ -817,8 +820,8 @@
             if (!conversations || conversations.length === 0) {
                 feed.innerHTML = `
                     <div class="empty-state">
-                        <h2>Internal Systems Ready...</h2>
-                        <p>Use voice commands or the TTS input to interact with LAIKA's internal systems!</p>
+                        <h2>STT-LLM-TTS Pipeline Ready...</h2>
+                        <p>Use voice commands or the TTS input to see the pipeline in action!</p>
                     </div>
                 `;
                 return;

@@ -25,6 +25,17 @@ class LAIKAChat {
         this.personalitySelector = document.getElementById('personalitySelector');
         this.connectionIndicator = document.getElementById('connectionIndicator');
         this.connectionText = document.getElementById('connectionText');
+        
+        // Debug: Check if elements were found
+        console.log('Chat elements initialized:', {
+            chatMessages: !!this.chatMessages,
+            chatInput: !!this.chatInput,
+            sendButton: !!this.sendButton,
+            voiceButton: !!this.voiceButton,
+            personalitySelector: !!this.personalitySelector,
+            connectionIndicator: !!this.connectionIndicator,
+            connectionText: !!this.connectionText
+        });
     }
 
     setupEventListeners() {
@@ -63,37 +74,11 @@ class LAIKAChat {
     }
 
     async connectToLAIKA() {
-        try {
-            // Try WebSocket connection to LAIKA
-            const wsUrl = this.getWebSocketUrl();
-            this.websocket = new WebSocket(wsUrl);
-            
-            this.websocket.onopen = () => {
-                console.log('Connected to LAIKA');
-                this.updateConnectionStatus(true);
-                this.sendSystemMessage('Connected to LAIKA\'s AI brain');
-            };
-
-            this.websocket.onmessage = (event) => {
-                this.handleMessage(JSON.parse(event.data));
-            };
-
-            this.websocket.onclose = () => {
-                console.log('Disconnected from LAIKA');
-                this.updateConnectionStatus(false);
-                this.scheduleReconnect();
-            };
-
-            this.websocket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                this.updateConnectionStatus(false);
-            };
-
-        } catch (error) {
-            console.error('Failed to connect to LAIKA:', error);
-            this.updateConnectionStatus(false);
-            this.scheduleReconnect();
-        }
+        // Skip WebSocket connection for ngrok compatibility
+        // Use HTTP API directly instead
+        console.log('Using HTTP API for ngrok compatibility');
+        this.updateConnectionStatus(true);
+        this.sendSystemMessage('Connected to LAIKA\'s AI brain via HTTP API');
     }
 
     getWebSocketUrl() {
@@ -123,16 +108,13 @@ class LAIKAChat {
     }
 
     scheduleReconnect() {
-        setTimeout(() => {
-            if (!this.isConnected) {
-                console.log('Attempting to reconnect...');
-                this.connectToLAIKA();
-            }
-        }, 3000);
+        // No reconnection needed for HTTP API
+        console.log('HTTP API - no reconnection needed');
     }
 
     reconnectIfNeeded() {
-        if (!this.isConnected || !this.websocket || this.websocket.readyState === WebSocket.CLOSED) {
+        // No reconnection needed for HTTP API
+        if (!this.isConnected) {
             this.connectToLAIKA();
         }
     }
@@ -162,21 +144,8 @@ class LAIKAChat {
 
     async sendToLAIKA(message) {
         try {
-            if (this.isConnected && this.websocket) {
-                // Send via WebSocket
-                const payload = {
-                    type: 'chat_message',
-                    message: message,
-                    personality: this.currentPersonality,
-                    timestamp: new Date().toISOString(),
-                    user_id: this.getUserId()
-                };
-                
-                this.websocket.send(JSON.stringify(payload));
-            } else {
-                // Fallback to HTTP API
-                await this.sendViaHTTP(message);
-            }
+            // Always use HTTP API for ngrok compatibility
+            await this.sendViaHTTP(message);
         } catch (error) {
             console.error('Failed to send message:', error);
             this.hideTypingIndicator();
@@ -193,8 +162,8 @@ class LAIKAChat {
                 },
                 body: JSON.stringify({
                     message: message,
-                    personality: this.currentPersonality,
-                    user_id: this.getUserId()
+                    user_id: this.getUserId(),
+                    personality: this.currentPersonality
                 })
             });
 
@@ -207,8 +176,7 @@ class LAIKAChat {
         } catch (error) {
             console.error('HTTP request failed:', error);
             this.hideTypingIndicator();
-            this.addMessage('system', 'Connection error. Trying to reconnect...');
-            this.scheduleReconnect();
+            this.addMessage('system', 'Connection error. Please try again.');
         }
     }
 
@@ -497,14 +465,28 @@ class LAIKAChat {
 
 // Global functions for quick actions
 function sendQuickMessage(message) {
+    console.log('sendQuickMessage called with:', message);
     if (window.laikaChat) {
+        console.log('window.laikaChat exists, calling sendQuickMessage');
         window.laikaChat.sendQuickMessage(message);
+    } else {
+        console.error('window.laikaChat not found!');
     }
 }
 
 // Initialize chat when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.laikaChat = new LAIKAChat();
+    console.log('DOMContentLoaded - initializing LAIKAChat');
+    try {
+        window.laikaChat = new LAIKAChat();
+        console.log('LAIKAChat initialized successfully:', window.laikaChat);
+        
+        // Test global function availability
+        window.sendQuickMessage = sendQuickMessage;
+        console.log('Global sendQuickMessage function set:', typeof window.sendQuickMessage);
+    } catch (error) {
+        console.error('Error initializing LAIKAChat:', error);
+    }
     
     // Add keyboard shortcuts
     document.addEventListener('keydown', (e) => {

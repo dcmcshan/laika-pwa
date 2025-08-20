@@ -306,61 +306,7 @@
             padding-bottom: 80px; /* Account for fixed footer */
         }
 
-        /* Disabled navigation cards */
-        .nav-card.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            position: relative;
-            overflow: hidden;
-        }
 
-        .nav-card.disabled:hover {
-            transform: none;
-            box-shadow: 
-                0 5px 15px rgba(0, 0, 0, 0.3),
-                inset 0 0 30px rgba(0, 255, 255, 0.05);
-            border-color: var(--text-dim);
-        }
-
-        .nav-card.disabled::before {
-            animation: none;
-        }
-
-        .coming-soon-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(2px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-
-        .coming-soon-text {
-            color: var(--warning-yellow);
-            font-family: 'Orbitron', monospace;
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--warning-yellow);
-            animation: comingSoonGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes comingSoonGlow {
-            from { 
-                opacity: 0.7;
-                text-shadow: 0 0 10px var(--warning-yellow);
-            }
-            to { 
-                opacity: 1;
-                text-shadow: 0 0 20px var(--warning-yellow);
-            }
-        }
 
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -464,11 +410,11 @@
                 inset 0 0 30px rgba(255, 215, 0, 0.2);
         }
 
-        .nav-card.pipeline-card:hover {
-            border-color: var(--atomic-cyan);
+        .nav-card.internal-card:hover {
+            border-color: var(--warning-yellow);
             box-shadow: 
-                0 10px 30px rgba(0, 255, 255, 0.5),
-                inset 0 0 30px rgba(0, 255, 255, 0.2);
+                0 10px 30px rgba(255, 215, 0, 0.5),
+                inset 0 0 30px rgba(255, 215, 0, 0.2);
         }
 
         .nav-card.cursor-card:hover {
@@ -476,6 +422,13 @@
             box-shadow: 
                 0 10px 30px rgba(0, 122, 204, 0.5),
                 inset 0 0 30px rgba(0, 122, 204, 0.2);
+        }
+
+        .nav-card.github-card:hover {
+            border-color: #238636;
+            box-shadow: 
+                0 10px 30px rgba(35, 134, 54, 0.5),
+                inset 0 0 30px rgba(35, 134, 54, 0.2);
         }
 
         /* Install Banner */
@@ -518,29 +471,71 @@
             letter-spacing: 1px;
         }
 
-        /* Hidden pages */
-        .page {
-            display: none;
+        /* Loading State */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--atomic-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
         }
 
-        .page.active {
-            display: block;
-            animation: pageSlideIn 0.5s ease;
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
-        @keyframes pageSlideIn {
-            from { 
-                opacity: 0; 
-                transform: translateY(30px) scale(0.95); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0) scale(1); 
-            }
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--grid-color);
+            border-top: 3px solid var(--atomic-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            color: var(--text-dim);
+            font-family: 'Exo 2', sans-serif;
+            font-size: 12px;
+            text-align: center;
+            max-width: 300px;
+        }
+
+
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing LAIKA</div>
+        <div class="loading-subtext">Loading system components...</div>
+    </div>
+
     <div class="app-container">
         <!-- Hero Section -->
         <div class="hero-section">
@@ -556,11 +551,10 @@
             <button class="install-button" id="installButton">Install</button>
         </div>
 
-        <!-- Home Page -->
-        <div id="homePage" class="page active">
-            <div class="nav-container">
+        <!-- Navigation Container -->
+        <div class="nav-container">
                 <!-- Chat Interface -->
-                <a href="chat.html" class="nav-card chat-card">
+                <a href="chat" class="nav-card chat-card" data-link="chat">
                     <span class="nav-icon">💬</span>
                     <h3 class="nav-title">Chat with LAIKA</h3>
                     <p class="nav-description">
@@ -574,38 +568,23 @@
                     </ul>
                 </a>
 
-                <!-- Cursor AI Assistant -->
-                <a href="cursor.html" class="nav-card cursor-card">
-                    <span class="nav-icon">🤖</span>
-                    <h3 class="nav-title">Cursor AI Assistant</h3>
+                <!-- STT-LLM-TTS Pipeline -->
+                <a href="stt-llm-tts" class="nav-card internal-card">
+                    <span class="nav-icon">🧠</span>
+                    <h3 class="nav-title">STT-LLM-TTS</h3>
                     <p class="nav-description">
-                        AI-powered coding assistant integrated with LAIKA development. Get help with code, debugging, and project development.
+                        Monitor STT-LLM-TTS pipeline, system logs, and send direct TTS commands to LAIKA.
                     </p>
                     <ul class="nav-features">
-                        <li>Code generation & debugging</li>
-                        <li>LAIKA project assistance</li>
-                        <li>Real-time chat interface</li>
-                        <li>Development guidance</li>
-                    </ul>
-                </a>
-
-                <!-- Pipeline Debug -->
-                <a href="conversation.html" class="nav-card pipeline-card">
-                    <span class="nav-icon">🔍</span>
-                    <h3 class="nav-title">Pipeline Debug</h3>
-                    <p class="nav-description">
-                        Real-time STT-LLM-TTS pipeline monitoring. Debug voice commands, AI responses, and system flow.
-                    </p>
-                    <ul class="nav-features">
-                        <li>Live conversation log</li>
-                        <li>Pipeline status tracking</li>
-                        <li>Error diagnostics</li>
-                        <li>Performance metrics</li>
+                        <li>Live pipeline monitoring</li>
+                        <li>STT-LLM-TTS flow tracking</li>
+                        <li>Direct TTS input</li>
+                        <li>System diagnostics</li>
                     </ul>
                 </a>
 
                 <!-- Sensor Dashboard -->
-                <a href="dashboard.html" class="nav-card dashboard-card">
+                <a href="dashboard" class="nav-card dashboard-card" data-link="dashboard">
                     <span class="nav-icon">📊</span>
                     <h3 class="nav-title">Sensor Dashboard</h3>
                     <p class="nav-description">
@@ -620,7 +599,7 @@
                 </a>
 
                 <!-- Camera View -->
-                <div class="nav-card camera-card disabled">
+                <a href="camera" class="nav-card camera-card" data-link="camera">
                     <span class="nav-icon">📹</span>
                     <h3 class="nav-title">Camera View</h3>
                     <p class="nav-description">
@@ -632,13 +611,10 @@
                         <li>Object detection</li>
                         <li>Photo capture</li>
                     </ul>
-                    <div class="coming-soon-overlay">
-                        <span class="coming-soon-text">🚧 Coming Soon</span>
-                    </div>
-                </div>
+                </a>
 
                 <!-- SLAM Map -->
-                <div class="nav-card map-card disabled">
+                <a href="slam" class="nav-card map-card" data-link="slam">
                     <span class="nav-icon">🗺️</span>
                     <h3 class="nav-title">SLAM Map</h3>
                     <p class="nav-description">
@@ -650,13 +626,10 @@
                         <li>Click-to-navigate</li>
                         <li>Real-time mapping</li>
                     </ul>
-                    <div class="coming-soon-overlay">
-                        <span class="coming-soon-text">🚧 Coming Soon</span>
-                    </div>
-                </div>
+                </a>
 
                 <!-- Music Recognition -->
-                <div class="nav-card disabled">
+                <a href="music" class="nav-card">
                     <span class="nav-icon">🎵</span>
                     <h3 class="nav-title">Music & Audio</h3>
                     <p class="nav-description">
@@ -668,13 +641,10 @@
                         <li>Audio spectrum</li>
                         <li>Music-sync dancing</li>
                     </ul>
-                    <div class="coming-soon-overlay">
-                        <span class="coming-soon-text">🚧 Coming Soon</span>
-                    </div>
-                </div>
+                </a>
 
                 <!-- Robot Control -->
-                <div class="nav-card disabled">
+                <a href="control" class="nav-card">
                     <span class="nav-icon">🎮</span>
                     <h3 class="nav-title">Robot Control</h3>
                     <p class="nav-description">
@@ -686,13 +656,10 @@
                         <li>Bluetooth controller support</li>
                         <li>Emergency stop controls</li>
                     </ul>
-                    <div class="coming-soon-overlay">
-                        <span class="coming-soon-text">🚧 Coming Soon</span>
-                    </div>
-                </div>
+                </a>
 
                 <!-- Process Monitor -->
-                <a href="processes.html" class="nav-card process-card">
+                <a href="processes" class="nav-card process-card" data-link="processes">
                     <span class="nav-icon">🖥️</span>
                     <h3 class="nav-title">Process Monitor</h3>
                     <p class="nav-description">
@@ -705,73 +672,51 @@
                         <li>Process management</li>
                     </ul>
                 </a>
-            </div>
-        </div>
 
-        <!-- Chat Page (placeholder) -->
-        <div id="chatPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">💬 Chat Interface</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Real-time chat with LAIKA's AI brain</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
-        </div>
+                <!-- System Logs -->
+                <a href="logs" class="nav-card">
+                    <span class="nav-icon">📋</span>
+                    <h3 class="nav-title">System Logs</h3>
+                    <p class="nav-description">
+                        Real-time system logs and diagnostics. Monitor ROS2 nodes, services, and system events.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Live log streaming</li>
+                        <li>ROS2 node monitoring</li>
+                        <li>Error tracking</li>
+                        <li>System diagnostics</li>
+                    </ul>
+                </a>
 
-        <!-- Dashboard Page (placeholder) -->
-        <div id="dashboardPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">📊 Sensor Dashboard</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Live telemetry and system monitoring</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
-        </div>
+                <!-- Cursor AI Assistant -->
+                <a href="cursor" class="nav-card cursor-card">
+                    <span class="nav-icon">🤖</span>
+                    <h3 class="nav-title">Cursor AI Assistant</h3>
+                    <p class="nav-description">
+                        AI-powered coding assistant integrated with LAIKA development. Get help with code, debugging, and project development.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Code generation & debugging</li>
+                        <li>LAIKA project assistance</li>
+                        <li>Real-time chat interface</li>
+                        <li>Development guidance</li>
+                    </ul>
+                </a>
 
-        <!-- Camera Page (placeholder) -->
-        <div id="cameraPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">📹 Camera View</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Live HD video stream with AI analysis</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
-        </div>
-
-        <!-- Map Page (placeholder) -->
-        <div id="mapPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🗺️ SLAM Map</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Interactive mapping and navigation</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
-        </div>
-
-        <!-- Music Page (placeholder) -->
-        <div id="musicPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🎵 Music & Audio</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Music recognition and audio analysis</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
-        </div>
-
-        <!-- Control Page (placeholder) -->
-        <div id="controlPage" class="page">
-            <div style="padding: 40px; text-align: center;">
-                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🎮 Robot Control</h2>
-                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Direct robot control interface</p>
-                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
-                    ← Back to Home
-                </button>
-            </div>
+                <!-- GitHub Repository Manager -->
+                <a href="github" class="nav-card github-card">
+                    <span class="nav-icon">🐙</span>
+                    <h3 class="nav-title">GitHub Manager</h3>
+                    <p class="nav-description">
+                        Manage LAIKA repository updates recursively. Pull latest changes, update submodules, and keep the system current.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Recursive repo updates</li>
+                        <li>Submodule synchronization</li>
+                        <li>Branch management</li>
+                        <li>Update status monitoring</li>
+                    </ul>
+                </a>
         </div>
 
         <!-- Header and Footer will be automatically inserted by header-footer.js -->
@@ -779,89 +724,267 @@
 
     <!-- Scripts -->
     <script>
-        // Navigation system
-        function showPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // Show selected page
-            const targetPage = document.getElementById(pageId + 'Page');
-            if (targetPage) {
-                targetPage.classList.add('active');
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error caught:', e.error);
+            // Show user-friendly error message
+            showErrorToUser('An unexpected error occurred. The app will continue to function.');
+            return true; // Prevent default error handling
+        });
+
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            showErrorToUser('A network or processing error occurred. Please try again.');
+            e.preventDefault(); // Prevent default rejection handling
+        });
+
+        // Utility function to show errors to user
+        function showErrorToUser(message) {
+            try {
+                // Try to find an error display element
+                const errorElement = document.getElementById('errorMessage') || 
+                                   document.getElementById('error-display') ||
+                                   createErrorDisplay();
+                
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                    setTimeout(() => {
+                        errorElement.style.display = 'none';
+                    }, 5000);
+                }
+            } catch (err) {
+                // Fallback to alert if DOM manipulation fails
+                console.error('Could not show error in UI:', err);
             }
         }
 
-        // Navigation card click handlers
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.nav-card[data-page]').forEach(card => {
-                card.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const pageId = this.getAttribute('data-page');
-                    showPage(pageId);
-                });
-            });
-
-            // Update time
-            function updateTime() {
-                const now = new Date();
-                const timeString = now.toLocaleTimeString('en-US', { 
-                    hour12: false, 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-                document.getElementById('currentTime').textContent = timeString;
+        // Create error display element if none exists
+        function createErrorDisplay() {
+            try {
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'fallback-error-display';
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #ff4444;
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    z-index: 10000;
+                    max-width: 300px;
+                    font-size: 14px;
+                    display: none;
+                `;
+                document.body.appendChild(errorDiv);
+                return errorDiv;
+            } catch (err) {
+                console.error('Could not create error display:', err);
+                return null;
             }
-            
-            updateTime();
-            setInterval(updateTime, 1000);
+        }
 
-            // PWA Install Banner
-            let deferredPrompt;
-            const installBanner = document.getElementById('installBanner');
-            const installButton = document.getElementById('installButton');
-
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                installBanner.classList.add('show');
-            });
-
-            installButton.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    console.log(`User response to the install prompt: ${outcome}`);
-                    deferredPrompt = null;
-                    installBanner.classList.remove('show');
+        // Hide loading overlay
+        function hideLoading() {
+            try {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('hidden');
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 500);
                 }
-            });
+            } catch (err) {
+                console.error('Error hiding loading overlay:', err);
+            }
+        }
 
-            window.addEventListener('appinstalled', () => {
-                console.log('LAIKA PWA was installed');
-                installBanner.classList.remove('show');
-            });
-        });
+        // Update loading text
+        function updateLoadingText(text, subtext) {
+            try {
+                const textElement = document.querySelector('.loading-text');
+                const subtextElement = document.querySelector('.loading-subtext');
+                if (textElement) textElement.textContent = text;
+                if (subtextElement) subtextElement.textContent = subtext;
+            } catch (err) {
+                console.error('Error updating loading text:', err);
+            }
+        }
 
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(registrationError => {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
+        // Robust page initialization
+        function initializePage() {
+            try {
+                console.log('Initializing LAIKA PWA...');
+                updateLoadingText('Initializing LAIKA', 'Setting up core systems...');
+
+                // Update time with error handling
+                function updateTime() {
+                    try {
+                        const now = new Date();
+                        const timeString = now.toLocaleTimeString('en-US', { 
+                            hour12: false, 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        });
+                        const timeElement = document.getElementById('currentTime');
+                        if (timeElement) {
+                            timeElement.textContent = timeString;
+                        }
+                    } catch (err) {
+                        console.error('Error updating time:', err);
+                        // Continue without time updates if this fails
+                    }
+                }
+                
+                updateTime();
+                setInterval(updateTime, 1000);
+                updateLoadingText('Initializing LAIKA', 'Setting up PWA features...');
+
+                // PWA Install Banner with error handling
+                try {
+                    let deferredPrompt;
+                    const installBanner = document.getElementById('installBanner');
+                    const installButton = document.getElementById('installButton');
+
+                    if (installBanner && installButton) {
+                        window.addEventListener('beforeinstallprompt', (e) => {
+                            try {
+                                e.preventDefault();
+                                deferredPrompt = e;
+                                installBanner.classList.add('show');
+                            } catch (err) {
+                                console.error('Error handling install prompt:', err);
+                            }
+                        });
+
+                        installButton.addEventListener('click', async () => {
+                            try {
+                                if (deferredPrompt) {
+                                    deferredPrompt.prompt();
+                                    const { outcome } = await deferredPrompt.userChoice;
+                                    console.log(`User response to the install prompt: ${outcome}`);
+                                    deferredPrompt = null;
+                                    installBanner.classList.remove('show');
+                                }
+                            } catch (err) {
+                                console.error('Error during PWA install:', err);
+                                showErrorToUser('Installation failed. Please try again.');
+                            }
+                        });
+
+                        window.addEventListener('appinstalled', () => {
+                            try {
+                                console.log('LAIKA PWA was installed');
+                                installBanner.classList.remove('show');
+                            } catch (err) {
+                                console.error('Error handling app install event:', err);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error('Error setting up PWA install:', err);
+                    // Continue without PWA install functionality
+                }
+
+                updateLoadingText('LAIKA Ready', 'Initialization complete!');
+                console.log('LAIKA PWA initialized successfully');
+                
+                // Hide loading after a short delay
+                setTimeout(hideLoading, 800);
+
+            } catch (err) {
+                console.error('Critical error during page initialization:', err);
+                updateLoadingText('Initialization Error', 'Some features may not work properly');
+                showErrorToUser('App initialization encountered issues. Some features may not work properly.');
+                setTimeout(hideLoading, 2000);
+            }
+        }
+
+        // Robust service worker registration
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(registration => {
+                            console.log('SW registered successfully:', registration);
+                        })
+                        .catch(registrationError => {
+                            console.error('SW registration failed:', registrationError);
+                            // App will still work without service worker
+                        });
+                } catch (err) {
+                    console.error('Error registering service worker:', err);
+                    // Continue without service worker
+                }
+            }
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            // DOM is already loaded
+            initializePage();
+        }
+
+        // Register service worker when page loads
+        if (document.readyState === 'complete') {
+            registerServiceWorker();
+        } else {
+            window.addEventListener('load', registerServiceWorker);
         }
     </script>
     
-    <!-- Header/Footer System -->
-    <script src="js/header-footer.js"></script>
+    <!-- Header/Footer System with error handling -->
+    <script>
+        // Load header-footer.js with fallback
+        (function() {
+            try {
+                const script = document.createElement('script');
+                script.src = 'js/header-footer.js';
+                script.onerror = function() {
+                    console.warn('Header-footer.js failed to load - continuing without it');
+                };
+                document.head.appendChild(script);
+            } catch (err) {
+                console.error('Error loading header-footer script:', err);
+            }
+        })();
+    </script>
+    
+    <!-- Main App Script with error handling -->
+    <script>
+        // Load main app script with fallback
+        (function() {
+            try {
+                const script = document.createElement('script');
+                script.src = 'js/app.js';
+                script.onerror = function() {
+                    console.error('Main app script failed to load');
+                    showErrorToUser('Core functionality failed to load. Please refresh the page.');
+                    
+                    // Provide basic fallback functionality
+                    const cards = document.querySelectorAll('.nav-card');
+                    cards.forEach(card => {
+                        const link = card.getAttribute('data-link');
+                        if (link) {
+                            card.addEventListener('click', () => {
+                                window.location.href = link;
+                            });
+                        }
+                    });
+                };
+                document.head.appendChild(script);
+            } catch (err) {
+                console.error('Error loading main app script:', err);
+                showErrorToUser('Failed to load main application. Please refresh the page.');
+            }
+        })();
+    </script>
     
     <!-- Gamepad Navigation System -->
-    <script src="js/gamepad-navigation.js"></script>
+    <!-- <script src="js/gamepad-navigation.js"></script> -->
 </body>
 </html>
