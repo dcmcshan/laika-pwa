@@ -270,8 +270,19 @@ def init_ros_node():
         ros_node = ROS2Node()
         print("Running in simulation mode")
 
-def generate_camera_frames():
-    """Generate camera frames for streaming"""
+def generate_camera_frames(fps=10, quality='medium'):
+    """Generate camera frames for streaming with configurable fps and quality"""
+    # Set frame delay based on fps
+    frame_delay = 1.0 / fps if fps > 0 else 0.1
+    
+    # Set JPEG quality based on quality parameter
+    quality_settings = {
+        'low': 50,
+        'medium': 70,
+        'high': 90
+    }
+    jpeg_quality = quality_settings.get(quality, 70)
+    
     while True:
         frame = None
         
@@ -285,14 +296,19 @@ def generate_camera_frames():
             frame = camera.get_frame()
             
         if frame is not None:
-            # Encode frame to JPEG
-            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            # Resize frame for lower quality if needed
+            if quality == 'low':
+                height, width = frame.shape[:2]
+                frame = cv2.resize(frame, (width//2, height//2))
+            
+            # Encode frame to JPEG with specified quality
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
             if ret:
                 frame_bytes = buffer.tobytes()
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         
-        time.sleep(0.033)  # ~30 FPS
+        time.sleep(frame_delay)
 
 @app.route('/')
 def index():
@@ -345,8 +361,25 @@ def stop_camera():
 @app.route('/api/camera/stream')
 def camera_stream():
     """Camera video stream endpoint"""
-    return Response(generate_camera_frames(),
+    # Get fps and quality parameters from query string
+    fps = int(request.args.get('fps', 10))  # Default 10 fps
+    quality = request.args.get('quality', 'medium')  # Default medium quality
+    
+    # Limit fps to reasonable range
+    fps = max(1, min(fps, 30))
+    
+    return Response(generate_camera_frames(fps=fps, quality=quality),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/audio/stream')
+def audio_stream():
+    """Audio stream endpoint (placeholder for future implementation)"""
+    # This would connect to LAIKA's audio output in the future
+    # For now, return a simple response
+    return jsonify({
+        'status': 'Audio streaming not yet implemented',
+        'message': 'Future feature: Real-time audio from LAIKA'
+    })
 
 @app.route('/api/camera/parameters', methods=['GET'])
 def get_camera_parameters():
@@ -595,6 +628,63 @@ def send_robot_command():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/tts/speak', methods=['POST'])
+def tts_speak():
+    """Handle TTS requests using laika_say.py"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '').strip()
+        
+        if not text:
+            return jsonify({'success': False, 'error': 'No text provided'})
+        
+        # Limit text length for safety
+        if len(text) > 500:
+            return jsonify({'success': False, 'error': 'Text too long (max 500 characters)'})
+        
+        # Import subprocess to run laika_say.py
+        import subprocess
+        import os
+        
+        # Path to laika_say.py
+        laika_say_path = '/home/pi/LAIKA/laika_say.py'
+        
+        if not os.path.exists(laika_say_path):
+            return jsonify({'success': False, 'error': 'TTS system not available'})
+        
+        # Run laika_say.py with the provided text
+        # Note: According to memory, we should NOT include the wake word when invoking laika_say.py
+        # The script will add "LAIKA, " prefix automatically if needed
+        try:
+            result = subprocess.run(
+                ['python3', laika_say_path, text],
+                capture_output=True,
+                text=True,
+                timeout=30,  # 30 second timeout
+                cwd='/home/pi/LAIKA'
+            )
+            
+            if result.returncode == 0:
+                return jsonify({
+                    'success': True, 
+                    'message': f'Successfully spoke: "{text}"',
+                    'text': text
+                })
+            else:
+                error_msg = result.stderr.strip() or result.stdout.strip() or 'Unknown TTS error'
+                return jsonify({
+                    'success': False, 
+                    'error': f'TTS failed: {error_msg}'
+                })
+                
+        except subprocess.TimeoutExpired:
+            return jsonify({'success': False, 'error': 'TTS timeout - text may be too long'})
+        except Exception as subprocess_error:
+            return jsonify({'success': False, 'error': f'TTS execution error: {str(subprocess_error)}'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'})
 
 @app.route('/api/conversation-data')
 def get_conversation_data():
