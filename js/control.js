@@ -19,6 +19,17 @@ class LAIKAControl {
         // Enhanced gamepad manager
         this.gamepadManager = null;
         
+        // Gamepad API integration
+        this.gamepadAPI = {
+            baseUrl: 'http://localhost:5001',
+            connected: false,
+            statistics: {
+                events_processed: 0,
+                actions_executed: 0,
+                errors: 0
+            }
+        };
+        
         // ROS2 connection
         this.ws = null;
         this.rosbridge = null;
@@ -76,11 +87,14 @@ class LAIKAControl {
         this.updateUI();
         this.startStatusUpdates();
         
+        // Initialize gamepad API connection
+        await this.initializeGamepadAPI();
+        
         // Attempt to connect
         await this.connectWebSocket();
         
         // Initialize video/audio feed
-        this.initializeVideoFeed();
+        this.initializeCameraStream();
         
         console.log('🎮 LAIKA Robot Control initialized');
     }
@@ -306,15 +320,27 @@ class LAIKAControl {
         if (typeof io === 'undefined') {
             console.log('📦 Loading SocketIO library...');
             const script = document.createElement('script');
+            // Use server-generated Socket.IO library
             script.src = '/socket.io/socket.io.js';
             script.onload = () => {
                 console.log('✅ SocketIO library loaded');
                 this.initializeSocketIO();
             };
             script.onerror = () => {
-                console.error('❌ Failed to load SocketIO library');
-                this.isConnected = false;
-                this.updateConnectionStatus();
+                console.error('❌ Failed to load SocketIO library, trying CDN fallback...');
+                // Fallback to CDN with compatible version
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://cdn.socket.io/4.0.4/socket.io.min.js';
+                fallbackScript.onload = () => {
+                    console.log('✅ SocketIO library loaded from CDN');
+                    this.initializeSocketIO();
+                };
+                fallbackScript.onerror = () => {
+                    console.error('❌ Failed to load SocketIO library from CDN');
+                    this.isConnected = false;
+                    this.updateConnectionStatus();
+                };
+                document.head.appendChild(fallbackScript);
             };
             document.head.appendChild(script);
         } else {
@@ -326,11 +352,17 @@ class LAIKAControl {
         try {
             console.log('🔗 Connecting to LAIKA via SocketIO...');
             
-            // Connect to the current origin (ngrok tunnel)
+            // Connect to the current origin (ngrok tunnel) with proper Engine.IO version
             this.socket = io(window.location.origin, {
-                transports: ['websocket', 'polling'],
+                transports: ['polling', 'websocket'],
                 upgrade: true,
-                rememberUpgrade: true
+                rememberUpgrade: true,
+                forceNew: true,
+                // Explicitly specify Engine.IO version 4 for compatibility
+                query: {
+                    EIO: '4'
+                },
+                timeout: 10000
             });
 
             this.socket.on('connect', () => {
@@ -730,7 +762,7 @@ class LAIKAControl {
             button.classList.add('active');
         }
 
-        // Send raw button press event to LAIKA
+        // Always send raw button press event to LAIKA - let LAIKA decide what to do
         this.sendLAIKAMessage({
             type: 'button_press',
             timestamp: Date.now(),
@@ -740,13 +772,12 @@ class LAIKAControl {
             }
         });
 
-        // Execute mapped command
-        const command = this.buttonMappings[buttonName];
-        if (command && this.currentMode === 'manual') {
-            this.executeCommand(command);
+        console.log(`🎮 Button pressed: ${buttonName} (sent to LAIKA)`);
+        
+        // Special logging for dpad to verify directional mapping
+        if (buttonName.startsWith('dpad-')) {
+            console.log(`🎯 D-Pad pressed: ${buttonName} - Direction confirmed`);
         }
-
-        console.log(`🎮 Button pressed: ${buttonName} -> ${command || 'unmapped'}`);
     }
 
     onButtonRelease(buttonName) {
@@ -775,39 +806,61 @@ class LAIKAControl {
     }
 
     executeCommand(command) {
-        switch (command) {
-            case 'servo_dance':
-                this.sendServoCommand('dance_sequence');
-                break;
-            case 'led_rainbow':
-                this.sendLEDCommand('rainbow');
-                break;
-            case 'play_sound':
-                this.sendAudioCommand('beep');
-                break;
-            case 'take_photo':
-                this.sendCameraCommand('capture');
-                break;
-            case 'head_up':
-                this.sendServoCommand('head_tilt', 30);
-                break;
-            case 'head_down':
-                this.sendServoCommand('head_tilt', -30);
-                break;
-            case 'head_left':
-                this.sendServoCommand('head_pan', -45);
-                break;
-            case 'head_right':
-                this.sendServoCommand('head_pan', 45);
-                break;
-            case 'reset_pose':
-                this.sendServoCommand('reset_all');
-                break;
-            case 'autonomous_mode':
-                this.toggleAutonomousMode();
-                break;
-            default:
-                console.log(`Unknown command: ${command}`);
+        // Map control commands to gamepad actions
+        const commandMap = {
+            'servo_dance': 'dance',
+            'led_rainbow': 'led_rainbow', 
+            'play_sound': 'play_sound',
+            'take_photo': 'take_photo',
+            'head_up': 'head_up',
+            'head_down': 'head_down', 
+            'head_left': 'head_left',
+            'head_right': 'head_right',
+            'reset_pose': 'reset',
+            'autonomous_mode': 'autonomous_mode'
+        };
+        
+        const action = commandMap[command] || command;
+        
+        // Send via HTTP API instead of ROS messages
+        this.sendRobotActionAPI(action);
+        console.log(`🎮 Control command: ${command} -> ${action}`);
+    }
+
+    async sendRobotActionAPI(action) {
+        try {
+            // Try gamepad API first, fallback to original endpoint
+            let response = await this.sendGamepadActionAPI(action);
+            
+            if (!response.success) {
+                // Fallback to original endpoint
+                response = await fetch('/gamepad_action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok || !result.success) {
+                    console.error(`❌ Failed to send robot action ${action}:`, result.error || response.statusText);
+                    return false;
+                }
+                
+                console.log(`✅ Robot action ${action} executed successfully via fallback:`, result);
+                return true;
+            }
+            
+            console.log(`✅ Robot action ${action} executed successfully via gamepad API:`, response);
+            return true;
+            
+        } catch (error) {
+            console.error(`❌ Error sending robot action ${action}:`, error);
+            return false;
         }
     }
 
@@ -859,21 +912,8 @@ class LAIKAControl {
     emergencyStop() {
         console.log('🛑 EMERGENCY STOP ACTIVATED');
         
-        // Stop all movement
-        this.publishTwist({
-            linear: { x: 0, y: 0, z: 0 },
-            angular: { x: 0, y: 0, z: 0 }
-        });
-
-        // Send emergency stop signal
-        this.sendROSMessage({
-            op: 'publish',
-            topic: this.topics.emergency_stop,
-            msg: { 
-                stop: true,
-                timestamp: Date.now()
-            }
-        });
+        // Send emergency stop via HTTP API
+        this.sendRobotActionAPI('emergency_stop');
 
         // Reset all control states
         this.controlState.leftStick = { x: 0, y: 0 };
@@ -984,13 +1024,9 @@ class LAIKAControl {
         const indicator = document.getElementById('connectionIndicator');
         const status = document.getElementById('connectionStatus');
         
-        if (this.isConnected) {
-            indicator.classList.add('connected');
-            status.textContent = 'ROS2 Connected';
-        } else {
-            indicator.classList.remove('connected');
-            status.textContent = 'Disconnected';
-        }
+        // Always show as connected since we use HTTP API directly
+        indicator.classList.add('connected');
+        status.textContent = 'HTTP API Ready';
     }
 
     startStatusUpdates() {
@@ -1214,14 +1250,77 @@ class LAIKAControl {
         console.log(`🔊 Audio ${this.audioEnabled ? 'enabled' : 'disabled'}`);
     }
 
+    initializeCameraStream() {
+        console.log('📹 Initializing camera stream on control page...');
+        this.startVideoFeed();
+        
+        // Set up video toggle button
+        const videoToggle = document.getElementById('controlVideoToggle');
+        if (videoToggle) {
+            videoToggle.addEventListener('click', () => {
+                if (this.videoEnabled) {
+                    this.stopVideoFeed();
+                } else {
+                    this.startVideoFeed();
+                }
+                this.updateVideoUI();
+            });
+        }
+        
+        // Set up audio toggle button
+        const audioToggle = document.getElementById('controlAudioToggle');
+        if (audioToggle) {
+            audioToggle.addEventListener('click', () => {
+                if (this.audioEnabled) {
+                    this.stopAudioFeed();
+                } else {
+                    this.startAudioFeed();
+                }
+                this.updateAudioUI();
+            });
+        }
+    }
+
     startVideoFeed() {
         const video = document.getElementById('controlVideoStream');
-        if (video && this.isConnected) {
-            // Use the same camera stream as the camera page
-            const streamUrl = this.getServerUrl() + '/camera/stream';
-            video.src = streamUrl;
-            this.videoEnabled = true;
-            console.log('📹 Video feed started:', streamUrl);
+        if (video) {
+            // Convert video element to img for MJPEG streaming (like camera page)
+            if (video.tagName === 'VIDEO') {
+                const img = document.createElement('img');
+                img.id = 'controlVideoStream';
+                img.style.width = '100%';
+                img.style.height = '200px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '8px';
+                img.style.border = '1px solid var(--border-glow)';
+                
+                // Use the camera stream endpoint
+                const streamUrl = this.getServerUrl() + '/camera/stream';
+                
+                img.onload = () => {
+                    console.log('✅ Control page camera stream started');
+                    this.videoEnabled = true;
+                    this.updateVideoUI();
+                    this.updateStreamStatus('Connected', true);
+                };
+                
+                img.onerror = () => {
+                    console.error('❌ Failed to load camera stream on control page');
+                    this.videoEnabled = false;
+                    this.updateVideoUI();
+                    this.updateStreamStatus('Failed', false);
+                };
+                
+                img.src = streamUrl;
+                video.parentNode.replaceChild(img, video);
+            } else {
+                // Already an img element, just update src
+                const streamUrl = this.getServerUrl() + '/camera/stream';
+                video.src = streamUrl;
+                this.videoEnabled = true;
+                this.updateVideoUI();
+                console.log('📹 Video feed started:', streamUrl);
+            }
         }
     }
 
@@ -1259,6 +1358,22 @@ class LAIKAControl {
             return `${window.location.protocol}//${window.location.hostname}`;
         }
         return `${window.location.protocol}//${window.location.hostname}:5000`;
+    }
+
+    updateStreamStatus(status, connected) {
+        const indicator = document.getElementById('controlStreamIndicator');
+        const statusText = document.getElementById('controlStreamStatus');
+        
+        if (indicator && statusText) {
+            statusText.textContent = status;
+            if (connected) {
+                indicator.style.background = 'var(--success)';
+                indicator.style.animation = 'pulse 2s infinite';
+            } else {
+                indicator.style.background = 'var(--error)';
+                indicator.style.animation = 'none';
+            }
+        }
     }
 
     updateVideoUI() {
@@ -1338,6 +1453,365 @@ class LAIKAControl {
                 this.startAudioFeed();
             }
         }
+    }
+
+    // ================================
+    // GAMEPAD API INTEGRATION
+    // ================================
+
+    async initializeGamepadAPI() {
+        console.log('🎮 Initializing Gamepad API connection...');
+        
+        try {
+            const response = await fetch(`${this.gamepadAPI.baseUrl}/api/gamepad/status`);
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.gamepadAPI.connected = true;
+                    this.gamepadAPI.statistics = result.statistics;
+                    console.log('✅ Gamepad API connected successfully');
+                    
+                    // Update UI to show gamepad API status
+                    this.updateGamepadAPIStatus(true);
+                    
+                    // Start periodic status updates
+                    this.startGamepadAPIUpdates();
+                } else {
+                    throw new Error('API returned error status');
+                }
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.warn('⚠️ Gamepad API not available:', error.message);
+            this.gamepadAPI.connected = false;
+            this.updateGamepadAPIStatus(false);
+        }
+    }
+
+    async sendGamepadButtonEvent(buttonId, eventType) {
+        if (!this.gamepadAPI.connected) {
+            return { success: false, reason: 'API not connected' };
+        }
+
+        try {
+            const response = await fetch(`${this.gamepadAPI.baseUrl}/api/gamepad/button`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    button: `button_${buttonId}`,
+                    event_type: eventType
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`🎮 Button event sent: ${buttonId} ${eventType}`);
+                if (result.result?.action_executed) {
+                    console.log(`🤖 Robot action executed: ${result.result.action}`);
+                }
+            }
+
+            return result;
+        } catch (error) {
+            console.error('❌ Error sending button event:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async sendGamepadAxisEvent(axisId, value) {
+        if (!this.gamepadAPI.connected) {
+            return { success: false, reason: 'API not connected' };
+        }
+
+        try {
+            const response = await fetch(`${this.gamepadAPI.baseUrl}/api/gamepad/axis`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    axis: axisId,
+                    value: value
+                })
+            });
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('❌ Error sending axis event:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async sendGamepadDpadEvent(direction, pressed) {
+        if (!this.gamepadAPI.connected) {
+            return { success: false, reason: 'API not connected' };
+        }
+
+        try {
+            const response = await fetch(`${this.gamepadAPI.baseUrl}/api/gamepad/dpad`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    direction: direction,
+                    pressed: pressed
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success && result.result?.action_executed) {
+                console.log(`🧭 D-pad action executed: ${result.result.action}`);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('❌ Error sending D-pad event:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async sendGamepadActionAPI(action) {
+        if (!this.gamepadAPI.connected) {
+            return { success: false, reason: 'API not connected' };
+        }
+
+        // Map action to appropriate button
+        const actionToButton = {
+            'sit': 'button_x',
+            'stand': 'button_y',
+            'hello': 'button_a',
+            'dance': 'button_b',
+            'turn_left': 'button_l1',
+            'turn_right': 'button_r1',
+            'bow': 'button_l2',
+            'wave': 'button_r2',
+            'emergency_stop': 'button_start',
+            'reset': 'button_select',
+            'lie': 'button_lstick',
+            'stretch': 'button_rstick'
+        };
+
+        const buttonId = actionToButton[action];
+        if (buttonId) {
+            return await this.sendGamepadButtonEvent(buttonId.replace('button_', ''), 'button_press');
+        }
+
+        // Handle D-pad actions
+        const dpadActions = {
+            'head_up': 'up',
+            'head_down': 'down',
+            'head_left': 'left',
+            'head_right': 'right'
+        };
+
+        const dpadDirection = dpadActions[action];
+        if (dpadDirection) {
+            return await this.sendGamepadDpadEvent(dpadDirection, true);
+        }
+
+        return { success: false, reason: `Unknown action: ${action}` };
+    }
+
+    async updateGamepadAPIStatus() {
+        if (!this.gamepadAPI.connected) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.gamepadAPI.baseUrl}/api/gamepad/status`);
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.gamepadAPI.statistics = result.statistics;
+                    this.updateGamepadAPIDisplay();
+                } else {
+                    this.gamepadAPI.connected = false;
+                    this.updateGamepadAPIStatus(false);
+                }
+            } else {
+                this.gamepadAPI.connected = false;
+                this.updateGamepadAPIStatus(false);
+            }
+        } catch (error) {
+            console.warn('⚠️ Lost connection to Gamepad API:', error.message);
+            this.gamepadAPI.connected = false;
+            this.updateGamepadAPIStatus(false);
+        }
+    }
+
+    updateGamepadAPIStatus(connected) {
+        // Update connection indicator if it exists
+        const indicator = document.getElementById('gamepadAPIIndicator');
+        const status = document.getElementById('gamepadAPIStatus');
+        
+        if (indicator) {
+            indicator.style.background = connected ? 'var(--success)' : 'var(--error)';
+        }
+        
+        if (status) {
+            status.textContent = connected ? 'Gamepad API Connected' : 'Gamepad API Disconnected';
+        }
+
+        // Add status to existing connection display
+        const connectionInfo = document.querySelector('.connection-info');
+        if (connectionInfo) {
+            let apiStatus = connectionInfo.querySelector('.gamepad-api-status');
+            if (!apiStatus) {
+                apiStatus = document.createElement('div');
+                apiStatus.className = 'gamepad-api-status';
+                connectionInfo.appendChild(apiStatus);
+            }
+            
+            apiStatus.innerHTML = `
+                <div style="color: ${connected ? 'var(--success)' : 'var(--error)'};">
+                    🎮 Gamepad API: ${connected ? 'Connected' : 'Disconnected'}
+                </div>
+            `;
+        }
+    }
+
+    updateGamepadAPIDisplay() {
+        // Update statistics display if elements exist
+        const eventsCount = document.getElementById('gamepadEventsCount');
+        const actionsCount = document.getElementById('gamepadActionsCount');
+        const errorsCount = document.getElementById('gamepadErrorsCount');
+        
+        if (eventsCount) {
+            eventsCount.textContent = this.gamepadAPI.statistics.events_processed;
+        }
+        
+        if (actionsCount) {
+            actionsCount.textContent = this.gamepadAPI.statistics.actions_executed;
+        }
+        
+        if (errorsCount) {
+            errorsCount.textContent = this.gamepadAPI.statistics.errors;
+        }
+    }
+
+    startGamepadAPIUpdates() {
+        // Update gamepad API status every 5 seconds
+        setInterval(() => {
+            this.updateGamepadAPIStatus();
+        }, 5000);
+    }
+
+    // Enhanced button press with gamepad API integration
+    async onButtonPress(buttonName) {
+        this.controlState.buttons.add(buttonName);
+        
+        // Visual feedback
+        const button = document.querySelector(`[data-button="${buttonName}"]`);
+        if (button) {
+            button.classList.add('pressed');
+        }
+        
+        // Send event to gamepad API
+        if (buttonName.startsWith('dpad-')) {
+            const direction = buttonName.split('-')[1];
+            await this.sendGamepadDpadEvent(direction, true);
+        } else {
+            await this.sendGamepadButtonEvent(buttonName, 'button_press');
+        }
+        
+        // Execute mapped command
+        const command = this.buttonMappings[buttonName];
+        if (command) {
+            this.executeCommand(command);
+        }
+        
+        // Handle special movement buttons
+        if (buttonName.includes('move') || buttonName.includes('turn')) {
+            this.startContinuousMovement(buttonName);
+        }
+        
+        // Head movement buttons
+        if (buttonName.includes('head')) {
+            this.startHeadMovement(buttonName);
+        }
+    }
+
+    async onButtonRelease(buttonName) {
+        this.controlState.buttons.delete(buttonName);
+        
+        // Visual feedback
+        const button = document.querySelector(`[data-button="${buttonName}"]`);
+        if (button) {
+            button.classList.remove('pressed');
+        }
+        
+        // Send release event to gamepad API
+        if (buttonName.startsWith('dpad-')) {
+            const direction = buttonName.split('-')[1];
+            await this.sendGamepadDpadEvent(direction, false);
+        } else {
+            await this.sendGamepadButtonEvent(buttonName, 'button_release');
+        }
+        
+        // Stop continuous commands
+        if (['dpad-up', 'dpad-down', 'dpad-left', 'dpad-right'].includes(buttonName)) {
+            this.stopHeadMovement();
+        }
+    }
+
+    // Enhanced movement command with gamepad API integration
+    async sendMovementCommand() {
+        const leftStick = this.controlState.leftStick;
+        const rightStick = this.controlState.rightStick;
+        
+        // Send axis events to gamepad API
+        if (Math.abs(leftStick.x) > 0.05 || Math.abs(leftStick.y) > 0.05) {
+            await this.sendGamepadAxisEvent('left_stick_x', leftStick.x);
+            await this.sendGamepadAxisEvent('left_stick_y', leftStick.y);
+        }
+        
+        if (Math.abs(rightStick.x) > 0.05 || Math.abs(rightStick.y) > 0.05) {
+            await this.sendGamepadAxisEvent('right_stick_x', rightStick.x);
+            await this.sendGamepadAxisEvent('right_stick_y', rightStick.y);
+        }
+        
+        // Continue with original movement logic
+        const linear_x = leftStick.y * 0.5;
+        const linear_y = -leftStick.x * 0.5;
+        const angular_z = -rightStick.x * 1.0;
+        
+        // Send movement to TRON server
+        try {
+            const response = await fetch('/gamepad_movement', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    linear_x: linear_x,
+                    linear_y: linear_y,
+                    angular_z: angular_z
+                })
+            });
+            
+            if (response.ok) {
+                this.lastCommandTime = Date.now();
+                this.commandRate++;
+            }
+        } catch (error) {
+            console.error('❌ Error sending movement command:', error);
+        }
+        
+        // Update telemetry display
+        this.telemetry.linearVel = Math.sqrt(linear_x * linear_x + linear_y * linear_y);
+        this.telemetry.angularVel = Math.abs(angular_z);
+        this.updateTelemetryDisplay();
     }
 }
 

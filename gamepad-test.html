@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA Gamepad API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #00ffff;
+        }
+        
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .panel h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .gamepad-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .control-group {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .control-group h4 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .gamepad-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .gamepad-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 10px #00ffff;
+        }
+        
+        .gamepad-btn:active {
+            background: rgba(0, 255, 255, 0.3);
+        }
+        
+        .axis-control {
+            margin-bottom: 15px;
+        }
+        
+        .axis-control label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+        
+        .axis-control input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .axis-value {
+            text-align: center;
+            font-size: 0.9em;
+            color: #00ffff;
+        }
+        
+        .test-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .test-btn {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 15px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .test-btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 10px #ffd700;
+        }
+        
+        .log-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .log-timestamp {
+            color: #888;
+        }
+        
+        .log-success {
+            color: #00ff00;
+        }
+        
+        .log-error {
+            color: #ff4444;
+        }
+        
+        .log-info {
+            color: #00ffff;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ffff;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .clear-btn {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 10px;
+        }
+        
+        .clear-btn:hover {
+            background: rgba(255, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 LAIKA Gamepad API Tester</h1>
+            <p>Comprehensive testing interface for gamepad events and robot control</p>
+        </div>
+        
+        <div class="status-panel">
+            <div class="panel">
+                <h3>📊 API Status</h3>
+                <div id="api-status">Checking...</div>
+            </div>
+            
+            <div class="panel">
+                <h3>📈 Statistics</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="events-count">0</div>
+                        <div class="stat-label">Events Processed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="actions-count">0</div>
+                        <div class="stat-label">Actions Executed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="errors-count">0</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="gamepad-controls">
+            <div class="control-group">
+                <h4>🎯 Face Buttons</h4>
+                <div class="button-grid">
+                    <button class="gamepad-btn" data-button="button_x" data-action="sit">X (Sit)</button>
+                    <button class="gamepad-btn" data-button="button_y" data-action="stand">Y (Stand)</button>
+                    <button class="gamepad-btn" data-button="button_a" data-action="hello">A (Hello)</button>
+                    <button class="gamepad-btn" data-button="button_b" data-action="dance">B (Dance)</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>🎮 Shoulder Buttons</h4>
+                <div class="button-grid">
+                    <button class="gamepad-btn" data-button="button_l1" data-action="turn_left">L1 (Turn Left)</button>
+                    <button class="gamepad-btn" data-button="button_r1" data-action="turn_right">R1 (Turn Right)</button>
+                    <button class="gamepad-btn" data-button="button_l2" data-action="bow">L2 (Bow)</button>
+                    <button class="gamepad-btn" data-button="button_r2" data-action="wave">R2 (Wave)</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>🗂️ Menu Buttons</h4>
+                <div class="button-grid">
+                    <button class="gamepad-btn" data-button="button_start" data-action="emergency_stop">Start (E-Stop)</button>
+                    <button class="gamepad-btn" data-button="button_select" data-action="reset">Select (Reset)</button>
+                    <button class="gamepad-btn" data-button="button_lstick" data-action="lie">L-Stick (Lie)</button>
+                    <button class="gamepad-btn" data-button="button_rstick" data-action="stretch">R-Stick (Stretch)</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>🧭 D-Pad</h4>
+                <div class="button-grid">
+                    <button class="gamepad-btn" data-dpad="up" data-action="head_up">↑ (Head Up)</button>
+                    <button class="gamepad-btn" data-dpad="down" data-action="head_down">↓ (Head Down)</button>
+                    <button class="gamepad-btn" data-dpad="left" data-action="head_left">← (Head Left)</button>
+                    <button class="gamepad-btn" data-dpad="right" data-action="head_right">→ (Head Right)</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>🕹️ Analog Sticks</h4>
+                <div class="axis-control">
+                    <label for="left-stick-x">Left Stick X:</label>
+                    <input type="range" id="left-stick-x" min="-1" max="1" step="0.1" value="0">
+                    <div class="axis-value" id="left-stick-x-value">0.0</div>
+                </div>
+                <div class="axis-control">
+                    <label for="left-stick-y">Left Stick Y:</label>
+                    <input type="range" id="left-stick-y" min="-1" max="1" step="0.1" value="0">
+                    <div class="axis-value" id="left-stick-y-value">0.0</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>🕹️ Right Stick</h4>
+                <div class="axis-control">
+                    <label for="right-stick-x">Right Stick X:</label>
+                    <input type="range" id="right-stick-x" min="-1" max="1" step="0.1" value="0">
+                    <div class="axis-value" id="right-stick-x-value">0.0</div>
+                </div>
+                <div class="axis-control">
+                    <label for="right-stick-y">Right Stick Y:</label>
+                    <input type="range" id="right-stick-y" min="-1" max="1" step="0.1" value="0">
+                    <div class="axis-value" id="right-stick-y-value">0.0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-controls">
+            <button class="test-btn" onclick="runBasicTest()">🧪 Run Basic Test</button>
+            <button class="test-btn" onclick="runComprehensiveTest()">🔬 Run Comprehensive Test</button>
+            <button class="test-btn" onclick="runCustomTest()">⚙️ Run Custom Test</button>
+            <button class="test-btn" onclick="updateStatus()">🔄 Refresh Status</button>
+            <button class="test-btn" onclick="getMappings()">📋 Get Mappings</button>
+            <button class="test-btn" onclick="getHistory()">📜 Get History</button>
+        </div>
+        
+        <div class="panel">
+            <h3>📝 Event Log</h3>
+            <div class="log-panel" id="log-panel"></div>
+            <button class="clear-btn" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001';
+        let eventCount = 0;
+        
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateStatus();
+        });
+        
+        function setupEventListeners() {
+            // Button event listeners
+            document.querySelectorAll('.gamepad-btn').forEach(btn => {
+                btn.addEventListener('mousedown', handleButtonPress);
+                btn.addEventListener('mouseup', handleButtonRelease);
+                btn.addEventListener('mouseleave', handleButtonRelease);
+            });
+            
+            // Axis event listeners
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                slider.addEventListener('input', handleAxisChange);
+            });
+        }
+        
+        function handleButtonPress(event) {
+            const button = event.target;
+            const buttonId = button.dataset.button;
+            const dpadDirection = button.dataset.dpad;
+            const action = button.dataset.action;
+            
+            if (buttonId) {
+                sendButtonEvent(buttonId, 'button_press', action);
+            } else if (dpadDirection) {
+                sendDpadEvent(dpadDirection, true, action);
+            }
+        }
+        
+        function handleButtonRelease(event) {
+            const button = event.target;
+            const buttonId = button.dataset.button;
+            const dpadDirection = button.dataset.dpad;
+            const action = button.dataset.action;
+            
+            if (buttonId) {
+                sendButtonEvent(buttonId, 'button_release', action);
+            } else if (dpadDirection) {
+                sendDpadEvent(dpadDirection, false, action);
+            }
+        }
+        
+        function handleAxisChange(event) {
+            const slider = event.target;
+            const axisId = slider.id.replace('-', '_');
+            const value = parseFloat(slider.value);
+            
+            // Update display
+            document.getElementById(slider.id + '-value').textContent = value.toFixed(1);
+            
+            // Send axis event
+            sendAxisEvent(axisId, value);
+        }
+        
+        async function sendButtonEvent(buttonId, eventType, action) {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/button`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        button: buttonId,
+                        event_type: eventType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logEvent(`🎮 ${buttonId} ${eventType} → ${action}`, 'success');
+                    if (result.result && result.result.action_executed) {
+                        logEvent(`🤖 Executed: ${result.result.action}`, 'info');
+                    }
+                } else {
+                    logEvent(`❌ Button event failed: ${result.error}`, 'error');
+                }
+                
+                updateStatus();
+            } catch (error) {
+                logEvent(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sendDpadEvent(direction, pressed, action) {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/dpad`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        direction: direction,
+                        pressed: pressed
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logEvent(`🧭 D-pad ${direction} ${pressed ? 'pressed' : 'released'} → ${action}`, 'success');
+                    if (result.result && result.result.action_executed) {
+                        logEvent(`🤖 Executed: ${result.result.action}`, 'info');
+                    }
+                } else {
+                    logEvent(`❌ D-pad event failed: ${result.error}`, 'error');
+                }
+                
+                updateStatus();
+            } catch (error) {
+                logEvent(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function sendAxisEvent(axisId, value) {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/axis`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        axis: axisId,
+                        value: value
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (Math.abs(value) > 0.1) {
+                        logEvent(`🕹️ ${axisId}: ${value.toFixed(2)}`, 'info');
+                    }
+                } else {
+                    logEvent(`❌ Axis event failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                logEvent(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/status`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('api-status').innerHTML = `
+                        <div style="color: #00ff00;">✅ API Connected</div>
+                        <div>Uptime: ${Math.round(result.uptime)}s</div>
+                        <div>Connected: ${result.gamepad_state.connected ? 'Yes' : 'No'}</div>
+                    `;
+                    
+                    document.getElementById('events-count').textContent = result.statistics.events_processed;
+                    document.getElementById('actions-count').textContent = result.statistics.actions_executed;
+                    document.getElementById('errors-count').textContent = result.statistics.errors;
+                } else {
+                    document.getElementById('api-status').innerHTML = '<div style="color: #ff4444;">❌ API Error</div>';
+                }
+            } catch (error) {
+                document.getElementById('api-status').innerHTML = '<div style="color: #ff4444;">❌ Connection Failed</div>';
+                logEvent(`❌ Status update failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runBasicTest() {
+            logEvent('🧪 Starting basic test sequence...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        test_type: 'basic'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logEvent(`✅ Basic test completed: ${result.results.length} tests`, 'success');
+                    result.results.forEach(test => {
+                        const status = test.success ? '✅' : '❌';
+                        logEvent(`  ${status} ${test.test.action}`, test.success ? 'success' : 'error');
+                    });
+                } else {
+                    logEvent(`❌ Basic test failed: ${result.error}`, 'error');
+                }
+                
+                updateStatus();
+            } catch (error) {
+                logEvent(`❌ Test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runComprehensiveTest() {
+            logEvent('🔬 Starting comprehensive test...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        test_type: 'comprehensive'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const passed = result.results.filter(r => r.success).length;
+                    const total = result.results.length;
+                    logEvent(`✅ Comprehensive test: ${passed}/${total} passed`, 'success');
+                } else {
+                    logEvent(`❌ Comprehensive test failed: ${result.error}`, 'error');
+                }
+                
+                updateStatus();
+            } catch (error) {
+                logEvent(`❌ Test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runCustomTest() {
+            const customSequence = [
+                { event_type: 'button_press', button_id: 'button_x', value: 1.0, delay: 0.5 },
+                { event_type: 'button_press', button_id: 'button_y', value: 1.0, delay: 0.5 },
+                { event_type: 'axis_motion', axis_id: 'left_stick_x', value: 0.8, delay: 0.3 }
+            ];
+            
+            logEvent('⚙️ Starting custom test sequence...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        test_type: 'custom',
+                        sequence: customSequence
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const passed = result.results.filter(r => r.success).length;
+                    const total = result.results.length;
+                    logEvent(`✅ Custom test: ${passed}/${total} steps passed`, 'success');
+                } else {
+                    logEvent(`❌ Custom test failed: ${result.error}`, 'error');
+                }
+                
+                updateStatus();
+            } catch (error) {
+                logEvent(`❌ Test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getMappings() {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/mappings`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    logEvent(`📋 Loaded ${result.total_mappings} button mappings`, 'info');
+                    Object.entries(result.mappings).forEach(([button, mapping]) => {
+                        logEvent(`  ${button} → ${mapping.action} (${mapping.category})`, 'info');
+                    });
+                } else {
+                    logEvent(`❌ Failed to get mappings: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                logEvent(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/api/gamepad/history?limit=10`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    logEvent(`📜 Recent events (${result.events.length}/${result.total_events}):`, 'info');
+                    result.events.forEach(event => {
+                        const timestamp = new Date(event.timestamp * 1000).toLocaleTimeString();
+                        logEvent(`  [${timestamp}] ${event.event_type}: ${event.button_id || event.axis_id}`, 'info');
+                    });
+                } else {
+                    logEvent(`❌ Failed to get history: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                logEvent(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+        
+        function logEvent(message, type = 'info') {
+            const logPanel = document.getElementById('log-panel');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+            
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            
+            eventCount++;
+        }
+        
+        function clearLog() {
+            document.getElementById('log-panel').innerHTML = '';
+            eventCount = 0;
+            logEvent('📝 Log cleared', 'info');
+        }
+        
+        // Auto-refresh status every 5 seconds
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
