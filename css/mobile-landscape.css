@@ -1,0 +1,482 @@
+/**
+ * iPhone Landscape Mode Optimizations
+ * Optimized for iPhone landscape experience across all LAIKA PWA pages
+ */
+
+/* iPhone landscape detection */
+@media screen and (max-height: 480px) and (orientation: landscape) {
+    /* Global landscape optimizations */
+    :root {
+        --header-height: 50px;
+        --status-bar-height: 35px;
+        --control-spacing: 10px;
+        --font-scale: 0.9;
+    }
+
+    body {
+        font-size: calc(14px * var(--font-scale));
+        overflow-x: hidden;
+        /* Prevent bounce scrolling on iOS */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide address bar on iPhone */
+    .app-container {
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
+
+    /* Optimize headers for landscape */
+    .header,
+    .chat-header,
+    .camera-header,
+    .logs-header,
+    .control-header,
+    .dashboard-header {
+        padding: 8px 15px !important;
+        min-height: var(--header-height);
+    }
+
+    .header-title h1,
+    .chat-header h1,
+    .camera-header h1,
+    .logs-header h1,
+    .control-header h1,
+    .dashboard-header h1 {
+        font-size: calc(1.2rem * var(--font-scale)) !important;
+    }
+
+    /* Status bar optimizations */
+    .status-bar {
+        padding: 5px 15px !important;
+        min-height: var(--status-bar-height);
+        font-size: calc(11px * var(--font-scale));
+    }
+
+    /* Navigation cards - horizontal layout */
+    .nav-container {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        padding: 10px !important;
+        max-height: calc(100vh - var(--header-height) - var(--status-bar-height) - 40px);
+        overflow-y: auto;
+    }
+
+    .nav-card {
+        padding: 12px !important;
+        min-height: 120px !important;
+    }
+
+    .nav-card h3 {
+        font-size: calc(0.9rem * var(--font-scale)) !important;
+    }
+
+    .nav-card p {
+        font-size: calc(0.7rem * var(--font-scale)) !important;
+        line-height: 1.2 !important;
+    }
+
+    .nav-features {
+        font-size: calc(0.65rem * var(--font-scale)) !important;
+    }
+
+    /* Chat page landscape optimizations */
+    .chat-page {
+        padding: 5px !important;
+        gap: 8px !important;
+    }
+
+    .chat-messages {
+        max-height: calc(100vh - 140px) !important;
+    }
+
+    .chat-input-area {
+        padding: 8px !important;
+    }
+
+    .message-input {
+        min-height: 35px !important;
+        font-size: calc(14px * var(--font-scale));
+    }
+
+    /* Camera page landscape optimizations */
+    .camera-page {
+        padding: 5px !important;
+        gap: 8px !important;
+    }
+
+    .camera-main {
+        grid-template-columns: 1fr 280px !important;
+        gap: 10px !important;
+    }
+
+    .video-wrapper {
+        aspect-ratio: 16/9 !important;
+    }
+
+    .control-card {
+        padding: 12px !important;
+    }
+
+    .pan-tilt-control {
+        max-width: 140px !important;
+    }
+
+    /* Dashboard landscape optimizations */
+    .dashboard-page {
+        padding: 5px !important;
+        gap: 8px !important;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .dashboard-card {
+        padding: 12px !important;
+        min-height: 140px !important;
+    }
+
+    /* Logs page landscape optimizations */
+    .logs-page {
+        padding: 5px !important;
+        gap: 8px !important;
+    }
+
+    .logs-controls {
+        grid-template-columns: 1fr auto !important;
+        padding: 12px !important;
+    }
+
+    .logs-container {
+        min-height: calc(100vh - 200px) !important;
+    }
+
+    .log-entry {
+        padding: 4px 12px !important;
+        font-size: calc(11px * var(--font-scale));
+    }
+
+    /* Control page landscape optimizations - CRITICAL FOR GAMEPAD */
+    .control-page {
+        padding: 5px !important;
+        gap: 8px !important;
+    }
+
+    .control-main {
+        grid-template-columns: 1fr 250px !important;
+        gap: 10px !important;
+        height: calc(100vh - var(--header-height) - var(--status-bar-height) - 20px);
+    }
+
+    .gamepad-container {
+        padding: 10px !important;
+        gap: 10px !important;
+    }
+
+    .gamepad-title {
+        font-size: calc(1rem * var(--font-scale)) !important;
+        margin-bottom: 5px !important;
+    }
+
+    .mode-selector {
+        gap: 5px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .mode-btn {
+        padding: 6px 10px !important;
+        font-size: calc(10px * var(--font-scale)) !important;
+    }
+
+    /* Gamepad scaling for landscape */
+    .gamepad {
+        width: 100% !important;
+        max-width: 400px !important;
+        height: 180px !important;
+        margin: 0 auto;
+    }
+
+    /* Adjusted gamepad elements for smaller height */
+    .dpad {
+        left: 50px !important;
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .dpad-btn {
+        font-size: 12px !important;
+    }
+
+    .dpad-up, .dpad-down {
+        width: 24px !important;
+        height: 20px !important;
+        left: 18px !important;
+    }
+
+    .dpad-left, .dpad-right {
+        width: 20px !important;
+        height: 24px !important;
+        top: 18px !important;
+    }
+
+    .action-buttons {
+        right: 50px !important;
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .action-btn {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 11px !important;
+    }
+
+    .analog-stick {
+        width: 45px !important;
+        height: 45px !important;
+    }
+
+    .stick-knob {
+        width: 15px !important;
+        height: 15px !important;
+    }
+
+    .left-stick {
+        bottom: 20px !important;
+        left: 40px !important;
+    }
+
+    .right-stick {
+        bottom: 20px !important;
+        right: 40px !important;
+    }
+
+    .emergency-stop {
+        width: 45px !important;
+        height: 45px !important;
+        font-size: 9px !important;
+    }
+
+    .shoulder-buttons {
+        top: -12px !important;
+        padding: 0 30px !important;
+    }
+
+    .shoulder-btn {
+        width: 30px !important;
+        height: 15px !important;
+        font-size: 9px !important;
+    }
+
+    .center-buttons {
+        top: 20px !important;
+        gap: 15px !important;
+    }
+
+    .center-btn {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 8px !important;
+    }
+
+    /* Control panel optimizations */
+    .control-panel {
+        gap: 8px !important;
+        overflow-y: auto;
+        max-height: calc(100vh - var(--header-height) - var(--status-bar-height) - 20px);
+    }
+
+    .control-card {
+        padding: 8px !important;
+    }
+
+    .control-card h3 {
+        font-size: calc(0.9rem * var(--font-scale)) !important;
+        margin-bottom: 8px !important;
+    }
+
+    .topic-item,
+    .mapping-item,
+    .telemetry-item {
+        padding: 6px 8px !important;
+        font-size: calc(10px * var(--font-scale)) !important;
+    }
+
+    .telemetry-grid {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+    }
+
+    /* Touch targets - ensure minimum 44px for accessibility */
+    .nav-card,
+    .control-btn,
+    .action-btn,
+    .dpad-btn,
+    .mode-btn,
+    .back-button,
+    button,
+    input[type="button"],
+    input[type="submit"] {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+
+    /* Prevent text selection on controls */
+    .gamepad,
+    .gamepad *,
+    .control-btn,
+    .action-btn,
+    .dpad-btn {
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+    }
+
+    /* iOS specific fixes */
+    input,
+    textarea,
+    select {
+        -webkit-appearance: none !important;
+        border-radius: 8px !important;
+        font-size: 16px !important; /* Prevent zoom on iOS */
+    }
+
+    /* Hide scrollbars but keep functionality */
+    .logs-display,
+    .chat-messages,
+    .control-panel {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+
+    .logs-display::-webkit-scrollbar,
+    .chat-messages::-webkit-scrollbar,
+    .control-panel::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    /* Haptic feedback simulation */
+    .action-btn:active,
+    .dpad-btn:active,
+    .control-btn:active {
+        transform: scale(0.95) !important;
+        transition: transform 0.1s ease !important;
+    }
+
+    /* Full-screen video optimizations */
+    .video-wrapper:-webkit-full-screen {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .video-wrapper:-moz-full-screen {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .video-wrapper:fullscreen {
+        width: 100% !important;
+        height: 100% !important;
+    }
+}
+
+/* iPhone Pro Max and larger landscape */
+@media screen and (max-height: 480px) and (min-width: 800px) and (orientation: landscape) {
+    .control-main {
+        grid-template-columns: 1fr 300px !important;
+    }
+
+    .gamepad {
+        max-width: 450px !important;
+        height: 200px !important;
+    }
+
+    .nav-container {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+/* Very small landscape screens (iPhone mini, SE) */
+@media screen and (max-height: 375px) and (orientation: landscape) {
+    :root {
+        --header-height: 40px;
+        --status-bar-height: 30px;
+        --font-scale: 0.8;
+    }
+
+    .gamepad {
+        height: 140px !important;
+        max-width: 350px !important;
+    }
+
+    .control-main {
+        grid-template-columns: 1fr 200px !important;
+    }
+
+    .emergency-stop {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 7px !important;
+    }
+}
+
+/* Prevent iOS zoom on double tap */
+@media screen and (max-height: 480px) and (orientation: landscape) {
+    * {
+        touch-action: manipulation !important;
+    }
+
+    /* Allow scrolling on specific elements */
+    .logs-display,
+    .chat-messages,
+    .control-panel,
+    .nav-container {
+        touch-action: pan-y !important;
+    }
+
+    /* Allow pan/zoom on video */
+    .video-wrapper {
+        touch-action: pinch-zoom !important;
+    }
+}
+
+/* iPhone notch handling */
+@supports (padding: max(0px)) {
+    @media screen and (max-height: 480px) and (orientation: landscape) {
+        .app-container {
+            padding-left: max(10px, env(safe-area-inset-left)) !important;
+            padding-right: max(10px, env(safe-area-inset-right)) !important;
+        }
+
+        .header,
+        .chat-header,
+        .camera-header,
+        .logs-header,
+        .control-header,
+        .dashboard-header,
+        .status-bar {
+            padding-left: max(15px, env(safe-area-inset-left)) !important;
+            padding-right: max(15px, env(safe-area-inset-right)) !important;
+        }
+    }
+}
+
+/* Gamepad vibration support (when available) */
+@media (hover: none) and (pointer: coarse) {
+    .action-btn:active,
+    .dpad-btn:active,
+    .emergency-stop:active {
+        /* Trigger haptic feedback via CSS animation */
+        animation: haptic-pulse 0.1s ease !important;
+    }
+}
+
+@keyframes haptic-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d9ff">
+    <title>LAIKA Robot Control</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <style>
+        :root {
+            --primary-cyan: #00d9ff;
+            --secondary-cyan: #0099cc;
+            --accent-orange: #ff6600;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --card-bg: rgba(0, 20, 30, 0.8);
+            --glass-bg: rgba(0, 217, 255, 0.1);
+            --border-glow: rgba(0, 217, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --emergency: #ff0044;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .control-icon {
+            font-size: 1.8rem;
+            color: var(--accent-orange);
+            filter: drop-shadow(0 0 8px var(--accent-orange));
+        }
+
+        .back-button {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .control-main {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .gamepad-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .gamepad-title {
+            font-size: 1.2rem;
+            color: var(--primary-cyan);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .gamepad {
+            position: relative;
+            width: 500px;
+            height: 300px;
+            background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+            border: 2px solid var(--border-glow);
+            border-radius: 25px;
+            box-shadow: 
+                0 0 30px rgba(0, 217, 255, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* D-Pad */
+        .dpad {
+            position: absolute;
+            top: 50%;
+            left: 80px;
+            transform: translateY(-50%);
+            width: 80px;
+            height: 80px;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            user-select: none;
+        }
+
+        .dpad-btn:hover,
+        .dpad-btn.active {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+        }
+
+        .dpad-up {
+            top: 0;
+            left: 25px;
+            width: 30px;
+            height: 25px;
+            border-radius: 8px 8px 4px 4px;
+        }
+
+        .dpad-down {
+            bottom: 0;
+            left: 25px;
+            width: 30px;
+            height: 25px;
+            border-radius: 4px 4px 8px 8px;
+        }
+
+        .dpad-left {
+            top: 25px;
+            left: 0;
+            width: 25px;
+            height: 30px;
+            border-radius: 8px 4px 4px 8px;
+        }
+
+        .dpad-right {
+            top: 25px;
+            right: 0;
+            width: 25px;
+            height: 30px;
+            border-radius: 4px 8px 8px 4px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            position: absolute;
+            top: 50%;
+            right: 80px;
+            transform: translateY(-50%);
+            width: 80px;
+            height: 80px;
+        }
+
+        .action-btn {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--border-glow);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        .action-btn:hover,
+        .action-btn.active {
+            background: var(--accent-orange);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--accent-orange);
+            transform: scale(1.1);
+        }
+
+        .btn-y { top: 0; left: 50%; transform: translateX(-50%); }
+        .btn-x { top: 50%; left: 0; transform: translateY(-50%); }
+        .btn-b { top: 50%; right: 0; transform: translateY(-50%); }
+        .btn-a { bottom: 0; left: 50%; transform: translateX(-50%); }
+
+        /* Analog Sticks */
+        .analog-stick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--border-glow);
+            cursor: move;
+        }
+
+        .stick-knob {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-cyan);
+            border: 1px solid var(--text-primary);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .left-stick {
+            bottom: 40px;
+            left: 60px;
+        }
+
+        .right-stick {
+            bottom: 40px;
+            right: 60px;
+        }
+
+        /* Shoulder Buttons */
+        .shoulder-buttons {
+            position: absolute;
+            top: -15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 50px;
+        }
+
+        .shoulder-btn {
+            width: 40px;
+            height: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px 8px 0 0;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .shoulder-btn:hover,
+        .shoulder-btn.active {
+            background: var(--warning);
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--warning);
+        }
+
+        /* Center Buttons */
+        .center-buttons {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .center-btn {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            user-select: none;
+        }
+
+        .center-btn:hover,
+        .center-btn.active {
+            background: var(--success);
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        /* Emergency Stop */
+        .emergency-stop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--emergency);
+            border: 3px solid #ffffff;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1;
+            box-shadow: 0 0 20px var(--emergency);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .emergency-stop:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 30px var(--emergency);
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .control-card h3 {
+            color: var(--primary-cyan);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ros2-topics {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .topic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .topic-name {
+            color: var(--primary-cyan);
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .topic-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            border: 1px solid;
+        }
+
+        .topic-status.active {
+            color: var(--success);
+            border-color: var(--success);
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .topic-status.inactive {
+            color: var(--text-muted);
+            border-color: var(--text-muted);
+            background: rgba(136, 136, 136, 0.1);
+        }
+
+        .command-mapping {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mapping-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .button-name {
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+
+        .command-name {
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .telemetry-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .telemetry-label {
+            color: var(--text-secondary);
+        }
+
+        .telemetry-value {
+            color: var(--primary-cyan);
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .mode-btn:hover {
+            background: var(--border-glow);
+        }
+
+        .mode-btn.active {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+        }
+
+        .bluetooth-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .bluetooth-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .bluetooth-btn:hover {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 0 15px #007bff;
+        }
+
+        .bluetooth-btn.connected {
+            background: var(--success);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--success);
+        }
+
+        .bluetooth-btn.connecting {
+            background: var(--warning);
+            color: var(--dark-bg);
+            animation: pulse 1s infinite;
+        }
+
+        .controller-status {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 5px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+        }
+
+        .controller-status.connected {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-glow);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-indicator.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .control-main {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .gamepad {
+                width: 100%;
+                max-width: 500px;
+                height: 250px;
+            }
+
+            .control-panel {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-page {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .gamepad-container {
+                padding: 20px;
+            }
+
+            .gamepad {
+                height: 200px;
+            }
+
+            .analog-stick {
+                width: 50px;
+                height: 50px;
+            }
+
+            .stick-knob {
+                width: 16px;
+                height: 16px;
+            }
+
+            .emergency-stop {
+                width: 50px;
+                height: 50px;
+                font-size: 10px;
+            }
+
+            .telemetry-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gamepad {
+                height: 180px;
+            }
+
+            .dpad {
+                left: 40px;
+                width: 60px;
+                height: 60px;
+            }
+
+            .action-buttons {
+                right: 40px;
+                width: 60px;
+                height: 60px;
+            }
+
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            .mode-selector {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="control-page">
+            <!-- Control Header -->
+            <div class="control-header">
+                <div class="header-title">
+                    <i class="fas fa-gamepad control-icon"></i>
+                    <h1>Robot Control</h1>
+                </div>
+                <a href="index.html" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+
+            <div class="control-main">
+                <!-- Gamepad Interface -->
+                <div class="gamepad-container">
+                    <h2 class="gamepad-title">LAIKA Command Interface</h2>
+                    
+                    <!-- Control Mode Selector -->
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="manual">Manual Control</button>
+                        <button class="mode-btn" data-mode="mapping">Button Mapping</button>
+                        <button class="mode-btn" data-mode="sequences">Sequences</button>
+                    </div>
+
+                    <!-- Bluetooth Controller Connection -->
+                    <div class="bluetooth-section">
+                        <button class="bluetooth-btn" id="bluetoothConnect">
+                            <i class="fas fa-bluetooth"></i>
+                            Connect Bluetooth Controller
+                        </button>
+                        <div class="controller-status" id="controllerStatus">
+                            <span>No controller connected</span>
+                        </div>
+                    </div>
+
+                    <!-- Gamepad Layout -->
+                    <div class="gamepad">
+                        <!-- Shoulder Buttons -->
+                        <div class="shoulder-buttons">
+                            <div class="shoulder-btn" data-button="l1">L1</div>
+                            <div class="shoulder-btn" data-button="r1">R1</div>
+                        </div>
+
+                        <!-- Center Buttons -->
+                        <div class="center-buttons">
+                            <div class="center-btn" data-button="select">SEL</div>
+                            <div class="center-btn" data-button="start">START</div>
+                        </div>
+
+                        <!-- D-Pad -->
+                        <div class="dpad">
+                            <div class="dpad-btn dpad-up" data-button="dpad-up">
+                                <i class="fas fa-chevron-up"></i>
+                            </div>
+                            <div class="dpad-btn dpad-down" data-button="dpad-down">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="dpad-btn dpad-left" data-button="dpad-left">
+                                <i class="fas fa-chevron-left"></i>
+                            </div>
+                            <div class="dpad-btn dpad-right" data-button="dpad-right">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="action-buttons">
+                            <div class="action-btn btn-y" data-button="y">Y</div>
+                            <div class="action-btn btn-x" data-button="x">X</div>
+                            <div class="action-btn btn-b" data-button="b">B</div>
+                            <div class="action-btn btn-a" data-button="a">A</div>
+                        </div>
+
+                        <!-- Analog Sticks -->
+                        <div class="analog-stick left-stick" data-stick="left">
+                            <div class="stick-knob"></div>
+                        </div>
+                        <div class="analog-stick right-stick" data-stick="right">
+                            <div class="stick-knob"></div>
+                        </div>
+
+                        <!-- Emergency Stop -->
+                        <div class="emergency-stop" id="emergencyStop">
+                            EMERGENCY<br>STOP
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <!-- ROS2 Topics -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-broadcast-tower"></i> ROS2 Topics</h3>
+                        <div class="ros2-topics">
+                            <div class="topic-item">
+                                <span class="topic-name">/cmd_vel</span>
+                                <span class="topic-status active">ACTIVE</span>
+                            </div>
+                            <div class="topic-item">
+                                <span class="topic-name">/servo_commands</span>
+                                <span class="topic-status active">ACTIVE</span>
+                            </div>
+                            <div class="topic-item">
+                                <span class="topic-name">/led_control</span>
+                                <span class="topic-status active">ACTIVE</span>
+                            </div>
+                            <div class="topic-item">
+                                <span class="topic-name">/emergency_stop</span>
+                                <span class="topic-status active">ACTIVE</span>
+                            </div>
+                            <div class="topic-item">
+                                <span class="topic-name">/robot_state</span>
+                                <span class="topic-status inactive">INACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Button Mapping -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-keyboard"></i> Button Mapping</h3>
+                        <div class="command-mapping">
+                            <div class="mapping-item">
+                                <span class="button-name">Left Stick</span>
+                                <span class="command-name">cmd_vel.linear</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">Right Stick</span>
+                                <span class="command-name">cmd_vel.angular</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">A Button</span>
+                                <span class="command-name">servo_dance</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">B Button</span>
+                                <span class="command-name">led_rainbow</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">X Button</span>
+                                <span class="command-name">play_sound</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">Y Button</span>
+                                <span class="command-name">take_photo</span>
+                            </div>
+                            <div class="mapping-item">
+                                <span class="button-name">D-Pad</span>
+                                <span class="command-name">head_movement</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Telemetry -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-chart-line"></i> Live Telemetry</h3>
+                        <div class="telemetry-grid">
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">Linear Vel:</span>
+                                <span class="telemetry-value" id="linearVel">0.00 m/s</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">Angular Vel:</span>
+                                <span class="telemetry-value" id="angularVel">0.00 rad/s</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">Battery:</span>
+                                <span class="telemetry-value" id="batteryTelemetry">85%</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">Temperature:</span>
+                                <span class="telemetry-value" id="temperature">45°C</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">IMU Status:</span>
+                                <span class="telemetry-value" id="imuStatus">STABLE</span>
+                            </div>
+                            <div class="telemetry-item">
+                                <span class="telemetry-label">Commands/s:</span>
+                                <span class="telemetry-value" id="commandRate">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="connection-indicator" id="connectionIndicator"></div>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-robot"></i>
+                <span id="robotMode">Manual Control</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/gamepad-manager.js"></script>
+    <script src="js/control.js"></script>
+</body>
+</html>

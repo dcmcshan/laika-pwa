@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d9ff">
+    <title>LAIKA System Logs</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <style>
+        :root {
+            --primary-cyan: #00d9ff;
+            --secondary-cyan: #0099cc;
+            --accent-orange: #ff6600;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --card-bg: rgba(0, 20, 30, 0.8);
+            --glass-bg: rgba(0, 217, 255, 0.1);
+            --border-glow: rgba(0, 217, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --info: #4488ff;
+            --debug: #aa88ff;
+            --trace: #88ffaa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logs-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .logs-icon {
+            font-size: 1.8rem;
+            color: var(--accent-orange);
+            filter: drop-shadow(0 0 8px var(--accent-orange));
+        }
+
+        .back-button {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .logs-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .search-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .search-bar {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 12px 15px 12px 45px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .level-filter {
+            display: flex;
+            gap: 5px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        .level-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .level-btn:hover {
+            background: var(--border-glow);
+        }
+
+        .level-btn.active {
+            color: var(--dark-bg);
+        }
+
+        .level-btn.error.active { background: var(--error); }
+        .level-btn.warning.active { background: var(--warning); }
+        .level-btn.info.active { background: var(--info); }
+        .level-btn.debug.active { background: var(--debug); }
+        .level-btn.trace.active { background: var(--trace); }
+
+        .logs-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 180px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            color: var(--primary-cyan);
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .logs-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 140px;
+        }
+
+        .action-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.clear:hover {
+            background: var(--error);
+            box-shadow: 0 0 15px var(--error);
+        }
+
+        .action-btn.export:hover {
+            background: var(--success);
+            box-shadow: 0 0 15px var(--success);
+        }
+
+        .logs-container {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        .logs-toolbar {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-glow);
+            gap: 15px;
+        }
+
+        .logs-title {
+            font-size: 1.1rem;
+            color: var(--primary-cyan);
+            font-weight: 600;
+        }
+
+        .auto-scroll-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            position: relative;
+            border: 1px solid var(--border-glow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .toggle-switch.active {
+            background: var(--success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        .logs-display {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            padding: 0;
+        }
+
+        .log-entry {
+            display: flex;
+            padding: 8px 20px;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+            transition: background-color 0.2s ease;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .log-entry:hover {
+            background: var(--glass-bg);
+        }
+
+        .log-entry.new {
+            animation: logEntrySlide 0.3s ease;
+        }
+
+        @keyframes logEntrySlide {
+            from { background: var(--border-glow); transform: translateX(-10px); }
+            to { background: transparent; transform: translateX(0); }
+        }
+
+        .log-timestamp {
+            color: var(--text-muted);
+            min-width: 140px;
+            margin-right: 15px;
+            font-size: 12px;
+        }
+
+        .log-level {
+            min-width: 60px;
+            margin-right: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            text-align: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .log-level.error {
+            color: var(--error);
+            border-color: var(--error);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .log-level.warning {
+            color: var(--warning);
+            border-color: var(--warning);
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .log-level.info {
+            color: var(--info);
+            border-color: var(--info);
+            background: rgba(68, 136, 255, 0.1);
+        }
+
+        .log-level.debug {
+            color: var(--debug);
+            border-color: var(--debug);
+            background: rgba(170, 136, 255, 0.1);
+        }
+
+        .log-level.trace {
+            color: var(--trace);
+            border-color: var(--trace);
+            background: rgba(136, 255, 170, 0.1);
+        }
+
+        .log-source {
+            color: var(--primary-cyan);
+            min-width: 120px;
+            margin-right: 15px;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .log-message {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .log-message .highlight {
+            background: var(--warning);
+            color: var(--dark-bg);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+
+        .empty-logs {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            color: var(--text-muted);
+            gap: 15px;
+        }
+
+        .empty-logs i {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-glow);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-indicator.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .logs-controls {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .logs-stats, .logs-actions {
+                min-width: unset;
+            }
+
+            .filter-group {
+                justify-content: center;
+            }
+
+            .logs-stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .logs-actions {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .logs-page {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .logs-header {
+                padding: 12px 15px;
+            }
+
+            .header-title h1 {
+                font-size: 1.2rem;
+            }
+
+            .logs-controls {
+                padding: 15px;
+            }
+
+            .log-entry {
+                flex-direction: column;
+                padding: 12px 15px;
+                gap: 5px;
+            }
+
+            .log-timestamp,
+            .log-level,
+            .log-source {
+                min-width: unset;
+                margin-right: 0;
+            }
+
+            .log-entry-header {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                margin-bottom: 5px;
+            }
+
+            .logs-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .logs-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logs-page {
+                padding: 5px;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .level-filter {
+                justify-content: center;
+            }
+
+            .logs-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .logs-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="logs-page">
+            <!-- Logs Header -->
+            <div class="logs-header">
+                <div class="header-title">
+                    <i class="fas fa-file-alt logs-icon"></i>
+                    <h1>LAIKA System Logs</h1>
+                </div>
+                <a href="index.html" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+
+            <!-- Logs Controls -->
+            <div class="logs-controls">
+                <div class="search-filter-group">
+                    <!-- Search Bar -->
+                    <div class="search-bar">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="searchInput" placeholder="Search logs... (regex supported)">
+                    </div>
+                    
+                    <!-- Filters -->
+                    <div class="filter-group">
+                        <span class="filter-label">Level:</span>
+                        <div class="level-filter">
+                            <button class="level-btn error active" data-level="error">Error</button>
+                            <button class="level-btn warning active" data-level="warning">Warn</button>
+                            <button class="level-btn info active" data-level="info">Info</button>
+                            <button class="level-btn debug active" data-level="debug">Debug</button>
+                            <button class="level-btn trace active" data-level="trace">Trace</button>
+                        </div>
+                        
+                        <span class="filter-label">Source:</span>
+                        <select id="sourceFilter" style="background: var(--glass-bg); border: 1px solid var(--border-glow); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; font-family: 'Orbitron', monospace; font-size: 12px;">
+                            <option value="">All Sources</option>
+                            <option value="robot_brain">Robot Brain</option>
+                            <option value="camera_service">Camera</option>
+                            <option value="slam_system">SLAM</option>
+                            <option value="servo_controller">Servo</option>
+                            <option value="sensor_fusion">Sensors</option>
+                            <option value="network_manager">Network</option>
+                            <option value="websocket_server">WebSocket</option>
+                            <option value="api_gateway">API Gateway</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="logs-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Logs:</span>
+                        <span class="stat-value" id="totalLogs">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Errors:</span>
+                        <span class="stat-value" id="errorCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Warnings:</span>
+                        <span class="stat-value" id="warningCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Rate:</span>
+                        <span class="stat-value" id="logRate">0/sec</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Filtered:</span>
+                        <span class="stat-value" id="filteredCount">0</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="logs-actions">
+                    <button class="action-btn" id="pauseBtn">
+                        <i class="fas fa-pause"></i>
+                        Pause
+                    </button>
+                    <button class="action-btn export" id="exportBtn">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="action-btn clear" id="clearBtn">
+                        <i class="fas fa-trash"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Logs Container -->
+            <div class="logs-container">
+                <div class="logs-toolbar">
+                    <span class="logs-title">Live Log Stream</span>
+                    <div class="auto-scroll-toggle">
+                        <span>Auto-scroll</span>
+                        <div class="toggle-switch active" id="autoScrollToggle"></div>
+                    </div>
+                </div>
+
+                <div class="logs-display" id="logsDisplay">
+                    <div class="empty-logs">
+                        <i class="fas fa-stream"></i>
+                        <span>Waiting for log data...</span>
+                        <small>Connect to LAIKA to see real-time logs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="connection-indicator" id="connectionIndicator"></div>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-battery-three-quarters"></i>
+                <span id="batteryLevel">85%</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/logs.js"></script>
+</body>
+</html>
