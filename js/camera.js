@@ -82,6 +82,9 @@ class LAIKACamera {
         // Attempt to connect
         await this.connectWebSocket();
         
+        // Auto-start camera stream on page load
+        await this.autoStartStream();
+        
         console.log('🎥 LAIKA Camera initialized');
     }
 
@@ -720,6 +723,42 @@ class LAIKACamera {
         document.getElementById('micLevel').textContent = this.microphoneEnabled ? '0 dB' : 'Off';
         document.getElementById('audioQuality').textContent = `${this.audioSettings.sampleRate/1000}kHz`;
         document.getElementById('audioLatency').textContent = `< ${this.audioSettings.latency}ms`;
+    }
+
+    async autoStartStream() {
+        console.log('🚀 Auto-starting camera stream...');
+        
+        try {
+            // Start the video stream automatically
+            const video = document.getElementById('videoStream');
+            if (video) {
+                // Set the stream source
+                video.src = `${this.getServerUrl()}/api/camera/stream?fps=10&quality=medium`;
+                
+                // Update UI to show streaming state
+                this.isStreaming = true;
+                this.updateUI();
+                this.updateConnectionStatus();
+                
+                // Update play/pause button to show pause icon
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                if (playPauseBtn) {
+                    const icon = playPauseBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'fas fa-pause';
+                    }
+                }
+                
+                console.log('✅ Camera stream auto-started');
+            }
+        } catch (error) {
+            console.error('❌ Failed to auto-start camera stream:', error);
+        }
+    }
+
+    getServerUrl() {
+        // Return the server URL for API calls
+        return `${window.location.protocol}//${window.location.hostname}:5000`;
     }
 
     // Pan/Tilt Control

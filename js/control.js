@@ -79,6 +79,9 @@ class LAIKAControl {
         // Attempt to connect
         await this.connectWebSocket();
         
+        // Initialize video/audio feed
+        this.initializeVideoFeed();
+        
         console.log('🎮 LAIKA Robot Control initialized');
     }
 
@@ -115,6 +118,10 @@ class LAIKAControl {
 
         // Bluetooth controller connection
         document.getElementById('bluetoothConnect').addEventListener('click', () => this.connectBluetoothController());
+
+        // Video/Audio controls
+        document.getElementById('controlVideoToggle')?.addEventListener('click', () => this.toggleVideo());
+        document.getElementById('controlAudioToggle')?.addEventListener('click', () => this.toggleAudio());
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => this.handleKeyboard(e, true));
@@ -944,10 +951,183 @@ class LAIKAControl {
         }
     }
 
+    // Video/Audio Feed Methods
+    initializeVideoFeed() {
+        console.log('📹 Initializing video feed...');
+        
+        // Set up video element
+        const video = document.getElementById('controlVideoStream');
+        if (video) {
+            video.addEventListener('loadstart', () => this.onVideoLoadStart());
+            video.addEventListener('canplay', () => this.onVideoCanPlay());
+            video.addEventListener('error', (e) => this.onVideoError(e));
+        }
+        
+        // Auto-start video feed on page load
+        this.autoStartVideoFeed();
+    }
+
+    autoStartVideoFeed() {
+        console.log('🚀 Auto-starting control video feed...');
+        
+        // Start video feed automatically
+        setTimeout(() => {
+            const video = document.getElementById('controlVideoStream');
+            if (video) {
+                // Use lower frame rate for control page (5-10 fps is plenty)
+                video.src = `${this.getServerUrl()}/api/camera/stream?fps=5&quality=low`;
+                this.videoEnabled = true;
+                this.updateVideoUI();
+                console.log('✅ Control video feed auto-started');
+            }
+        }, 1000); // Small delay to ensure page is fully loaded
+    }
+
+    toggleVideo() {
+        this.videoEnabled = !this.videoEnabled;
+        
+        if (this.videoEnabled) {
+            this.startVideoFeed();
+        } else {
+            this.stopVideoFeed();
+        }
+        
+        this.updateVideoUI();
+        console.log(`📹 Video ${this.videoEnabled ? 'enabled' : 'disabled'}`);
+    }
+
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        
+        if (this.audioEnabled) {
+            this.startAudioFeed();
+        } else {
+            this.stopAudioFeed();
+        }
+        
+        this.updateVideoUI();
+        console.log(`🔊 Audio ${this.audioEnabled ? 'enabled' : 'disabled'}`);
+    }
+
+    startVideoFeed() {
+        const video = document.getElementById('controlVideoStream');
+        if (video && this.isConnected) {
+            // Use the same camera stream as the camera page
+            video.src = this.getServerUrl() + '/api/camera/stream';
+            this.videoEnabled = true;
+            console.log('📹 Video feed started');
+        }
+    }
+
+    stopVideoFeed() {
+        const video = document.getElementById('controlVideoStream');
+        if (video) {
+            video.src = '';
+            this.videoEnabled = false;
+            console.log('📹 Video feed stopped');
+        }
+    }
+
+    startAudioFeed() {
+        const audio = document.getElementById('controlAudioStream');
+        if (audio && this.isConnected) {
+            // Connect to audio stream endpoint
+            audio.src = this.getServerUrl() + '/api/audio/stream';
+            this.audioEnabled = true;
+            console.log('🔊 Audio feed started');
+        }
+    }
+
+    stopAudioFeed() {
+        const audio = document.getElementById('controlAudioStream');
+        if (audio) {
+            audio.src = '';
+            this.audioEnabled = false;
+            console.log('🔊 Audio feed stopped');
+        }
+    }
+
+    getServerUrl() {
+        // Return the server URL for API calls
+        return `${window.location.protocol}//${window.location.hostname}:5000`;
+    }
+
+    updateVideoUI() {
+        // Update video toggle button
+        const videoBtn = document.getElementById('controlVideoToggle');
+        if (videoBtn) {
+            const icon = videoBtn.querySelector('i');
+            if (this.videoEnabled) {
+                icon.className = 'fas fa-video';
+                videoBtn.style.color = 'var(--success)';
+            } else {
+                icon.className = 'fas fa-video-slash';
+                videoBtn.style.color = 'var(--text-primary)';
+            }
+        }
+        
+        // Update audio toggle button
+        const audioBtn = document.getElementById('controlAudioToggle');
+        if (audioBtn) {
+            const icon = audioBtn.querySelector('i');
+            if (this.audioEnabled) {
+                icon.className = 'fas fa-volume-up';
+                audioBtn.style.color = 'var(--success)';
+            } else {
+                icon.className = 'fas fa-volume-mute';
+                audioBtn.style.color = 'var(--text-primary)';
+            }
+        }
+        
+        // Update stream status
+        this.updateStreamStatus();
+    }
+
+    updateStreamStatus() {
+        const indicator = document.getElementById('controlStreamIndicator');
+        const status = document.getElementById('controlStreamStatus');
+        
+        if (this.videoEnabled || this.audioEnabled) {
+            if (indicator) indicator.style.background = 'var(--success)';
+            if (status) status.textContent = 'Streaming';
+        } else {
+            if (indicator) indicator.style.background = 'var(--error)';
+            if (status) status.textContent = 'Disconnected';
+        }
+    }
+
+    // Video event handlers
+    onVideoLoadStart() {
+        console.log('📹 Control video loading...');
+        this.streamConnected = false;
+        this.updateStreamStatus();
+    }
+
+    onVideoCanPlay() {
+        console.log('📹 Control video ready');
+        this.streamConnected = true;
+        this.updateStreamStatus();
+    }
+
+    onVideoError(error) {
+        console.error('❌ Control video error:', error);
+        this.streamConnected = false;
+        this.videoEnabled = false;
+        this.updateVideoUI();
+    }
+
     async reconnect() {
         if (!this.isConnected) {
             console.log('🔄 Attempting to reconnect...');
             await this.connectWebSocket();
+            
+            // Restart video/audio feeds if they were enabled
+            if (this.videoEnabled) {
+                this.startVideoFeed();
+            }
+            if (this.audioEnabled) {
+                this.startAudioFeed();
+            }
         }
     }
 }

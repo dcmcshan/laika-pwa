@@ -1,0 +1,406 @@
+/* LAIKA PWA Header & Footer Shared Styles */
+
+/* ============= NARROW HEADER ============= */
+.laika-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: 
+        linear-gradient(135deg, var(--panel-bg), #1A1A30),
+        radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
+    border-bottom: 2px solid var(--atomic-cyan);
+    box-shadow: 
+        0 2px 20px var(--glow-cyan),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.laika-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(0, 255, 255, 0.05) 10px,
+            rgba(0, 255, 255, 0.05) 11px
+        );
+    pointer-events: none;
+}
+
+/* Header Logo/Brand */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--atomic-cyan);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+}
+
+.header-brand:hover {
+    color: var(--tron-cyan);
+    text-shadow: 0 0 10px var(--glow-cyan);
+}
+
+.header-brand .brand-icon {
+    font-size: 24px;
+    animation: brandPulse 3s ease-in-out infinite;
+}
+
+@keyframes brandPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Navigation Menu */
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-item {
+    position: relative;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    color: var(--text-cyan);
+    text-decoration: none;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.nav-link:hover {
+    color: var(--atomic-cyan);
+    background: rgba(0, 255, 255, 0.1);
+    border-color: var(--atomic-cyan);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.nav-link.active {
+    color: var(--atomic-cyan);
+    background: rgba(0, 255, 255, 0.2);
+    border-color: var(--atomic-cyan);
+}
+
+.nav-icon {
+    font-size: 14px;
+}
+
+/* Mobile Menu Toggle */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: 2px solid var(--atomic-cyan);
+    color: var(--atomic-cyan);
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+/* ============= NARROW FOOTER ============= */
+.laika-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: 
+        linear-gradient(135deg, var(--atomic-bg), #1A1A30),
+        radial-gradient(circle at center, rgba(0, 255, 255, 0.05), transparent);
+    border-top: 2px solid var(--atomic-cyan);
+    box-shadow: 
+        0 -2px 20px var(--glow-cyan),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Footer Status Items */
+.footer-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-cyan);
+    transition: all 0.3s ease;
+}
+
+.status-item:hover {
+    color: var(--atomic-cyan);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--atomic-cyan);
+    box-shadow: 0 0 8px var(--glow-cyan);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-indicator.online {
+    background: var(--success-green);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+}
+
+.status-indicator.offline {
+    background: var(--error-red);
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    animation: none;
+}
+
+.status-indicator.warning {
+    background: var(--warning-yellow);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* Battery Status */
+.battery-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--success-green);
+}
+
+.battery-status.low {
+    color: var(--warning-yellow);
+}
+
+.battery-status.critical {
+    color: var(--error-red);
+    animation: batteryBlink 1s ease-in-out infinite;
+}
+
+@keyframes batteryBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Connection Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.connection-status.connected {
+    color: var(--success-green);
+}
+
+.connection-status.disconnected {
+    color: var(--error-red);
+}
+
+.connection-status.connecting {
+    color: var(--warning-yellow);
+    animation: connectingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes connectingPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Time Display */
+.time-display {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    color: var(--atomic-cyan);
+    text-shadow: 0 0 5px var(--glow-cyan);
+}
+
+/* ============= RESPONSIVE DESIGN ============= */
+@media (max-width: 768px) {
+    .laika-header {
+        padding: 0 15px;
+    }
+    
+    .header-brand {
+        font-size: 16px;
+        letter-spacing: 1px;
+    }
+    
+    .header-brand .brand-icon {
+        font-size: 20px;
+    }
+    
+    .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--panel-bg);
+        border: 2px solid var(--atomic-cyan);
+        border-top: none;
+        flex-direction: column;
+        gap: 0;
+        padding: 10px 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+    
+    .nav-menu.active {
+        display: flex;
+    }
+    
+    .nav-link {
+        padding: 12px 20px;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        background: transparent;
+        justify-content: flex-start;
+        font-size: 14px;
+    }
+    
+    .nav-link:last-child {
+        border-bottom: none;
+    }
+    
+    .menu-toggle {
+        display: block;
+    }
+    
+    .laika-footer {
+        padding: 0 15px;
+        flex-wrap: wrap;
+        height: auto;
+        min-height: 50px;
+    }
+    
+    .footer-status {
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .status-item {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-brand {
+        font-size: 14px;
+    }
+    
+    .header-brand .brand-icon {
+        font-size: 18px;
+    }
+    
+    .footer-status {
+        gap: 10px;
+    }
+    
+    .status-item {
+        font-size: 9px;
+        gap: 4px;
+    }
+    
+    .status-indicator {
+        width: 6px;
+        height: 6px;
+    }
+}
+
+/* ============= PAGE CONTENT ADJUSTMENT ============= */
+.page-content {
+    padding-top: 70px; /* Account for fixed header */
+    padding-bottom: 60px; /* Account for fixed footer */
+    min-height: 100vh;
+}
+
+/* ============= ANIMATIONS ============= */
+.header-slide-in {
+    animation: headerSlideIn 0.5s ease-out;
+}
+
+@keyframes headerSlideIn {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.footer-slide-in {
+    animation: footerSlideIn 0.5s ease-out;
+}
+
+@keyframes footerSlideIn {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

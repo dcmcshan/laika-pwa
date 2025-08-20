@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00d9ff">
+    <title>LAIKA Music & Audio</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <style>
+        :root {
+            --primary-cyan: #00d9ff;
+            --secondary-cyan: #0099cc;
+            --accent-orange: #ff6600;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --card-bg: rgba(0, 20, 30, 0.8);
+            --glass-bg: rgba(0, 217, 255, 0.1);
+            --border-glow: rgba(0, 217, 255, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --error: #ff4444;
+            --beat-color: #ff0080;
+            --spectrum-color: #00ff88;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 217, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .music-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .music-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .music-icon {
+            font-size: 1.8rem;
+            color: var(--accent-orange);
+            filter: drop-shadow(0 0 8px var(--accent-orange));
+            animation: musicPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes musicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .back-button {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-button:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .music-main {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .audio-visualizer {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .visualizer-title {
+            font-size: 1.2rem;
+            color: var(--primary-cyan);
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .spectrum-container {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(45deg, #111, #222);
+            border: 2px solid var(--border-glow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #spectrumCanvas {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        .waveform-container {
+            position: relative;
+            height: 120px;
+            background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+            border: 2px solid var(--border-glow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #waveformCanvas {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        .beat-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .beat-circle {
+            width: 80px;
+            height: 80px;
+            border: 3px solid var(--beat-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--beat-color);
+            transition: all 0.1s ease;
+            box-shadow: 0 0 20px var(--beat-color);
+        }
+
+        .beat-circle.beat {
+            transform: scale(1.2);
+            background: var(--beat-color);
+            color: white;
+            box-shadow: 0 0 40px var(--beat-color);
+        }
+
+        .tempo-display {
+            text-align: center;
+        }
+
+        .tempo-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .tempo-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .audio-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .audio-btn.active {
+            background: var(--success);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px var(--success);
+        }
+
+        .audio-btn.recording {
+            background: var(--error);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .control-card h3 {
+            color: var(--primary-cyan);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .music-recognition {
+            text-align: center;
+        }
+
+        .recognition-status {
+            padding: 15px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .song-info {
+            display: none;
+            padding: 15px;
+            background: var(--success);
+            color: var(--dark-bg);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .song-info.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        .song-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .song-artist {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .recognize-btn {
+            background: var(--accent-orange);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .recognize-btn:hover {
+            background: #ff8833;
+            box-shadow: 0 0 20px var(--accent-orange);
+            transform: translateY(-2px);
+        }
+
+        .recognize-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .reactive-behaviors {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .behavior-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .behavior-toggle:hover {
+            background: var(--border-glow);
+        }
+
+        .behavior-toggle.active {
+            background: var(--success);
+            color: var(--dark-bg);
+            border-color: var(--success);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            position: relative;
+            border: 1px solid var(--border-glow);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch.active::after {
+            left: 28px;
+        }
+
+        .audio-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .setting-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 120px;
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid var(--border-glow);
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-cyan);
+        }
+
+        .frequency-bands {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            height: 60px;
+            align-items: end;
+        }
+
+        .frequency-bar {
+            background: var(--spectrum-color);
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: height 0.1s ease;
+            box-shadow: 0 0 5px var(--spectrum-color);
+        }
+
+        .robot-reactions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .reaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .reaction-name {
+            color: var(--primary-cyan);
+            font-weight: 600;
+        }
+
+        .reaction-status {
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+
+        .reaction-status.active {
+            color: var(--success);
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-glow);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-indicator.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .music-main {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .control-panel {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .music-page {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .music-header {
+                padding: 12px 15px;
+            }
+
+            .header-title h1 {
+                font-size: 1.2rem;
+            }
+
+            .spectrum-container {
+                height: 150px;
+            }
+
+            .waveform-container {
+                height: 80px;
+            }
+
+            .beat-circle {
+                width: 60px;
+                height: 60px;
+                font-size: 18px;
+            }
+
+            .tempo-value {
+                font-size: 1.5rem;
+            }
+
+            .audio-controls {
+                gap: 10px;
+            }
+
+            .audio-btn {
+                padding: 10px 15px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .music-page {
+                padding: 5px;
+            }
+
+            .beat-indicator {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .audio-controls {
+                flex-direction: column;
+            }
+
+            .frequency-bands {
+                grid-template-columns: repeat(6, 1fr);
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="music-page">
+            <!-- Music Header -->
+            <div class="music-header">
+                <div class="header-title">
+                    <i class="fas fa-music music-icon"></i>
+                    <h1>Music & Audio</h1>
+                </div>
+                <a href="index.html" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+
+            <div class="music-main">
+                <!-- Audio Visualizer -->
+                <div class="audio-visualizer">
+                    <h2 class="visualizer-title">
+                        <i class="fas fa-wave-square"></i>
+                        Audio Visualizer
+                    </h2>
+
+                    <!-- Spectrum Analyzer -->
+                    <div class="spectrum-container">
+                        <canvas id="spectrumCanvas" width="800" height="200"></canvas>
+                    </div>
+
+                    <!-- Waveform Display -->
+                    <div class="waveform-container">
+                        <canvas id="waveformCanvas" width="800" height="120"></canvas>
+                    </div>
+
+                    <!-- Beat Detection -->
+                    <div class="beat-indicator">
+                        <div class="beat-circle" id="beatCircle">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="tempo-display">
+                            <div class="tempo-value" id="tempoValue">--</div>
+                            <div class="tempo-label">BPM</div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Controls -->
+                    <div class="audio-controls">
+                        <button class="audio-btn" id="startAudioBtn">
+                            <i class="fas fa-microphone"></i>
+                            Start Audio
+                        </button>
+                        <button class="audio-btn" id="recordBtn">
+                            <i class="fas fa-record-vinyl"></i>
+                            Record
+                        </button>
+                        <button class="audio-btn" id="playbackBtn">
+                            <i class="fas fa-play"></i>
+                            Playback
+                        </button>
+                        <button class="audio-btn" id="stopBtn">
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="control-panel">
+                    <!-- Music Recognition -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-search"></i> Music Recognition</h3>
+                        <div class="music-recognition">
+                            <div class="recognition-status" id="recognitionStatus">
+                                Ready to identify music
+                            </div>
+                            <div class="song-info" id="songInfo">
+                                <div class="song-title" id="songTitle"></div>
+                                <div class="song-artist" id="songArtist"></div>
+                            </div>
+                            <button class="recognize-btn" id="recognizeBtn">
+                                <i class="fas fa-search"></i>
+                                Identify Song
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reactive Behaviors -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-robot"></i> Music-Reactive Behaviors</h3>
+                        <div class="reactive-behaviors">
+                            <div class="behavior-toggle" data-behavior="dance">
+                                <span>Beat Dancing</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="behavior-toggle" data-behavior="led-spectrum">
+                                <span>LED Spectrum</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="behavior-toggle" data-behavior="head-bob">
+                                <span>Head Bobbing</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="behavior-toggle" data-behavior="color-pulse">
+                                <span>Color Pulse</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                            <div class="behavior-toggle" data-behavior="movement-sync">
+                                <span>Movement Sync</span>
+                                <div class="toggle-switch"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Settings -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-sliders-h"></i> Audio Settings</h3>
+                        <div class="audio-settings">
+                            <div class="setting-row">
+                                <span class="setting-label">Microphone Gain:</span>
+                                <div class="setting-control">
+                                    <input type="range" class="volume-slider" id="gainSlider" min="0" max="100" value="50">
+                                    <span id="gainValue">50%</span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <span class="setting-label">Beat Sensitivity:</span>
+                                <div class="setting-control">
+                                    <input type="range" class="volume-slider" id="beatSensitivity" min="1" max="10" value="5">
+                                    <span id="beatSensValue">5</span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <span class="setting-label">Visualization:</span>
+                                <div class="setting-control">
+                                    <select id="visualMode" style="background: var(--glass-bg); border: 1px solid var(--border-glow); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-family: 'Orbitron', monospace; font-size: 11px;">
+                                        <option value="spectrum">Spectrum</option>
+                                        <option value="waveform">Waveform</option>
+                                        <option value="both">Both</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Frequency Bands -->
+                        <div class="frequency-bands" id="frequencyBands">
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                            <div class="frequency-bar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Robot Reactions -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-heart"></i> Live Reactions</h3>
+                        <div class="robot-reactions">
+                            <div class="reaction-item">
+                                <span class="reaction-name">Beat Detection</span>
+                                <span class="reaction-status" id="beatStatus">Inactive</span>
+                            </div>
+                            <div class="reaction-item">
+                                <span class="reaction-name">LED Patterns</span>
+                                <span class="reaction-status" id="ledStatus">Inactive</span>
+                            </div>
+                            <div class="reaction-item">
+                                <span class="reaction-name">Dance Moves</span>
+                                <span class="reaction-status" id="danceStatus">Inactive</span>
+                            </div>
+                            <div class="reaction-item">
+                                <span class="reaction-name">Head Movement</span>
+                                <span class="reaction-status" id="headStatus">Inactive</span>
+                            </div>
+                            <div class="reaction-item">
+                                <span class="reaction-name">Color Sync</span>
+                                <span class="reaction-status" id="colorStatus">Inactive</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="connection-indicator" id="connectionIndicator"></div>
+                <span id="connectionStatus">Disconnected</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-microphone"></i>
+                <span id="audioStatus">Audio Inactive</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime">--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/music.js"></script>
+</body>
+</html>

@@ -10,6 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
+    <!-- Three.js for 3D visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
+    
     <!-- Mobile Optimizations -->
     <link href="css/mobile-landscape.css" rel="stylesheet">
     
@@ -79,6 +83,40 @@
             backdrop-filter: blur(10px);
             box-shadow: 0 4px 16px rgba(0, 217, 255, 0.2);
             z-index: 1000;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .view-toggle-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .view-toggle-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .view-toggle-btn.active {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
         }
 
         .header-title {
@@ -626,10 +664,16 @@
                     <i class="fas fa-map slam-icon"></i>
                     <h1>SLAM Mapping</h1>
                 </div>
-                <a href="index.html" class="back-button">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Home
-                </a>
+                <div class="header-controls">
+                    <button id="toggle3DBtn" class="view-toggle-btn" title="Toggle 3D View">
+                        <i class="fas fa-cube"></i>
+                        <span>3D View</span>
+                    </button>
+                    <a href="index.html" class="back-button">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Home
+                    </a>
+                </div>
             </div>
 
             <div class="slam-main">
@@ -832,5 +876,57 @@
     </div>
 
     <script src="js/slam.js"></script>
+    <script src="js/slam3d.js"></script>
+    <script>
+        // Initialize view toggle functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggle3DBtn = document.getElementById('toggle3DBtn');
+            const mapContainer = document.querySelector('.map-canvas-container');
+            let is3DMode = false;
+            let slam3D = null;
+
+            if (toggle3DBtn) {
+                toggle3DBtn.addEventListener('click', () => {
+                    is3DMode = !is3DMode;
+                    
+                    if (is3DMode) {
+                        // Switch to 3D mode
+                        toggle3DBtn.classList.add('active');
+                        toggle3DBtn.innerHTML = '<i class="fas fa-map"></i><span>2D View</span>';
+                        
+                        // Hide 2D canvas
+                        const canvas2D = document.getElementById('mapCanvas');
+                        if (canvas2D) canvas2D.style.display = 'none';
+                        
+                        // Initialize 3D view
+                        if (!slam3D) {
+                            // Add ID for 3D container
+                            mapContainer.id = 'slam3DContainer';
+                            slam3D = new LAIKA3DSLAMMap();
+                        }
+                        
+                        console.log('✅ Switched to 3D SLAM view');
+                        
+                    } else {
+                        // Switch to 2D mode
+                        toggle3DBtn.classList.remove('active');
+                        toggle3DBtn.innerHTML = '<i class="fas fa-cube"></i><span>3D View</span>';
+                        
+                        // Show 2D canvas
+                        const canvas2D = document.getElementById('mapCanvas');
+                        if (canvas2D) canvas2D.style.display = 'block';
+                        
+                        // Hide 3D container content (but keep the container)
+                        const slam3DCanvas = document.getElementById('slam3DCanvas');
+                        if (slam3DCanvas) slam3DCanvas.style.display = 'none';
+                        
+                        console.log('✅ Switched to 2D SLAM view');
+                    }
+                });
+            }
+            
+            console.log('🚀 SLAM view toggle initialized');
+        });
+    </script>
 </body>
 </html>
