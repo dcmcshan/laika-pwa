@@ -172,8 +172,10 @@ class LAIKASLAMMap {
     }
 
     async connectWebSocket() {
+        // Show mock data immediately for testing
+        this.showMockMapData();
+        
         const wsUrls = [
-            `ws://${window.location.hostname}:${window.location.port || 80}/ws/slam`,
             `ws://${window.location.hostname}/ws/slam`,
             'ws://laika.local/ws/slam',
             'ws://localhost/ws/slam'
@@ -935,6 +937,56 @@ class LAIKASLAMMap {
 }
 
 // Initialize SLAM map when page loads
+// Add mock data method to LAIKASLAMMap prototype
+LAIKASLAMMap.prototype.showMockMapData = function() {
+    console.log('📊 Loading mock SLAM data for testing...');
+    
+    // Create a simple test map
+    const width = 200;
+    const height = 200;
+    const mapData = new Array(width * height).fill(0);
+    
+    // Add some walls around the edges
+    for (let i = 0; i < width * height; i++) {
+        const x = i % width;
+        const y = Math.floor(i / width);
+        
+        if (x < 5 || x >= width - 5 || y < 5 || y >= height - 5) {
+            mapData[i] = 100; // Wall
+        } else if (Math.random() < 0.05) {
+            mapData[i] = 100; // Random obstacles
+        } else {
+            mapData[i] = 0; // Free space
+        }
+    }
+    
+    // Update map data
+    this.mapData = {
+        occupancyGrid: mapData,
+        width: width,
+        height: height,
+        resolution: 0.05,
+        origin: { x: -5, y: -5, theta: 0 }
+    };
+    
+    // Set robot pose
+    this.robotPose = { x: 0, y: 0, theta: 0 };
+    
+    // Add some test waypoints
+    this.waypoints = [
+        { id: 'wp1', name: 'Home', x: 0, y: 0, description: 'Starting position' },
+        { id: 'wp2', name: 'Corner A', x: 2, y: 2, description: 'Test waypoint' },
+        { id: 'wp3', name: 'Corner B', x: -2, y: 2, description: 'Another waypoint' }
+    ];
+    
+    // Render the map
+    this.renderMap();
+    this.updateRobotMarker();
+    this.renderWaypoints();
+    
+    console.log('✅ Mock SLAM data loaded - you should see a test map!');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     window.laikaSLAM = new LAIKASLAMMap();
 });
