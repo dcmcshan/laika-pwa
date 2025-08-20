@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2196F3">
+    <meta name="theme-color" content="#00FFFF">
     <title>LAIKA Controller</title>
     
     <!-- PWA Manifest -->
@@ -78,7 +78,7 @@
         }
 
         .app-container {
-            max-width: 400px;
+            max-width: 1200px;
             margin: 0 auto;
             min-height: 100vh;
             background: var(--panel-bg);
@@ -89,7 +89,6 @@
                 inset 0 0 30px rgba(0, 255, 255, 0.1),
                 0 0 60px rgba(0, 255, 255, 0.2);
             border: 1px solid var(--atomic-cyan);
-            border-radius: 0;
             position: relative;
             z-index: 2;
         }
@@ -113,12 +112,13 @@
             z-index: -1;
         }
 
+        /* Header */
         .header {
             background: 
                 linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
                 linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
             color: var(--atomic-bg);
-            padding: 30px 20px;
+            padding: 40px 20px;
             text-align: center;
             position: relative;
             border-bottom: 2px solid var(--atomic-cyan);
@@ -146,8 +146,8 @@
         }
 
         .robot-icon {
-            font-size: 64px;
-            margin-bottom: 15px;
+            font-size: 80px;
+            margin-bottom: 20px;
             display: block;
             text-shadow: 
                 0 0 10px var(--atomic-bg),
@@ -164,11 +164,11 @@
 
         .app-title {
             font-family: 'Orbitron', monospace;
-            font-size: 28px;
+            font-size: 48px;
             font-weight: 900;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             text-shadow: 
                 0 0 10px var(--atomic-bg),
                 0 0 20px var(--atomic-bg);
@@ -176,36 +176,40 @@
 
         .app-subtitle {
             font-family: 'Exo 2', sans-serif;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: 300;
             opacity: 0.9;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             text-shadow: 0 0 5px var(--atomic-bg);
         }
 
-        .main-content {
-            padding: 25px 20px;
-            padding-bottom: 120px;
-            position: relative;
+        /* Navigation */
+        .nav-container {
+            padding: 30px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+            margin: 0 auto;
         }
 
-        .status-card {
+        .nav-card {
             background: 
                 linear-gradient(135deg, var(--panel-bg), #1A1A30),
                 radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
             border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 
-                0 0 20px var(--glow-cyan),
-                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            display: block;
         }
 
-        .status-card::before {
+        .nav-card::before {
             content: '';
             position: absolute;
             top: 0;
@@ -213,7 +217,7 @@
             width: 100%;
             height: 2px;
             background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
-            animation: scanLine 2s linear infinite;
+            animation: scanLine 3s linear infinite;
         }
 
         @keyframes scanLine {
@@ -221,283 +225,223 @@
             100% { left: 100%; }
         }
 
-        .status-card.disconnected {
-            border-color: var(--atomic-orange);
+        .nav-card:hover {
+            transform: translateY(-5px);
             box-shadow: 
-                0 0 20px rgba(255, 107, 53, 0.5),
-                inset 0 0 20px rgba(255, 107, 53, 0.1);
-        }
-
-        .status-card.connected {
-            border-color: var(--atomic-cyan);
-            animation: connectedGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes connectedGlow {
-            from { box-shadow: 0 0 20px var(--glow-cyan), inset 0 0 20px rgba(0, 255, 255, 0.1); }
-            to { box-shadow: 0 0 30px var(--atomic-cyan), inset 0 0 30px rgba(0, 255, 255, 0.2); }
-        }
-
-        .status-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        .status-text {
-            font-size: 13px;
-            color: var(--text-dim);
-            line-height: 1.5;
-            font-weight: 300;
-        }
-
-        .action-button {
-            width: 100%;
-            padding: 18px 20px;
-            border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
-            font-family: 'Orbitron', monospace;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-            background: var(--panel-bg);
-            color: var(--atomic-cyan);
-        }
-
-        .action-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .action-button:hover::before {
-            left: 100%;
-        }
-
-        .action-button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            border-color: var(--text-dim);
-            color: var(--text-dim);
-        }
-
-        .primary-button {
-            background: 
-                linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
-                linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-            color: var(--atomic-bg);
-            border-color: var(--atomic-cyan);
-            box-shadow: 
-                0 0 15px var(--glow-cyan),
-                inset 0 0 15px rgba(0, 255, 255, 0.2);
-        }
-
-        .primary-button:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 
-                0 5px 25px var(--glow-cyan),
-                inset 0 0 20px rgba(0, 255, 255, 0.3);
-        }
-
-        .secondary-button {
-            background: transparent;
-            color: var(--atomic-cyan);
-            border-color: var(--atomic-cyan);
-        }
-
-        .secondary-button:hover:not(:disabled) {
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 15px var(--glow-cyan);
-        }
-
-        .success-button {
-            background: 
-                linear-gradient(135deg, var(--atomic-cyan), var(--electric-blue));
-            color: var(--atomic-bg);
-            border-color: var(--atomic-cyan);
-        }
-
-        .danger-button {
-            background: 
-                linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
-            color: white;
-            border-color: var(--atomic-orange);
-            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
-        }
-
-        .wifi-form {
-            background: 
-                linear-gradient(135deg, var(--panel-bg), #1A1A30);
-            border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 
-                0 0 25px var(--glow-cyan),
-                inset 0 0 25px rgba(0, 255, 255, 0.1);
-            display: none;
-            position: relative;
-        }
-
-        .wifi-form.show {
-            display: block;
-            animation: atomicSlideIn 0.5s ease;
-        }
-
-        @keyframes atomicSlideIn {
-            from { 
-                opacity: 0; 
-                transform: translateY(30px) scale(0.95); 
-            }
-            to { 
-                opacity: 1; 
-                transform: translateY(0) scale(1); 
-            }
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px var(--glow-cyan);
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
-            font-family: 'Exo 2', monospace;
-            font-size: 14px;
-            background: var(--atomic-bg);
-            color: var(--text-cyan);
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
+                0 10px 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.2);
             border-color: var(--tron-cyan);
-            box-shadow: 
-                0 0 15px var(--glow-cyan),
-                inset 0 0 10px rgba(0, 255, 255, 0.1);
         }
 
-        .networks-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
+        .nav-card:hover::before {
+            animation-duration: 1s;
+        }
+
+        .nav-icon {
+            font-size: 48px;
             margin-bottom: 20px;
-            background: var(--atomic-bg);
+            display: block;
+            text-align: center;
+            filter: drop-shadow(0 0 10px var(--glow-cyan));
+            animation: iconFloat 4s ease-in-out infinite;
         }
 
-        .network-item {
-            padding: 15px;
-            border-bottom: 1px solid var(--grid-color);
-            cursor: pointer;
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .nav-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--glow-cyan);
+            text-align: center;
+        }
+
+        .nav-description {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .nav-features {
+            list-style: none;
+            font-size: 12px;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', monospace;
+        }
+
+        .nav-features li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .nav-features li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--atomic-cyan);
+            font-weight: bold;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: var(--atomic-bg);
+            border-top: 2px solid var(--atomic-cyan);
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s ease;
-            position: relative;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .network-item:hover {
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
-        }
-
-        .network-item:last-child {
-            border-bottom: none;
-        }
-
-        .network-name {
-            font-family: 'Exo 2', monospace;
-            font-weight: 600;
-            color: var(--text-cyan);
-        }
-
-        .network-info {
+        .status-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 11px;
-            color: var(--text-dim);
-            font-family: 'Orbitron', monospace;
+            gap: 8px;
+            color: var(--atomic-cyan);
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid transparent;
-            border-top: 3px solid var(--atomic-cyan);
+        .status-indicator {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            animation: atomicSpin 1s linear infinite;
+            background: var(--atomic-cyan);
             box-shadow: 0 0 10px var(--glow-cyan);
+            animation: statusPulse 2s ease-in-out infinite;
         }
 
-        @keyframes atomicSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 400px;
-            background: 
-                linear-gradient(135deg, var(--panel-bg), #1A1A30);
-            padding: 20px;
+        .status-indicator.connected {
+            background: var(--atomic-cyan);
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: var(--atomic-orange);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .app-container {
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .app-title {
+                font-size: 32px;
+                letter-spacing: 2px;
+            }
+            
+            .app-subtitle {
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+            
+            .nav-container {
+                grid-template-columns: 1fr;
+                padding: 20px 15px;
+                gap: 20px;
+            }
+            
+            .nav-card {
+                padding: 25px 20px;
+            }
+            
+            .nav-icon {
+                font-size: 40px;
+            }
+            
+            .nav-title {
+                font-size: 20px;
+                letter-spacing: 1px;
+            }
+            
+            .robot-icon {
+                font-size: 64px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-title {
+                font-size: 28px;
+            }
+            
+            .nav-icon {
+                font-size: 36px;
+            }
+            
+            .nav-title {
+                font-size: 18px;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+                padding: 20px;
+            }
+        }
+
+        /* Special navigation card colors */
+        .nav-card.chat-card:hover {
+            border-color: var(--atomic-pink);
             box-shadow: 
-                0 -4px 20px var(--glow-cyan),
-                inset 0 0 20px rgba(0, 255, 255, 0.1);
-            border-top: 2px solid var(--atomic-cyan);
-            z-index: 10;
+                0 10px 30px rgba(255, 27, 141, 0.5),
+                inset 0 0 30px rgba(255, 27, 141, 0.2);
         }
 
+        .nav-card.dashboard-card:hover {
+            border-color: var(--electric-blue);
+            box-shadow: 
+                0 10px 30px rgba(0, 128, 255, 0.5),
+                inset 0 0 30px rgba(0, 128, 255, 0.2);
+        }
+
+        .nav-card.camera-card:hover {
+            border-color: var(--atomic-orange);
+            box-shadow: 
+                0 10px 30px rgba(255, 107, 53, 0.5),
+                inset 0 0 30px rgba(255, 107, 53, 0.2);
+        }
+
+        .nav-card.map-card:hover {
+            border-color: var(--dark-cyan);
+            box-shadow: 
+                0 10px 30px rgba(0, 188, 212, 0.5),
+                inset 0 0 30px rgba(0, 188, 212, 0.2);
+        }
+
+        /* Install Banner */
         .install-banner {
             background: 
                 linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
             color: white;
             padding: 15px 20px;
             border: 2px solid var(--atomic-orange);
-            margin-bottom: 20px;
+            margin: 20px;
             display: none;
             align-items: center;
             gap: 15px;
@@ -530,592 +474,24 @@
             letter-spacing: 1px;
         }
 
-        .error-message {
-            background: 
-                linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 27, 141, 0.2));
-            color: var(--atomic-orange);
-            padding: 15px;
-            border: 2px solid var(--atomic-orange);
-            margin-bottom: 20px;
-            border-left: 6px solid var(--atomic-orange);
+        /* Hidden pages */
+        .page {
             display: none;
-            font-family: 'Exo 2', monospace;
-            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
         }
 
-        .error-message.show {
+        .page.active {
             display: block;
-            animation: atomicSlideIn 0.5s ease;
+            animation: pageSlideIn 0.5s ease;
         }
 
-        .success-message {
-            background: 
-                linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 229, 255, 0.2));
-            color: var(--atomic-cyan);
-            padding: 15px;
-            border: 2px solid var(--atomic-cyan);
-            margin-bottom: 20px;
-            border-left: 6px solid var(--atomic-cyan);
-            display: none;
-            font-family: 'Exo 2', monospace;
-            box-shadow: 0 0 15px var(--glow-cyan);
-        }
-
-        .success-message.show {
-            display: block;
-            animation: atomicSlideIn 0.5s ease;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .app-container {
-                max-width: 100%;
-                border-left: none;
-                border-right: none;
+        @keyframes pageSlideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px) scale(0.95); 
             }
-            
-            .main-content {
-                padding: 20px 15px;
-            }
-            
-            .robot-icon {
-                font-size: 56px;
-            }
-            
-            .app-title {
-                font-size: 24px;
-                letter-spacing: 2px;
-            }
-        }
-
-        /* Atomic Age animations */
-        @keyframes atomicOrbit {
-            0% { transform: rotate(0deg) translateX(20px) rotate(0deg); }
-            100% { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
-        }
-
-        /* Additional TRON-style elements */
-        .status-card h3:after,
-        .wifi-form h3:after {
-            content: '';
-            display: block;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, var(--atomic-cyan), transparent);
-            margin-top: 8px;
-            animation: scanLine 3s linear infinite;
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--atomic-bg);
-            border: 1px solid var(--atomic-cyan);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--atomic-cyan);
-            box-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--tron-cyan);
-        }
-
-        /* Control Page Styles */
-        .control-page {
-            padding: 20px;
-            padding-bottom: 100px;
-            background: var(--atomic-bg);
-            min-height: 100vh;
-        }
-
-        .control-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 2px solid var(--atomic-cyan);
-            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
-            box-shadow: 0 0 20px var(--glow-cyan);
-        }
-
-        .control-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--glow-cyan);
-            margin-bottom: 8px;
-        }
-
-        .control-subtitle {
-            font-family: 'Exo 2', sans-serif;
-            font-size: 12px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .control-section {
-            margin-bottom: 25px;
-            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
-            border: 2px solid var(--atomic-cyan);
-            padding: 20px;
-            box-shadow: 0 0 15px var(--glow-cyan);
-            position: relative;
-        }
-
-        .control-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
-            animation: scanLine 3s linear infinite;
-        }
-
-        .section-title {
-            font-family: 'Orbitron', monospace;
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px var(--glow-cyan);
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--grid-color);
-            padding-bottom: 8px;
-        }
-
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .emergency-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .control-button {
-            background: var(--panel-bg);
-            border: 2px solid var(--atomic-cyan);
-            color: var(--atomic-cyan);
-            padding: 15px 10px;
-            font-family: 'Exo 2', monospace;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .control-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .control-button:hover::before {
-            left: 100%;
-        }
-
-        .control-button:hover {
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 15px var(--glow-cyan);
-            transform: translateY(-2px);
-        }
-
-        .control-button:active {
-            transform: translateY(0);
-            box-shadow: 0 0 20px var(--atomic-cyan);
-        }
-
-        .control-icon {
-            font-size: 24px;
-            filter: drop-shadow(0 0 5px var(--glow-cyan));
-        }
-
-        .control-label {
-            font-size: 10px;
-            text-align: center;
-        }
-
-        /* Button Type Variations */
-        .movement-btn:hover {
-            border-color: var(--tron-cyan);
-            color: var(--tron-cyan);
-        }
-
-        .direction-btn:hover {
-            border-color: var(--electric-blue);
-            color: var(--electric-blue);
-        }
-
-        .interactive-btn:hover {
-            border-color: var(--atomic-cyan);
-            color: var(--atomic-cyan);
-        }
-
-        .performance-btn:hover {
-            border-color: var(--atomic-pink);
-            color: var(--atomic-pink);
-        }
-
-        .sports-btn:hover {
-            border-color: var(--atomic-orange);
-            color: var(--atomic-orange);
-        }
-
-        .led-btn:hover {
-            border-color: var(--tron-cyan);
-            color: var(--tron-cyan);
-        }
-
-        .emergency-btn {
-            background: linear-gradient(135deg, var(--atomic-orange), var(--atomic-pink));
-            color: white;
-            border-color: var(--atomic-orange);
-            font-weight: 700;
-        }
-
-        .emergency-btn:hover {
-            background: linear-gradient(135deg, var(--atomic-pink), var(--atomic-orange));
-            box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
-        }
-
-        /* Pose Controls */
-        .pose-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .pose-slider {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .pose-label {
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            min-width: 60px;
-        }
-
-        .pose-range {
-            flex: 1;
-            height: 6px;
-            background: var(--atomic-bg);
-            border: 1px solid var(--atomic-cyan);
-            outline: none;
-            cursor: pointer;
-        }
-
-        .pose-range::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: var(--atomic-cyan);
-            border: 2px solid var(--atomic-bg);
-            cursor: pointer;
-            box-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        .pose-range::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: var(--atomic-cyan);
-            border: 2px solid var(--atomic-bg);
-            cursor: pointer;
-            box-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        .pose-value {
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-cyan);
-            min-width: 40px;
-            text-align: center;
-            background: rgba(0, 255, 255, 0.1);
-            padding: 4px 8px;
-            border: 1px solid var(--atomic-cyan);
-        }
-
-        /* Responsive adjustments for control page */
-        @media (max-width: 480px) {
-            .control-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .control-title {
-                font-size: 20px;
-                letter-spacing: 1px;
-            }
-            
-            .control-button {
-                padding: 20px 15px;
-            }
-            
-            .control-icon {
-                font-size: 28px;
-            }
-            
-            .control-label {
-                font-size: 11px;
-            }
-            
-            .pose-slider {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 8px;
-            }
-            
-            .pose-label {
-                min-width: auto;
-                text-align: center;
-            }
-        }
-
-        /* Control page animations */
-        @keyframes controlGlow {
-            0%, 100% { box-shadow: 0 0 15px var(--glow-cyan); }
-            50% { box-shadow: 0 0 25px var(--atomic-cyan); }
-        }
-
-        .control-section:nth-child(even) {
-            animation: controlGlow 4s ease-in-out infinite;
-        }
-
-        /* Page transition animations */
-        .control-page.show {
-            display: block;
-            animation: atomicSlideIn 0.5s ease;
-        }
-
-        /* WiFi Status and Advanced Features */
-        .wifi-status {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 15px;
-            border: 2px solid var(--atomic-cyan);
-            border-radius: 0;
-            margin-bottom: 15px;
-            font-family: 'Orbitron', monospace;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-indicator.connected {
-            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 229, 255, 0.2));
-            color: var(--atomic-cyan);
-            box-shadow: 0 0 15px var(--glow-cyan);
-        }
-
-        .status-indicator.disconnected {
-            background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(255, 27, 141, 0.2));
-            color: var(--atomic-orange);
-            border-color: var(--atomic-orange);
-            box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
-        }
-
-        .status-description {
-            font-size: 12px;
-            color: var(--text-dim);
-            margin: 0;
-        }
-
-        .advanced-features {
-            margin-top: 20px;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .feature-button {
-            background: var(--panel-bg);
-            border: 2px solid var(--atomic-cyan);
-            color: var(--atomic-cyan);
-            padding: 20px 15px;
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .feature-button:hover::before {
-            left: 100%;
-        }
-
-        .feature-button:hover {
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 20px var(--glow-cyan);
-            transform: translateY(-3px);
-        }
-
-        .feature-icon {
-            font-size: 32px;
-            filter: drop-shadow(0 0 8px var(--glow-cyan));
-        }
-
-        .feature-label {
-            font-size: 11px;
-            text-align: center;
-        }
-
-        /* Camera and SLAM Sections */
-        .camera-container, .slam-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .camera-controls, .slam-controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .camera-feed, .slam-map {
-            position: relative;
-            min-height: 300px;
-            border: 2px solid var(--atomic-cyan);
-            background: var(--atomic-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
-        }
-
-        .camera-placeholder, .slam-placeholder {
-            text-align: center;
-            color: var(--text-dim);
-            padding: 40px;
-        }
-
-        .placeholder-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        .camera-placeholder p, .slam-placeholder p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .slam-info {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 15px;
-            background: rgba(0, 255, 255, 0.05);
-            border: 1px solid var(--grid-color);
-        }
-
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .info-label {
-            font-family: 'Orbitron', monospace;
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--atomic-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .info-value {
-            font-family: 'Exo 2', monospace;
-            font-size: 12px;
-            color: var(--text-cyan);
-            font-weight: 600;
-        }
-
-        /* Responsive adjustments for new features */
-        @media (max-width: 480px) {
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .feature-button {
-                padding: 25px 20px;
-            }
-            
-            .feature-icon {
-                font-size: 36px;
-            }
-            
-            .feature-label {
-                font-size: 12px;
-            }
-            
-            .camera-controls, .slam-controls {
-                flex-direction: column;
-            }
-            
-            .slam-info {
-                flex-direction: column;
-                gap: 10px;
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
             }
         }
     </style>
@@ -1125,8 +501,8 @@
         <!-- Header -->
         <div class="header">
             <span class="robot-icon">🐕</span>
-            <h1 class="app-title">LAIKA Controller</h1>
-            <p class="app-subtitle">BLE WiFi Provisioning</p>
+            <h1 class="app-title">LAIKA</h1>
+            <p class="app-subtitle">Atomic-Age Robot Companion</p>
         </div>
 
         <!-- Install Banner -->
@@ -1136,397 +512,253 @@
             <button class="install-button" id="installButton">Install</button>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Status Card -->
-            <div class="status-card" id="statusCard">
-                <div class="status-title" id="statusTitle">
-                    <span id="statusIcon">📡</span>
-                    <span>Connection Status</span>
-                </div>
-                <div class="status-text" id="statusText">
-                    Ready to connect to LAIKA
-                </div>
+        <!-- Home Page -->
+        <div id="homePage" class="page active">
+            <div class="nav-container">
+                <!-- Chat Interface -->
+                <a href="#" class="nav-card chat-card" data-page="chat">
+                    <span class="nav-icon">💬</span>
+                    <h3 class="nav-title">Chat with LAIKA</h3>
+                    <p class="nav-description">
+                        Real-time conversation with LAIKA's AI brain. Natural language commands and contextual responses.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Voice-to-text input</li>
+                        <li>LLM brain integration</li>
+                        <li>Personality switching</li>
+                        <li>Command execution</li>
+                    </ul>
+                </a>
+
+                <!-- Sensor Dashboard -->
+                <a href="#" class="nav-card dashboard-card" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <h3 class="nav-title">Sensor Dashboard</h3>
+                    <p class="nav-description">
+                        Live telemetry and system monitoring. Real-time data from all sensors and components.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Battery & power monitoring</li>
+                        <li>Temperature sensors</li>
+                        <li>IMU & servo health</li>
+                        <li>Performance analytics</li>
+                    </ul>
+                </a>
+
+                <!-- Camera View -->
+                <a href="#" class="nav-card camera-card" data-page="camera">
+                    <span class="nav-icon">📹</span>
+                    <h3 class="nav-title">Camera View</h3>
+                    <p class="nav-description">
+                        Live HD video stream with AI-powered scene analysis and object recognition.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Real-time HD streaming</li>
+                        <li>AI scene analysis</li>
+                        <li>Object detection</li>
+                        <li>Photo capture</li>
+                    </ul>
+                </a>
+
+                <!-- SLAM Map -->
+                <a href="#" class="nav-card map-card" data-page="map">
+                    <span class="nav-icon">🗺️</span>
+                    <h3 class="nav-title">SLAM Map</h3>
+                    <p class="nav-description">
+                        Interactive mapping and navigation. Real-time SLAM visualization with autonomous navigation.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Live occupancy grid</li>
+                        <li>Robot localization</li>
+                        <li>Waypoint navigation</li>
+                        <li>Path planning</li>
+                    </ul>
+                </a>
+
+                <!-- Music Recognition -->
+                <a href="#" class="nav-card" data-page="music">
+                    <span class="nav-icon">🎵</span>
+                    <h3 class="nav-title">Music & Audio</h3>
+                    <p class="nav-description">
+                        Real-time music recognition and audio analysis. Beat detection and music-responsive behaviors.
+                    </p>
+                    <ul class="nav-features">
+                        <li>AudD music recognition</li>
+                        <li>Beat detection</li>
+                        <li>Audio spectrum</li>
+                        <li>Music-sync dancing</li>
+                    </ul>
+                </a>
+
+                <!-- Robot Control -->
+                <a href="#" class="nav-card" data-page="control">
+                    <span class="nav-icon">🎮</span>
+                    <h3 class="nav-title">Robot Control</h3>
+                    <p class="nav-description">
+                        Direct robot control with 80+ actions across multiple categories. Emergency controls included.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Movement controls</li>
+                        <li>Performance actions</li>
+                        <li>LED patterns</li>
+                        <li>Emergency stop</li>
+                    </ul>
+                </a>
             </div>
+        </div>
 
-            <!-- Error Message -->
-            <div class="error-message" id="errorMessage"></div>
-            
-            <!-- Success Message -->
-            <div class="success-message" id="successMessage"></div>
-
-            <!-- Action Buttons -->
-            <button class="action-button primary-button" id="connectButton">
-                <span>⚡</span>
-                <span>Find LAIKA</span>
-            </button>
-
-            <button class="action-button secondary-button" id="identifyButton" style="display: none;">
-                <span>🎯</span>
-                <span>Identify LAIKA</span>
-            </button>
-
-            <button class="action-button success-button" id="configureWifiButton" style="display: none;">
-                <span>📡</span>
-                <span>Configure WiFi</span>
-            </button>
-
-            <button class="action-button primary-button" id="controlPageButton" style="display: none;">
-                <span>🎮</span>
-                <span>Control LAIKA</span>
-            </button>
-
-            <button class="action-button danger-button" id="disconnectButton" style="display: none;">
-                <span>⚠️</span>
-                <span>Disconnect</span>
-            </button>
-
-            <!-- WiFi Configuration Form -->
-            <div class="wifi-form" id="wifiForm">
-                <h3 style="margin-bottom: 20px; color: var(--atomic-cyan); font-family: 'Orbitron', monospace; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--glow-cyan);">⚛️ WiFi Configuration</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">Available Networks</label>
-                    <div class="networks-list" id="networksList">
-                        <div style="padding: 20px; text-align: center; color: #666;">
-                            <button class="action-button secondary-button" onclick="scanNetworks()" style="margin: 0; padding: 8px 16px; width: auto;">
-                                Scan Networks
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="ssidInput">Network Name (SSID)</label>
-                    <input type="text" class="form-input" id="ssidInput" placeholder="Enter WiFi network name" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="passwordInput">Password</label>
-                    <input type="password" class="form-input" id="passwordInput" placeholder="Enter WiFi password" required>
-                </div>
-
-                <button class="action-button primary-button" id="submitWifiButton">
-                    <span>⚛️</span>
-                    <span>Configure WiFi</span>
-                </button>
-
-                <button class="action-button secondary-button" id="cancelWifiButton">
-                    <span>⭕</span>
-                    <span>Cancel</span>
+        <!-- Chat Page (placeholder) -->
+        <div id="chatPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">💬 Chat Interface</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Real-time chat with LAIKA's AI brain</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
                 </button>
             </div>
         </div>
 
-        <!-- Control Page -->
-        <div class="control-page" id="controlPage" style="display: none;">
-            <div class="control-header">
-                <h2 class="control-title">🤖 LAIKA Control Center</h2>
-                <p class="control-subtitle">Atomic-Age Robot Command Interface</p>
-            </div>
-
-            <!-- WiFi Status and Advanced Features -->
-            <div class="control-section">
-                <h3 class="section-title">📡 WiFi Status & Advanced Features</h3>
-                <div id="wifiStatus" class="wifi-status">
-                    <div class="status-indicator disconnected">
-                        <span class="status-icon">📡</span>
-                        <span class="status-text">WiFi: Not Connected</span>
-                    </div>
-                    <p class="status-description">Connect to WiFi to enable camera feed and SLAM mapping</p>
-                </div>
-                
-                <div id="advancedFeatures" class="advanced-features" style="display: none;">
-                    <div class="feature-grid">
-                        <button class="feature-button" id="cameraButton">
-                            <span class="feature-icon">📹</span>
-                            <span class="feature-label">Camera Feed</span>
-                        </button>
-                        <button class="feature-button" id="slamButton">
-                            <span class="feature-icon">🗺️</span>
-                            <span class="feature-label">SLAM Map</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Camera Feed Section -->
-            <div class="control-section" id="cameraSection" style="display: none;">
-                <h3 class="section-title">📹 Live Camera Feed</h3>
-                <div class="camera-container">
-                    <div class="camera-controls">
-                        <button class="control-button" id="startCameraBtn">
-                            <span class="control-icon">▶️</span>
-                            <span class="control-label">Start Camera</span>
-                        </button>
-                        <button class="control-button" id="stopCameraBtn">
-                            <span class="control-icon">⏹️</span>
-                            <span class="control-label">Stop Camera</span>
-                        </button>
-                    </div>
-                    <div class="camera-feed">
-                        <img id="cameraStream" src="" alt="Camera Feed" style="display: none; width: 100%; height: auto; border: 2px solid var(--atomic-cyan);">
-                        <div id="cameraPlaceholder" class="camera-placeholder">
-                            <span class="placeholder-icon">📹</span>
-                            <p>Camera feed will appear here</p>
-                            <p>Click "Start Camera" to begin streaming</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SLAM Map Section -->
-            <div class="control-section" id="slamSection" style="display: none;">
-                <h3 class="section-title">🗺️ SLAM Navigation Map</h3>
-                <div class="slam-container">
-                    <div class="slam-controls">
-                        <button class="control-button" id="refreshMapBtn">
-                            <span class="control-icon">🔄</span>
-                            <span class="control-label">Refresh Map</span>
-                        </button>
-                        <button class="control-button" id="autoRefreshBtn">
-                            <span class="control-icon">⚡</span>
-                            <span class="control-label">Auto Refresh</span>
-                        </button>
-                    </div>
-                    <div class="slam-map">
-                        <img id="slamMap" src="" alt="SLAM Map" style="display: none; width: 100%; height: auto; border: 2px solid var(--atomic-cyan);">
-                        <div id="slamPlaceholder" class="slam-placeholder">
-                            <span class="placeholder-icon">🗺️</span>
-                            <p>SLAM map will appear here</p>
-                            <p>Click "Refresh Map" to load current map</p>
-                        </div>
-                    </div>
-                    <div class="slam-info">
-                        <div class="info-item">
-                            <span class="info-label">Robot Position:</span>
-                            <span id="robotPosition" class="info-value">Unknown</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Map Resolution:</span>
-                            <span id="mapResolution" class="info-value">Unknown</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Movement Controls -->
-            <div class="control-section">
-                <h3 class="section-title">⚡ Basic Movements</h3>
-                <div class="control-grid">
-                    <button class="control-button movement-btn" data-action="stand">
-                        <span class="control-icon">🦴</span>
-                        <span class="control-label">Stand</span>
-                    </button>
-                    <button class="control-button movement-btn" data-action="sit">
-                        <span class="control-icon">🪑</span>
-                        <span class="control-label">Sit</span>
-                    </button>
-                    <button class="control-button movement-btn" data-action="lie_down">
-                        <span class="control-icon">🛌</span>
-                        <span class="control-label">Lie Down</span>
-                    </button>
-                    <button class="control-button movement-btn" data-action="go_home">
-                        <span class="control-icon">🏠</span>
-                        <span class="control-label">Home</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Directional Controls -->
-            <div class="control-section">
-                <h3 class="section-title">🧭 Movement Direction</h3>
-                <div class="control-grid">
-                    <button class="control-button direction-btn" data-action="forward">
-                        <span class="control-icon">⬆️</span>
-                        <span class="control-label">Forward</span>
-                    </button>
-                    <button class="control-button direction-btn" data-action="back">
-                        <span class="control-icon">⬇️</span>
-                        <span class="control-label">Back</span>
-                    </button>
-                    <button class="control-button direction-btn" data-action="turn_left">
-                        <span class="control-icon">⬅️</span>
-                        <span class="control-label">Turn Left</span>
-                    </button>
-                    <button class="control-button direction-btn" data-action="turn_right">
-                        <span class="control-icon">➡️</span>
-                        <span class="control-label">Turn Right</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Interactive Actions -->
-            <div class="control-section">
-                <h3 class="section-title">🎭 Interactive Actions</h3>
-                <div class="control-grid">
-                    <button class="control-button interactive-btn" data-action="bow">
-                        <span class="control-icon">🎩</span>
-                        <span class="control-label">Bow</span>
-                    </button>
-                    <button class="control-button interactive-btn" data-action="wave">
-                        <span class="control-icon">👋</span>
-                        <span class="control-label">Wave</span>
-                    </button>
-                    <button class="control-button interactive-btn" data-action="shake_hands">
-                        <span class="control-icon">🤝</span>
-                        <span class="control-label">Shake Hands</span>
-                    </button>
-                    <button class="control-button interactive-btn" data-action="nod">
-                        <span class="control-icon">✅</span>
-                        <span class="control-label">Nod</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Performance Actions -->
-            <div class="control-section">
-                <h3 class="section-title">🎪 Performance Mode</h3>
-                <div class="control-grid">
-                    <button class="control-button performance-btn" data-action="dance">
-                        <span class="control-icon">💃</span>
-                        <span class="control-label">Dance</span>
-                    </button>
-                    <button class="control-button performance-btn" data-action="moonwalk">
-                        <span class="control-icon">🌙</span>
-                        <span class="control-label">Moonwalk</span>
-                    </button>
-                    <button class="control-button performance-btn" data-action="boxing">
-                        <span class="control-icon">🥊</span>
-                        <span class="control-label">Boxing</span>
-                    </button>
-                    <button class="control-button performance-btn" data-action="push_up">
-                        <span class="control-icon">💪</span>
-                        <span class="control-label">Push-ups</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sports Actions -->
-            <div class="control-section">
-                <h3 class="section-title">⚽ Sports Mode</h3>
-                <div class="control-grid">
-                    <button class="control-button sports-btn" data-action="kick_ball_left">
-                        <span class="control-icon">🦵</span>
-                        <span class="control-label">Kick Left</span>
-                    </button>
-                    <button class="control-button sports-btn" data-action="kick_ball_right">
-                        <span class="control-icon">🦵</span>
-                        <span class="control-label">Kick Right</span>
-                    </button>
-                    <button class="control-button sports-btn" data-action="stretch">
-                        <span class="control-icon">🧘</span>
-                        <span class="control-label">Stretch</span>
-                    </button>
-                    <button class="control-button sports-btn" data-action="greeting">
-                        <span class="control-icon">🙏</span>
-                        <span class="control-label">Greet</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Pose Controls -->
-            <div class="control-section">
-                <h3 class="section-title">🎯 Pose Controls</h3>
-                <div class="pose-controls">
-                    <div class="pose-slider">
-                        <label class="pose-label">Height</label>
-                        <input type="range" class="pose-range" id="heightSlider" min="-15" max="-5" value="-10" step="0.5">
-                        <span class="pose-value" id="heightValue">-10</span>
-                    </div>
-                    <div class="pose-slider">
-                        <label class="pose-label">Pitch</label>
-                        <input type="range" class="pose-range" id="pitchSlider" min="-30" max="30" value="0" step="1">
-                        <span class="pose-value" id="pitchValue">0°</span>
-                    </div>
-                    <div class="pose-slider">
-                        <label class="pose-label">Roll</label>
-                        <input type="range" class="pose-range" id="rollSlider" min="-30" max="30" value="0" step="1">
-                        <span class="pose-value" id="rollValue">0°</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LED Controls -->
-            <div class="control-section">
-                <h3 class="section-title">💡 LED Lights</h3>
-                <div class="control-grid">
-                    <button class="control-button led-btn" data-action="red_light">
-                        <span class="control-icon" style="color: #FF0000;">🔴</span>
-                        <span class="control-label">Red Light</span>
-                    </button>
-                    <button class="control-button led-btn" data-action="green_light">
-                        <span class="control-icon" style="color: #00FF00;">🟢</span>
-                        <span class="control-label">Green Light</span>
-                    </button>
-                    <button class="control-button led-btn" data-action="blue_light">
-                        <span class="control-icon" style="color: #0000FF;">🔵</span>
-                        <span class="control-label">Blue Light</span>
-                    </button>
-                    <button class="control-button led-btn" data-action="lights_off">
-                        <span class="control-icon">⚫</span>
-                        <span class="control-label">Lights Off</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Emergency Controls -->
-            <div class="control-section">
-                <h3 class="section-title">🚨 Emergency Controls</h3>
-                <div class="control-grid emergency-grid">
-                    <button class="control-button emergency-btn" data-action="stop">
-                        <span class="control-icon">🛑</span>
-                        <span class="control-label">Emergency Stop</span>
-                    </button>
-                    <button class="control-button emergency-btn" data-action="reset">
-                        <span class="control-icon">🔄</span>
-                        <span class="control-label">Reset</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Global Device Registry -->
-            <div class="control-section">
-                <h3 class="section-title">🌍 Global LAIKA Registry</h3>
-                <div id="globalDevicesContainer" class="registry-container">
-                    <p>Searching for LAIKA devices worldwide...</p>
-                </div>
-            </div>
-
-            <!-- Enhanced Actions Container (will be populated by JavaScript) -->
-            <div id="actionsContainer" class="actions-container">
-                <!-- Dynamic action controls will be inserted here -->
-            </div>
-
-            <!-- Back Button -->
-            <div class="control-section">
-                <button class="action-button secondary-button" id="backToMainButton">
-                    <span>⬅️</span>
-                    <span>Back to WiFi Setup</span>
+        <!-- Dashboard Page (placeholder) -->
+        <div id="dashboardPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">📊 Sensor Dashboard</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Live telemetry and system monitoring</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
                 </button>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="footer">
-            <div style="text-align: center; font-size: 12px; color: #666;">
-                <span id="connectionInfo">Not connected</span>
+        <!-- Camera Page (placeholder) -->
+        <div id="cameraPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">📹 Camera View</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Live HD video stream with AI analysis</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
+                </button>
+            </div>
+        </div>
+
+        <!-- Map Page (placeholder) -->
+        <div id="mapPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🗺️ SLAM Map</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Interactive mapping and navigation</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
+                </button>
+            </div>
+        </div>
+
+        <!-- Music Page (placeholder) -->
+        <div id="musicPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🎵 Music & Audio</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Music recognition and audio analysis</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
+                </button>
+            </div>
+        </div>
+
+        <!-- Control Page (placeholder) -->
+        <div id="controlPage" class="page">
+            <div style="padding: 40px; text-align: center;">
+                <h2 style="color: var(--atomic-cyan); font-family: 'Orbitron', monospace; margin-bottom: 20px;">🎮 Robot Control</h2>
+                <p style="color: var(--text-dim); margin-bottom: 30px;">Coming Soon - Direct robot control interface</p>
+                <button class="nav-card" onclick="showPage('home')" style="display: inline-block; padding: 15px 30px; cursor: pointer; border: 2px solid var(--atomic-cyan);">
+                    ← Back to Home
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator connected"></div>
+                <span>LAIKA ONLINE</span>
+            </div>
+            <div class="status-item">
+                <span>⚡ 85%</span>
+            </div>
+            <div class="status-item">
+                <span>📡 WiFi Connected</span>
+            </div>
+            <div class="status-item">
+                <span id="currentTime">--:--</span>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/ble-improv.js"></script>
-    <script src="js/network-scanner.js"></script>
-    <script src="js/laika-actions.js"></script>
-    <script src="js/log-viewer.js"></script>
-    <script src="js/ble-chat.js"></script>
-    <script src="js/voice-system.js"></script>
-    <script src="version.js"></script>
-    <script src="js/app.js"></script>
-    
-    <!-- Service Worker Registration -->
     <script>
+        // Navigation system
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show selected page
+            const targetPage = document.getElementById(pageId + 'Page');
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+        }
+
+        // Navigation card click handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.nav-card[data-page]').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('data-page');
+                    showPage(pageId);
+                });
+            });
+
+            // Update time
+            function updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                document.getElementById('currentTime').textContent = timeString;
+            }
+            
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            // PWA Install Banner
+            let deferredPrompt;
+            const installBanner = document.getElementById('installBanner');
+            const installButton = document.getElementById('installButton');
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBanner.classList.add('show');
+            });
+
+            installButton.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    deferredPrompt = null;
+                    installBanner.classList.remove('show');
+                }
+            });
+
+            window.addEventListener('appinstalled', () => {
+                console.log('LAIKA PWA was installed');
+                installBanner.classList.remove('show');
+            });
+        });
+
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
