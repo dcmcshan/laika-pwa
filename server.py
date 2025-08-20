@@ -629,12 +629,56 @@ def send_robot_command():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+def detect_language_simple(text: str) -> str:
+    """Simple language detection based on Cyrillic characters"""
+    # Count Cyrillic characters
+    cyrillic_count = sum(1 for char in text if '\u0400' <= char <= '\u04FF')
+    total_letters = sum(1 for char in text if char.isalpha())
+    
+    # If more than 30% of letters are Cyrillic, assume Russian
+    if total_letters > 0 and (cyrillic_count / total_letters) > 0.3:
+        return "ru"
+    return "en"
+
+def translate_text_with_openai(text: str, target_language: str) -> str:
+    """Translate text using OpenAI if available"""
+    try:
+        # Try to use OpenAI for translation
+        import openai
+        import os
+        
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return text  # No translation available
+        
+        client = openai.OpenAI(api_key=api_key)
+        
+        if target_language == "ru":
+            prompt = f"Translate the following text to Russian. If the input is already in Russian, output it as-is. Only return the translation, no explanations:\n\n{text}"
+        else:
+            prompt = f"Translate the following text to English. If the input is already in English, output it as-is. Only return the translation, no explanations:\n\n{text}"
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.3
+        )
+        
+        translated = response.choices[0].message.content.strip()
+        return translated if translated else text
+        
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text  # Return original text if translation fails
+
 @app.route('/api/tts/speak', methods=['POST'])
 def tts_speak():
-    """Handle TTS requests using laika_say.py"""
+    """Handle TTS requests using laika_say.py with language detection and translation"""
     try:
         data = request.get_json()
         text = data.get('text', '').strip()
+        translate_to = data.get('translate_to', None)  # Optional: 'ru' or 'en'
         
         if not text:
             return jsonify({'success': False, 'error': 'No text provided'})
@@ -642,6 +686,16 @@ def tts_speak():
         # Limit text length for safety
         if len(text) > 500:
             return jsonify({'success': False, 'error': 'Text too long (max 500 characters)'})
+        
+        # Detect input language
+        detected_lang = detect_language_simple(text)
+        original_text = text
+        
+        # Translate if requested and different from detected language
+        if translate_to and translate_to != detected_lang:
+            text = translate_text_with_openai(text, translate_to)
+            if text != original_text:
+                print(f"Translated from {detected_lang} to {translate_to}: '{original_text}' -> '{text}'")
         
         # Import subprocess to run laika_say.py
         import subprocess
@@ -666,11 +720,20 @@ def tts_speak():
             )
             
             if result.returncode == 0:
-                return jsonify({
+                response_data = {
                     'success': True, 
                     'message': f'Successfully spoke: "{text}"',
-                    'text': text
-                })
+                    'text': text,
+                    'detected_language': detected_lang
+                }
+                
+                # Include translation info if translation occurred
+                if text != original_text:
+                    response_data['original_text'] = original_text
+                    response_data['translated'] = True
+                    response_data['translation_direction'] = f"{detected_lang} -> {translate_to}"
+                
+                return jsonify(response_data)
             else:
                 error_msg = result.stderr.strip() or result.stdout.strip() or 'Unknown TTS error'
                 return jsonify({

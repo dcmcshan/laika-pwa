@@ -487,6 +487,7 @@
 
         .tts-input-container {
             display: flex;
+            flex-direction: column;
             gap: 1rem;
             background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
             border: 2px solid var(--atomic-cyan);
@@ -494,6 +495,12 @@
             padding: 1rem;
             box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
             backdrop-filter: blur(10px);
+        }
+
+        .tts-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
         }
 
         #tts-input {
@@ -520,6 +527,30 @@
             font-style: italic;
         }
 
+        .translate-select {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid var(--grid-color);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .translate-select:focus {
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.08);
+        }
+
+        .translate-select option {
+            background: var(--panel-bg);
+            color: var(--text-cyan);
+        }
+
         .tts-button {
             background: linear-gradient(135deg, var(--tts-color), #FF6600);
             border: none;
@@ -533,6 +564,7 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 20px rgba(255, 136, 0, 0.3);
             min-width: 120px;
+            flex-shrink: 0;
         }
 
         .tts-button:hover:not(:disabled) {
@@ -617,11 +649,15 @@
             }
             
             .tts-input-container {
+                gap: 0.8rem;
+            }
+            
+            .tts-controls {
                 flex-direction: column;
                 gap: 0.8rem;
             }
             
-            .tts-button {
+            .tts-button, .translate-select {
                 width: 100%;
             }
         }
@@ -658,10 +694,17 @@
     <!-- TTS Input Section -->
     <div class="tts-input-section">
         <div class="tts-input-container">
-            <input type="text" id="tts-input" placeholder="Type text for LAIKA to say..." maxlength="500">
-            <button class="tts-button" id="tts-speak-btn" onclick="speakText()">
-                🗣️ Speak
-            </button>
+            <input type="text" id="tts-input" placeholder="Type text for LAIKA to say (English or Russian)..." maxlength="500">
+            <div class="tts-controls">
+                <select id="translate-select" class="translate-select">
+                    <option value="">Auto-detect</option>
+                    <option value="en">→ English</option>
+                    <option value="ru">→ Русский</option>
+                </select>
+                <button class="tts-button" id="tts-speak-btn" onclick="speakText()">
+                    🗣️ Speak
+                </button>
+            </div>
         </div>
         <div class="tts-status" id="tts-status-message"></div>
     </div>
@@ -985,6 +1028,7 @@
             const input = document.getElementById('tts-input');
             const button = document.getElementById('tts-speak-btn');
             const status = document.getElementById('tts-status-message');
+            const translateSelect = document.getElementById('translate-select');
             
             const text = input.value.trim();
             if (!text) {
@@ -992,26 +1036,51 @@
                 return;
             }
             
+            const translateTo = translateSelect.value || null;
+            
             // Disable button and show speaking state
             button.disabled = true;
             button.classList.add('speaking');
             button.innerHTML = '🔊 Speaking...';
             
-            showTTSStatus('Sending text to LAIKA TTS system...', 'speaking');
+            let statusMessage = 'Sending text to LAIKA TTS system...';
+            if (translateTo) {
+                statusMessage = `Translating to ${translateTo === 'ru' ? 'Russian' : 'English'} and speaking...`;
+            }
+            showTTSStatus(statusMessage, 'speaking');
             
             try {
+                const requestBody = { text: text };
+                if (translateTo) {
+                    requestBody.translate_to = translateTo;
+                }
+                
                 const response = await fetch('/api/tts/speak', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showTTSStatus(`✅ LAIKA said: "${text}"`, 'success');
+                    let successMessage = `✅ LAIKA said: "${result.text}"`;
+                    
+                    // Show translation info if translation occurred
+                    if (result.translated) {
+                        successMessage = `✅ Translated (${result.translation_direction}) and spoke: "${result.text}"`;
+                        if (result.original_text !== result.text) {
+                            successMessage += `\n📝 Original: "${result.original_text}"`;
+                        }
+                    }
+                    
+                    // Show detected language
+                    const langEmoji = result.detected_language === 'ru' ? '🇷🇺' : '🇺🇸';
+                    successMessage += `\n${langEmoji} Detected: ${result.detected_language === 'ru' ? 'Russian' : 'English'}`;
+                    
+                    showTTSStatus(successMessage, 'success');
                     input.value = ''; // Clear input after successful TTS
                     
                     // Auto-refresh to show the TTS in the chat if STT picks it up
