@@ -116,11 +116,27 @@
             box-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
         }
 
-.nav-link.active {
-    color: var(--atomic-cyan);
-    background: rgba(0, 255, 255, 0.2);
-    border-color: var(--atomic-cyan);
-}
+        .nav-link.active {
+            color: var(--atomic-cyan);
+            background: rgba(0, 255, 255, 0.2);
+            border-color: var(--atomic-cyan);
+        }
+
+        .nav-link.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            border-color: transparent;
+        }
+
+        .nav-link.disabled:hover {
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            border-color: transparent;
+            box-shadow: none;
+            transform: none;
+        }
 
 .nav-icon {
     font-size: 14px;

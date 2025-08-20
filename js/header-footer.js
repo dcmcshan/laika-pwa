@@ -56,34 +56,34 @@ class LAIKAHeaderFooter {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="chat.html" class="nav-link" data-page="chat">
+                        <span class="nav-link disabled" data-page="chat" title="Coming Soon">
                             <span class="nav-icon">💬</span>
                             <span>Chat</span>
-                        </a>
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a href="dashboard.html" class="nav-link" data-page="dashboard">
+                        <span class="nav-link disabled" data-page="dashboard" title="Coming Soon">
                             <span class="nav-icon">📊</span>
                             <span>Dashboard</span>
-                        </a>
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a href="camera.html" class="nav-link" data-page="camera">
+                        <span class="nav-link disabled" data-page="camera" title="Coming Soon">
                             <span class="nav-icon">📹</span>
                             <span>Camera</span>
-                        </a>
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a href="control.html" class="nav-link" data-page="control">
+                        <span class="nav-link disabled" data-page="control" title="Coming Soon">
                             <span class="nav-icon">🎮</span>
                             <span>Control</span>
-                        </a>
+                        </span>
                     </li>
                     <li class="nav-item">
-                        <a href="slam.html" class="nav-link" data-page="slam">
+                        <span class="nav-link disabled" data-page="slam" title="Coming Soon">
                             <span class="nav-icon">🗺️</span>
                             <span>Map</span>
-                        </a>
+                        </span>
                     </li>
                 </ul>
                 

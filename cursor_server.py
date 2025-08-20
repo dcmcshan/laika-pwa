@@ -17,6 +17,15 @@ import aiohttp
 from aiohttp import web
 import aiofiles
 
+# Import OpenAI for real AI responses
+try:
+    from openai import AsyncOpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    print("Warning: OpenAI not available")
+    OPENAI_AVAILABLE = False
+    AsyncOpenAI = None
+
 logger = logging.getLogger(__name__)
 
 class CursorServerAPI:
@@ -25,11 +34,23 @@ class CursorServerAPI:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         
-        # Cursor server connection details
+        # OpenAI client setup
+        self.openai_client = None
+        self.openai_model = self.config.get("openai_model", "gpt-4o-mini")
+        self.openai_api_key = self.config.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
+        
+        # Initialize OpenAI client
+        if OPENAI_AVAILABLE and self.openai_api_key:
+            self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
+            logger.info("✅ OpenAI client initialized")
+        else:
+            logger.warning("⚠️ OpenAI not available - using simulation mode")
+        
+        # Cursor server connection details (for detection only)
         self.cursor_host = "127.0.0.1"
         self.cursor_port = None
         self.connection_token = None
-        self.is_available = False
+        self.is_available = bool(self.openai_client)
         
         # Session management
         self.sessions: Dict[str, Dict[str, Any]] = {}
@@ -129,8 +150,11 @@ class CursorServerAPI:
             session['context'].update(context)
             
         try:
-            # Generate response (using simulation for now since direct Cursor API access is complex)
-            response_content = await self._generate_cursor_response(message, session)
+            # Generate response using OpenAI or fallback to simulation
+            if self.openai_client:
+                response_content = await self._generate_openai_response(message, session)
+            else:
+                response_content = await self._generate_cursor_response(message, session)
             
             # Add assistant response to session
             assistant_message = {
@@ -171,6 +195,82 @@ class CursorServerAPI:
                     'metadata': {'error': True}
                 }
             }
+    
+    async def _generate_openai_response(self, message: str, session: Dict[str, Any]) -> str:
+        """Generate response using OpenAI API"""
+        try:
+            context = session.get('context', {})
+            
+            # Build conversation history for OpenAI
+            messages = [
+                {
+                    "role": "system", 
+                    "content": self._get_system_prompt(context)
+                }
+            ]
+            
+            # Add recent conversation history (last 10 messages)
+            recent_messages = session['messages'][-10:] if len(session['messages']) > 10 else session['messages']
+            for msg in recent_messages:
+                if msg['role'] in ['user', 'assistant']:
+                    messages.append({
+                        "role": msg['role'],
+                        "content": msg['content']
+                    })
+            
+            # Add current message
+            messages.append({
+                "role": "user",
+                "content": message
+            })
+            
+            # Call OpenAI API
+            response = await self.openai_client.chat.completions.create(
+                model=self.openai_model,
+                messages=messages,
+                max_tokens=1500,
+                temperature=0.7,
+                top_p=0.9
+            )
+            
+            return response.choices[0].message.content or "I apologize, but I couldn't generate a response."
+            
+        except Exception as e:
+            logger.error(f"❌ OpenAI API error: {e}")
+            # Fallback to simulation
+            return await self._generate_cursor_response(message, session)
+    
+    def _get_system_prompt(self, context: Dict[str, Any]) -> str:
+        """Generate system prompt for OpenAI based on context"""
+        base_prompt = """You are Cursor AI, an advanced AI coding assistant integrated with the LAIKA robot development environment. You are an expert in:
+
+🔧 **Code Development**: Python, JavaScript, TypeScript, HTML, CSS, React, Flask, FastAPI, WebSockets, ROS2
+🤖 **LAIKA Robot System**: PuppyPi Pro robot control, servo management, sensor integration, camera systems, LIDAR/SLAM
+🌐 **Web Development**: Progressive Web Apps (PWA), real-time communication, WebRTC, mobile interfaces
+⚙️ **System Integration**: Docker, Linux, Raspberry Pi, hardware interfaces, service management
+
+**Your Role:**
+- Provide expert coding assistance and debugging help
+- Generate clean, production-ready code with proper error handling
+- Explain complex concepts clearly and concisely
+- Offer architectural guidance and best practices
+- Help with LAIKA-specific development tasks
+
+**Communication Style:**
+- Be direct and helpful
+- Provide code examples when relevant
+- Use appropriate emojis sparingly for clarity
+- Ask clarifying questions when needed
+- Reference specific files and components when possible"""
+
+        # Add context-specific information
+        if context.get('project_path'):
+            base_prompt += f"\n\n**Current Project**: {context['project_path']}"
+            
+        if context.get('current_file'):
+            base_prompt += f"\n**Current File**: {context['current_file']}"
+            
+        return base_prompt
             
     async def _generate_cursor_response(self, message: str, session: Dict[str, Any]) -> str:
         """Generate a Cursor AI-style response"""

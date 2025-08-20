@@ -306,6 +306,62 @@
             padding-bottom: 80px; /* Account for fixed footer */
         }
 
+        /* Disabled navigation cards */
+        .nav-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card.disabled:hover {
+            transform: none;
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(0, 255, 255, 0.05);
+            border-color: var(--text-dim);
+        }
+
+        .nav-card.disabled::before {
+            animation: none;
+        }
+
+        .coming-soon-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .coming-soon-text {
+            color: var(--warning-yellow);
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--warning-yellow);
+            animation: comingSoonGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes comingSoonGlow {
+            from { 
+                opacity: 0.7;
+                text-shadow: 0 0 10px var(--warning-yellow);
+            }
+            to { 
+                opacity: 1;
+                text-shadow: 0 0 20px var(--warning-yellow);
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .app-container {
@@ -504,7 +560,7 @@
         <div id="homePage" class="page active">
             <div class="nav-container">
                 <!-- Chat Interface -->
-                <a href="chat.html" class="nav-card chat-card">
+                <div class="nav-card chat-card disabled">
                     <span class="nav-icon">💬</span>
                     <h3 class="nav-title">Chat with LAIKA</h3>
                     <p class="nav-description">
@@ -516,7 +572,10 @@
                         <li>Personality switching</li>
                         <li>Command execution</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- Cursor AI Assistant -->
                 <a href="cursor.html" class="nav-card cursor-card">
@@ -549,7 +608,7 @@
                 </a>
 
                 <!-- Sensor Dashboard -->
-                <a href="dashboard.html" class="nav-card dashboard-card">
+                <div class="nav-card dashboard-card disabled">
                     <span class="nav-icon">📊</span>
                     <h3 class="nav-title">Sensor Dashboard</h3>
                     <p class="nav-description">
@@ -561,10 +620,13 @@
                         <li>IMU & servo health</li>
                         <li>Performance analytics</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- Camera View -->
-                <a href="camera.html" class="nav-card camera-card">
+                <div class="nav-card camera-card disabled">
                     <span class="nav-icon">📹</span>
                     <h3 class="nav-title">Camera View</h3>
                     <p class="nav-description">
@@ -576,10 +638,13 @@
                         <li>Object detection</li>
                         <li>Photo capture</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- SLAM Map -->
-                <a href="slam.html" class="nav-card map-card">
+                <div class="nav-card map-card disabled">
                     <span class="nav-icon">🗺️</span>
                     <h3 class="nav-title">SLAM Map</h3>
                     <p class="nav-description">
@@ -591,10 +656,13 @@
                         <li>Click-to-navigate</li>
                         <li>Real-time mapping</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- Music Recognition -->
-                <a href="music.html" class="nav-card">
+                <div class="nav-card disabled">
                     <span class="nav-icon">🎵</span>
                     <h3 class="nav-title">Music & Audio</h3>
                     <p class="nav-description">
@@ -606,10 +674,13 @@
                         <li>Audio spectrum</li>
                         <li>Music-sync dancing</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- Robot Control -->
-                <a href="control.html" class="nav-card">
+                <div class="nav-card disabled">
                     <span class="nav-icon">🎮</span>
                     <h3 class="nav-title">Robot Control</h3>
                     <p class="nav-description">
@@ -621,10 +692,13 @@
                         <li>Bluetooth controller support</li>
                         <li>Emergency stop controls</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
 
                 <!-- Process Monitor -->
-                <a href="processes.html" class="nav-card process-card">
+                <div class="nav-card process-card disabled">
                     <span class="nav-icon">🖥️</span>
                     <h3 class="nav-title">Process Monitor</h3>
                     <p class="nav-description">
@@ -636,7 +710,10 @@
                         <li>System stats dashboard</li>
                         <li>Process management</li>
                     </ul>
-                </a>
+                    <div class="coming-soon-overlay">
+                        <span class="coming-soon-text">🚧 Coming Soon</span>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -172,9 +172,6 @@ class LAIKASLAMMap {
     }
 
     async connectWebSocket() {
-        // Show mock data immediately for testing
-        this.showMockMapData();
-        
         const wsUrls = [
             `ws://${window.location.hostname}/ws/slam`,
             'ws://laika.local/ws/slam',
