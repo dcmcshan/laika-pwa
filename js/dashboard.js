@@ -17,6 +17,7 @@ class LAIKADashboard {
             performance: { cpu: null, memory: null, storage: null, uptime: null, processes: null },
             network: { signal: null, ssid: null, ip: null, download: null, upload: null, latency: null },
             imu: { orientation: null, pitch: null, roll: null, acceleration: null, gyroscope: null, magnetometer: null },
+            fan: { speed: null, state: null, maxState: null, mode: null, target: null, efficiency: null },
             servos: []
         };
         
@@ -38,6 +39,7 @@ class LAIKADashboard {
             perf: document.getElementById('perfStatus'),
             network: document.getElementById('networkStatus'),
             sensors: document.getElementById('sensorsStatus'),
+            fan: document.getElementById('fanStatus'),
             servo: document.getElementById('servoStatus')
         };
     }
@@ -170,6 +172,7 @@ class LAIKADashboard {
         if (data.performance) this.updatePerformanceData(data.performance);
         if (data.network) this.updateNetworkData(data.network);
         if (data.imu) this.updateIMUData(data.imu);
+        if (data.fan) this.updateFanData(data.fan);
         if (data.servos) this.updateServoData(data.servos);
         
         this.updateLastUpdateTime();
@@ -224,6 +227,7 @@ class LAIKADashboard {
         if (data.performance) this.updatePerformanceData(data.performance);
         if (data.network) this.updateNetworkData(data.network);
         if (data.imu) this.updateIMUData(data.imu);
+        if (data.fan) this.updateFanData(data.fan);
         if (data.servos) this.updateServoData(data.servos);
     }
 
@@ -368,6 +372,46 @@ class LAIKADashboard {
         const isCalibrated = Math.abs(imu.pitch) < 5 && Math.abs(imu.roll) < 5;
         this.updateStatus('sensors', isCalibrated ? 'healthy' : 'warning', 
                          isCalibrated ? 'Calibrated' : 'Needs Calibration');
+    }
+
+    updateFanData(data) {
+        this.sensorData.fan = { ...this.sensorData.fan, ...data };
+        
+        const fan = this.sensorData.fan;
+        
+        // Update fan gauge
+        const fanSpeedPercent = fan.speed || ((fan.state || 0) / (fan.maxState || 4)) * 100;
+        const gaugeValue = (fanSpeedPercent / 100) * 360;
+        const fanGauge = document.getElementById('fanGauge');
+        const fanSpeedElement = document.getElementById('fanSpeed');
+        
+        if (fanGauge && fanSpeedElement) {
+            fanGauge.style.setProperty('--gauge-value', `${gaugeValue}deg`);
+            fanSpeedElement.textContent = `${Math.round(fanSpeedPercent)}%`;
+        }
+        
+        // Update fan metrics
+        this.updateElement('fanState', `${fan.state || '--'}${fan.maxState ? `/${fan.maxState}` : ''}`);
+        this.updateElement('fanMode', fan.mode || 'Auto');
+        this.updateElement('thermalTarget', `${fan.target || 65}`);
+        this.updateElement('coolingEfficiency', `${Math.round(fan.efficiency || 85)}`);
+        
+        // Update fan status
+        let status = 'healthy';
+        let statusText = 'Normal';
+        
+        if (fan.state >= (fan.maxState || 4)) {
+            status = 'warning';
+            statusText = 'Max Speed';
+        } else if (fan.efficiency < 60) {
+            status = 'error';
+            statusText = 'Poor Cooling';
+        } else if (fan.efficiency < 80) {
+            status = 'warning';
+            statusText = 'Reduced Efficiency';
+        }
+        
+        this.updateStatus('fan', status, statusText);
     }
 
     updateServoData(data) {
@@ -592,7 +636,8 @@ class LAIKADashboard {
             'cpuTemp', 'batteryTemp', 'motorTemp', 'ambientTemp',
             'cpuUsage', 'memoryUsage', 'storageUsage', 'uptime', 'processes',
             'wifiSignal', 'wifiSSID', 'ipAddress', 'downloadSpeed', 'uploadSpeed', 'latency',
-            'orientation', 'pitch', 'roll', 'acceleration', 'gyroscope', 'magnetometer'
+            'orientation', 'pitch', 'roll', 'acceleration', 'gyroscope', 'magnetometer',
+            'fanSpeed', 'fanState', 'fanMode', 'thermalTarget', 'coolingEfficiency'
         ];
         
         metricElements.forEach(id => {

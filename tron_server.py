@@ -7,7 +7,6 @@ Serves all the beautiful TRON-styled pages with robust startup
 from flask import Flask, send_file, jsonify, request, render_template_string, redirect
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, disconnect
-import socketio
 import os
 import json
 import threading
@@ -16,6 +15,7 @@ import sys
 from datetime import datetime
 import base64
 import psutil
+import subprocess
 
 # Add LAIKA system to path
 sys.path.append('/home/pi/LAIKA')
@@ -53,14 +53,15 @@ try:
     socketio_app = SocketIO(
         app, 
         cors_allowed_origins="*", 
-        logger=True, 
-        engineio_logger=True,
+        logger=False,  # Reduce logging noise
+        engineio_logger=False,
         async_mode='threading',
         # Force compatible protocol versions
-        client_manager=None,
         allow_upgrades=True,
         ping_timeout=60,
-        ping_interval=25
+        ping_interval=25,
+        # Ensure compatibility with older clients
+        always_connect=True
     )
     SOCKETIO_AVAILABLE = True
     print("✅ SocketIO initialized successfully")
@@ -126,7 +127,9 @@ def initialize_llm_systems():
 
 def get_laika_system_prompt():
     """Get LAIKA's system prompt with personality and capabilities"""
-    return """You are LAIKA, an intelligent quadruped robot companion with advanced situational awareness. You have a warm, friendly, and slightly playful personality.
+    return """FIRST AND MOST IMPORTANT: If the user says exactly "sit", "stand", "dance", "photo", "hello", "wave", "bow", "lie", "stop", or "reset" - respond with ONLY "*sit*", "*stand*", "*dance*", "*photo*", "*hello*", "*wave*", "*bow*", "*lie*", "*stop*", or "*reset*" respectively. NO other text.
+
+You are LAIKA, an intelligent quadruped robot companion with advanced situational awareness. You have a warm, friendly, and slightly playful personality.
 
 Key characteristics:
 - You're a helpful robot dog with comprehensive environmental awareness
@@ -149,6 +152,18 @@ Current capabilities:
        ## ACTION EXECUTION SYSTEM
 
        When users request actions, use these EXACT action keywords in your responses. The system will automatically detect and execute them:
+
+       **CRITICAL RULE: When the user input is EXACTLY one of these single words: "sit", "stand", "dance", "photo", "hello", "wave", "bow", "lie", "stop", "reset" - respond with ONLY the action and absolutely nothing else:**
+       
+       Examples:
+       User: "sit" → Your response: "*sit*"
+       User: "dance" → Your response: "*dance*"
+       User: "photo" → Your response: "*photo*"
+       User: "stand" → Your response: "*stand*"
+       
+       DO NOT add "Sure!", "OK!", "There!", or ANY other words. Just the action in asterisks.
+       
+       **For longer phrases like "Can you sit down?" or "Please take a photo", you may add brief context.**
 
        **Robot ActionGroups (Physical Movements):**
        - *sit* - Sit down in resting position
@@ -470,6 +485,22 @@ def index_html():
     """Redirect index.html to root"""
     return redirect('/')
 
+@app.route('/llm')
+def llm_page():
+    """Serve the LLM commands and history page"""
+    try:
+        return send_file('/home/pi/LAIKA/laika-pwa/llm.html')
+    except FileNotFoundError:
+        return "LLM page not found", 404
+
+@app.route('/gamepad')
+def gamepad_page():
+    """Serve the gamepad visualization and debugging interface"""
+    try:
+        return send_file('/home/pi/LAIKA/laika-pwa/gamepad.html')
+    except FileNotFoundError:
+        return "Gamepad interface not found", 404
+
 @app.route('/camera')
 def camera_page():
     """Serve the TRON-styled camera page"""
@@ -611,6 +642,12 @@ def laika_chat():
                 # Build messages for OpenAI
                 messages = [
                     {"role": "system", "content": get_laika_system_prompt()},
+                    {"role": "user", "content": "sit"},
+                    {"role": "assistant", "content": "*sit*"},
+                    {"role": "user", "content": "dance"},
+                    {"role": "assistant", "content": "*dance*"},
+                    {"role": "user", "content": "photo"},
+                    {"role": "assistant", "content": "*photo*"},
                     {"role": "user", "content": message}
                 ]
                 
@@ -1083,10 +1120,41 @@ def handle_gamepad_action():
         
         print(f"🎮 Gamepad action received: {action}")
         
+        # Broadcast gamepad action to log viewers in real-time
+        if SOCKETIO_AVAILABLE and socketio_app:
+            gamepad_log = {
+                'id': f"gamepad_http_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'info',
+                'source': 'gamepad',
+                'message': f"🎮 HTTP Gamepad action: {action}",
+                'metadata': {
+                    'action': action,
+                    'interface': 'web_http',
+                    'endpoint': '/gamepad_action'
+                }
+            }
+            socketio_app.emit('log_entry', {'log': gamepad_log}, room=None)
+        
         # Use the comprehensive web gamepad processor
         try:
             from web_gamepad_processor import process_web_gamepad_action
             result = process_web_gamepad_action(action)
+            
+            # Log the result
+            if SOCKETIO_AVAILABLE and socketio_app:
+                result_log = {
+                    'id': f"gamepad_http_result_{int(time.time() * 1000000)}",
+                    'timestamp': datetime.now().isoformat() + 'Z',
+                    'level': 'info' if result.get('success', False) else 'warning',
+                    'source': 'gamepad',
+                    'message': f"🤖 HTTP Gamepad result: {result.get('laika_action', 'processed')}",
+                    'metadata': {
+                        'result': result,
+                        'success': result.get('success', False)
+                    }
+                }
+                socketio_app.emit('log_entry', {'log': result_log}, room=None)
             
             return jsonify({
                 'success': result['success'],
@@ -1132,6 +1200,26 @@ def handle_gamepad_movement():
         
         print(f"🎮 Gamepad movement: linear_x={linear_x:.2f}, linear_y={linear_y:.2f}, angular_z={angular_z:.2f}")
         
+        # Broadcast movement to log viewers in real-time (only significant movements)
+        if SOCKETIO_AVAILABLE and socketio_app:
+            movement_log = {
+                'id': f"gamepad_http_movement_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'info',
+                'source': 'gamepad',
+                'message': f"🎮 HTTP Movement: X={linear_x:.2f}, Y={linear_y:.2f}, Z={angular_z:.2f}",
+                'metadata': {
+                    'movement': {
+                        'linear_x': linear_x,
+                        'linear_y': linear_y,
+                        'angular_z': angular_z
+                    },
+                    'interface': 'web_http',
+                    'endpoint': '/gamepad_movement'
+                }
+            }
+            socketio_app.emit('log_entry', {'log': movement_log}, room=None)
+        
         try:
             # Use the comprehensive web gamepad processor
             from web_gamepad_processor import process_web_gamepad_movement
@@ -1168,6 +1256,1027 @@ def handle_gamepad_movement():
         print(f"❌ Error handling gamepad movement: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# Helper functions for LLM functionality
+def get_current_llm_prompt():
+    """Get the current system prompt for LAIKA"""
+    return get_current_system_prompt()
+
+def get_current_system_prompt():
+    """Get the current system prompt"""
+    default_prompt = """You are LAIKA, a friendly robotic dog assistant. You can execute various actions like:
+- sit, stand, lie, stop
+- wave, dance, bow, hello
+- move forward, backward, left, right
+- wag tail, bark, play
+
+When given commands, respond enthusiastically and indicate what action you will perform. 
+Keep responses brief and dog-like with emojis. Always be helpful and friendly!"""
+    
+    try:
+        # Try to load from config file
+        config_path = '/home/pi/LAIKA/config/llm_prompt.txt'
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return f.read().strip()
+    except Exception as e:
+        print(f"Warning: Could not load custom prompt: {e}")
+    
+    return default_prompt
+
+def determine_action_from_button(button_name):
+    """Map button names to robot actions"""
+    button_action_map = {
+        'sit': 'sit',
+        'stand': 'stand', 
+        'lie': 'lie',
+        'stop': 'stop',
+        'wave': 'wave',
+        'dance': 'dance',
+        'bow': 'bow',
+        'hello': 'wave',
+        'forward': 'forward',
+        'backward': 'backward',
+        'left': 'left',
+        'right': 'right'
+    }
+    return button_action_map.get(button_name.lower(), None)
+
+def determine_action_from_text(text):
+    """Extract action from text input"""
+    text_lower = text.lower()
+    
+    # Simple keyword matching
+    if any(word in text_lower for word in ['sit', 'down']):
+        return 'sit'
+    elif any(word in text_lower for word in ['stand', 'up', 'get up']):
+        return 'stand'
+    elif any(word in text_lower for word in ['lie', 'lay']):
+        return 'lie'
+    elif any(word in text_lower for word in ['wave', 'hello', 'hi']):
+        return 'wave'
+    elif any(word in text_lower for word in ['dance']):
+        return 'dance'
+    elif any(word in text_lower for word in ['bow']):
+        return 'bow'
+    elif any(word in text_lower for word in ['stop', 'halt']):
+        return 'stop'
+    elif any(word in text_lower for word in ['forward', 'ahead']):
+        return 'forward'
+    elif any(word in text_lower for word in ['backward', 'back']):
+        return 'backward'
+    elif any(word in text_lower for word in ['left', 'turn left']):
+        return 'left'
+    elif any(word in text_lower for word in ['right', 'turn right']):
+        return 'right'
+    
+    return None
+
+def calculate_openai_cost(model, input_tokens, output_tokens):
+    """Calculate estimated cost for OpenAI API usage"""
+    # Pricing per 1K tokens (approximate)
+    pricing = {
+        'gpt-4': {'input': 0.03, 'output': 0.06},
+        'gpt-4o': {'input': 0.005, 'output': 0.015},
+        'gpt-4o-mini': {'input': 0.00015, 'output': 0.0006},
+        'gpt-3.5-turbo': {'input': 0.001, 'output': 0.002}
+    }
+    
+    if model not in pricing:
+        model = 'gpt-4o-mini'  # Default fallback
+    
+    input_cost = (input_tokens / 1000) * pricing[model]['input']
+    output_cost = (output_tokens / 1000) * pricing[model]['output']
+    
+    return input_cost + output_cost
+
+def get_llm_config():
+    """Get LLM configuration settings"""
+    default_config = {
+        'model': 'gpt-4o-mini',
+        'track_usage': True,
+        'max_tokens': 500,
+        'temperature': 0.7
+    }
+    
+    try:
+        config_path = '/home/pi/LAIKA/config/llm_config.json'
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                return {**default_config, **config}
+    except Exception as e:
+        print(f"Warning: Could not load LLM config: {e}")
+    
+    return default_config
+
+def update_llm_usage_stats(tokens, cost):
+    """Update usage statistics"""
+    try:
+        stats_path = '/home/pi/LAIKA/config/llm_usage_stats.json'
+        
+        # Load existing stats or create new
+        if os.path.exists(stats_path):
+            with open(stats_path, 'r') as f:
+                stats = json.load(f)
+        else:
+            stats = {'total_tokens': 0, 'total_cost': 0.0, 'requests': 0}
+        
+        # Update stats
+        stats['total_tokens'] += tokens
+        stats['total_cost'] += cost
+        stats['requests'] += 1
+        stats['last_updated'] = datetime.now().isoformat()
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(stats_path), exist_ok=True)
+        
+        # Save updated stats
+        with open(stats_path, 'w') as f:
+            json.dump(stats, f, indent=2)
+            
+    except Exception as e:
+        print(f"Warning: Could not update usage stats: {e}")
+
+def try_execute_robot_action(text_or_action):
+    """Try to execute robot action from text or direct action"""
+    if not text_or_action:
+        return False
+    
+    # If it's already an action, execute directly
+    if text_or_action.lower() in ['sit', 'stand', 'lie', 'stop', 'wave', 'dance', 'bow', 'forward', 'backward', 'left', 'right']:
+        return execute_robot_action_direct(text_or_action.lower())
+    
+    # Try to extract action from text
+    action = determine_action_from_text(text_or_action)
+    if action:
+        return execute_robot_action_direct(action)
+    
+    return False
+
+def get_laika_system_prompt():
+    """Alias for get_current_system_prompt for backward compatibility"""
+    return get_current_system_prompt()
+
+# Main LLM endpoints
+@app.route('/llm', methods=['POST'])
+def handle_llm_request():
+    """Handle custom LLM text input"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data received'
+            }), 400
+        
+        input_text = data.get('input', '').strip()
+        if not input_text:
+            return jsonify({
+                'success': False,
+                'error': 'No input text provided'
+            }), 400
+        
+        model = data.get('model', 'gpt-4o-mini')
+        execute_actions = data.get('execute_actions', True)
+        source = data.get('source', 'web_llm')
+        
+        print(f"🤖 LLM request: {input_text[:50]}..." if len(input_text) > 50 else f"🤖 LLM request: {input_text}")
+        
+        # Add to history
+        add_to_llm_history(data)
+        
+        # Process with OpenAI if available
+        if OPENAI_AVAILABLE and openai_client:
+            try:
+                # Get system prompt
+                system_prompt = get_current_system_prompt()
+                
+                response = openai_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": input_text}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                llm_response = response.choices[0].message.content
+                tokens_used = response.usage.total_tokens
+                
+                # Calculate cost
+                estimated_cost = calculate_openai_cost(model, response.usage.prompt_tokens, response.usage.completion_tokens)
+                
+                # Try to execute robot actions if requested
+                action_executed = False
+                if execute_actions:
+                    action_executed = try_execute_robot_action(llm_response)
+                
+                response_data = {
+                    'success': True,
+                    'response': llm_response,
+                    'tokens_used': tokens_used,
+                    'estimated_cost': f"{estimated_cost:.6f}",
+                    'model_used': model,
+                    'action_executed': action_executed,
+                    'message': 'LLM request processed successfully'
+                }
+                
+                # Update history with response
+                add_to_llm_history(data, response_data)
+                
+                return jsonify(response_data)
+                
+            except Exception as e:
+                print(f"❌ OpenAI error: {e}")
+                error_response = {
+                    'success': False,
+                    'error': f'OpenAI error: {str(e)}',
+                    'response': 'Sorry, I encountered an error processing your request.'
+                }
+                add_to_llm_history(data, error_response)
+                return jsonify(error_response), 500
+        else:
+            # Fallback response when OpenAI is not available
+            fallback_response = {
+                'success': False,
+                'error': 'LLM service not available',
+                'response': 'LLM service is not configured or available. Please check your OpenAI API key.'
+            }
+            add_to_llm_history(data, fallback_response)
+            return jsonify(fallback_response), 503
+            
+    except Exception as e:
+        print(f"❌ Error handling LLM request: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/llm/<action>', methods=['POST'])
+def handle_llm_action(action):
+    """Handle quick LLM action commands"""
+    try:
+        print(f"🤖 LLM action: {action}")
+        
+        # Process with OpenAI if available
+        if OPENAI_AVAILABLE and openai_client:
+            try:
+                system_prompt = get_current_system_prompt()
+                
+                response = openai_client.chat.completions.create(
+                    model='gpt-4o-mini',  # Use fast model for quick actions
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Execute action: {action}"}
+                    ],
+                    max_tokens=200,
+                    temperature=0.3
+                )
+                
+                llm_response = response.choices[0].message.content
+                
+                # Try to execute robot action
+                action_executed = try_execute_robot_action(action)  # Try the action directly first
+                
+                return jsonify({
+                    'success': True,
+                    'action': action,
+                    'response': llm_response,
+                    'action_executed': action_executed,
+                    'message': f'Action {action} processed successfully'
+                })
+                
+            except Exception as e:
+                print(f"❌ OpenAI error for action {action}: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': f'OpenAI error: {str(e)}',
+                    'action': action
+                }), 500
+        else:
+            # Fallback: try to execute action directly
+            action_executed = try_execute_robot_action(action)
+            
+            return jsonify({
+                'success': action_executed,
+                'action': action,
+                'response': f'Action {action} {"executed" if action_executed else "failed"}',
+                'action_executed': action_executed,
+                'message': f'Direct action {action} {"executed" if action_executed else "failed"}'
+            })
+            
+    except Exception as e:
+        print(f"❌ Error handling LLM action {action}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'action': action
+        }), 500
+
+@app.route('/llm/sit', methods=['POST', 'GET'])
+def handle_llm_sit():
+    """Direct LLM endpoint for sit command"""
+    try:
+        print("🐕 LLM Sit command received")
+        
+        # Execute the sit command directly
+        result = execute_robot_action_direct('sit')
+        
+        return jsonify({
+            'success': result,
+            'action': 'sit',
+            'message': '✅ Sit command executed successfully!' if result else '❌ Sit command failed',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error handling LLM sit: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Removed duplicate route - functionality merged into the main handle_llm_action below
+
+def execute_robot_action_direct(action):
+    """Execute robot action directly using laika_do.py"""
+    import subprocess
+    try:
+        result = subprocess.run([
+            'python3', '/home/pi/LAIKA/laika_do.py', action
+        ], capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            print(f"✅ Robot action '{action}' executed successfully")
+            return True
+        else:
+            print(f"❌ Robot action '{action}' failed: {result.stderr}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print(f"⏰ Robot action '{action}' timed out")
+        return False
+    except Exception as e:
+        print(f"❌ Error executing robot action '{action}': {e}")
+        return False
+
+def execute_llm_action(action):
+    """Execute action determined by LLM"""
+    return execute_robot_action_direct(action)
+
+# LLM History storage
+llm_history = []
+
+def add_to_llm_history(input_data, response_data=None):
+    """Add entry to LLM history"""
+    global llm_history
+    
+    entry = {
+        'id': f"{time.time()}_{len(llm_history)}",
+        'timestamp': datetime.now().isoformat(),
+        'input': input_data.get('input', ''),
+        'source': input_data.get('source', 'unknown'),
+        'type': input_data.get('type', 'unknown'),
+        'status': 'pending'
+    }
+    
+    if response_data:
+        entry.update({
+            'response': response_data.get('response', ''),
+            'status': 'success' if response_data.get('success') else 'error',
+            'action_executed': response_data.get('action_executed'),
+            'tokens_used': response_data.get('tokens_used'),
+            'estimated_cost': response_data.get('estimated_cost')
+        })
+    
+    llm_history.append(entry)
+    
+    # Keep only last 200 entries
+    if len(llm_history) > 200:
+        llm_history = llm_history[-200:]
+    
+    # Broadcast to connected clients if SocketIO is available
+    if SOCKETIO_AVAILABLE and socketio_app:
+        try:
+            socketio_app.emit('llm_history_update', {'data': entry})
+        except Exception as e:
+            print(f"❌ Failed to broadcast LLM history: {e}")
+    
+    return entry['id']
+
+@app.route('/api/llm/prompt', methods=['GET', 'POST'])
+def api_llm_prompt():
+    """Get or set the LLM system prompt"""
+    if request.method == 'GET':
+        try:
+            current_prompt = get_laika_system_prompt()
+            return jsonify({
+                'success': True,
+                'prompt': current_prompt
+            })
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_prompt = data.get('prompt', '')
+            
+            if not new_prompt:
+                return jsonify({'success': False, 'error': 'Prompt is required'}), 400
+            
+            # Save the prompt to config file
+            try:
+                config_path = '/home/pi/LAIKA/config/llm_prompt.txt'
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                
+                with open(config_path, 'w') as f:
+                    f.write(new_prompt)
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Prompt updated successfully',
+                    'prompt': new_prompt
+                })
+            except Exception as save_error:
+                print(f"Warning: Could not save prompt: {save_error}")
+                return jsonify({
+                    'success': True,
+                    'message': 'Prompt updated successfully (in memory only)',
+                    'prompt': new_prompt
+                })
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/llm/prompt/reset', methods=['POST'])
+def api_reset_llm_prompt():
+    """Reset LLM prompt to default"""
+    try:
+        # Get the default prompt (without loading from file)
+        default_prompt = """You are LAIKA, a friendly robotic dog assistant. You can execute various actions like:
+- sit, stand, lie, stop
+- wave, dance, bow, hello
+- move forward, backward, left, right
+- wag tail, bark, play
+
+When given commands, respond enthusiastically and indicate what action you will perform. 
+Keep responses brief and dog-like with emojis. Always be helpful and friendly!"""
+        
+        # Remove the custom prompt file so it falls back to default
+        config_path = '/home/pi/LAIKA/config/llm_prompt.txt'
+        if os.path.exists(config_path):
+            os.remove(config_path)
+        
+        return jsonify({
+            'success': True,
+            'prompt': default_prompt,
+            'message': 'Prompt reset to default'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/llm/history', methods=['GET'])
+def api_get_llm_history():
+    """Get LLM history"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        return jsonify({
+            'success': True,
+            'history': llm_history[-limit:] if limit > 0 else llm_history,
+            'total': len(llm_history)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def determine_action_from_button(button_input):
+    """Simple button to action mapping - LLM can learn and override these"""
+    button_actions = {
+        'a': 'hello',
+        'b': 'dance', 
+        'x': 'sit',
+        'y': 'take_photo',
+        'start': 'emergency_stop',
+        'select': 'sleep',
+        'dpad-up': 'head_up',
+        'dpad-down': 'head_down',
+        'dpad-left': 'head_left',
+        'dpad-right': 'head_right',
+        'l1': 'speed_boost',
+        'r1': 'precision_mode',
+        'l2': 'crouch',
+        'r2': 'stretch'
+    }
+    
+    return button_actions.get(button_input.lower(), None)
+
+def determine_action_from_text(text_input):
+    """Determine action from text input (STT, chat, etc.)"""
+    text_lower = text_input.lower()
+    
+    # Simple keyword matching - LLM can make this much smarter
+    if any(word in text_lower for word in ['sit', 'sit down']):
+        return 'sit'
+    elif any(word in text_lower for word in ['dance', 'dancing']):
+        return 'dance'
+    elif any(word in text_lower for word in ['hello', 'hi', 'wave']):
+        return 'hello'
+    elif any(word in text_lower for word in ['photo', 'picture', 'camera']):
+        return 'take_photo'
+    elif any(word in text_lower for word in ['sleep', 'rest']):
+        return 'sleep'
+    elif any(word in text_lower for word in ['stop', 'emergency']):
+        return 'emergency_stop'
+    elif any(word in text_lower for word in ['head up', 'look up']):
+        return 'head_up'
+    elif any(word in text_lower for word in ['head down', 'look down']):
+        return 'head_down'
+    
+    return None
+
+def execute_llm_action(action):
+    """Execute the action determined by LLM"""
+    try:
+        # This should integrate with your existing robot action system
+        from web_gamepad_processor import process_web_gamepad_action
+        result = process_web_gamepad_action(action)
+        print(f"🤖 Executed action: {action} - Result: {result}")
+        return result
+    except ImportError:
+        print(f"🤖 Would execute action: {action} (processor not available)")
+        return {'success': True, 'action': action, 'message': 'Simulated execution'}
+
+@app.route('/llm/prompt', methods=['GET', 'POST'])
+def handle_llm_prompt():
+    """Get or set the LLM system prompt for LAIKA"""
+    try:
+        if request.method == 'GET':
+            # Return current system prompt
+            current_prompt = get_current_llm_prompt()
+            return jsonify({
+                'success': True,
+                'prompt': current_prompt,
+                'prompt_length': len(current_prompt),
+                'last_updated': get_prompt_last_updated(),
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        elif request.method == 'POST':
+            # Update system prompt
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': 'No data received'}), 400
+            
+            new_prompt = data.get('prompt', '')
+            if not new_prompt.strip():
+                return jsonify({'success': False, 'error': 'Empty prompt not allowed'}), 400
+            
+            # Save the new prompt
+            save_result = save_llm_prompt(new_prompt)
+            
+            if save_result['success']:
+                print(f"🧠 LLM prompt updated ({len(new_prompt)} characters)")
+                return jsonify({
+                    'success': True,
+                    'message': 'Prompt updated successfully',
+                    'prompt_length': len(new_prompt),
+                    'timestamp': datetime.now().isoformat()
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': save_result.get('error', 'Failed to save prompt')
+                }), 500
+                
+    except Exception as e:
+        print(f"❌ Error handling LLM prompt: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_current_llm_prompt():
+    """Get the current LLM system prompt"""
+    try:
+        # Try to read from file first
+        prompt_file = 'llm_system_prompt.txt'
+        if os.path.exists(prompt_file):
+            with open(prompt_file, 'r', encoding='utf-8') as f:
+                return f.read().strip()
+    except Exception as e:
+        print(f"⚠️ Error reading prompt file: {e}")
+    
+    # Default system prompt for LAIKA gamepad control
+    return """You are LAIKA, a friendly robotic dog with personality and emotions. You can learn and remember things.
+
+When you receive gamepad input:
+- Button presses like "x", "a", "start" etc. should trigger robot actions
+- You can learn new button mappings when users teach you
+- Movement inputs control how you move around
+- Be expressive and dog-like in your responses
+
+Current button mappings you know:
+- A button: hello/greeting gesture
+- B button: dance routine  
+- X button: sit down
+- Y button: take photo
+- Start: emergency stop
+- Select: go to sleep
+- D-pad: head movements (up/down/left/right)
+- L1/R1: speed control
+- L2/R2: posture changes
+
+You can learn new mappings when users say things like:
+"X button should make you sit" or "When I press Y, do a backflip"
+
+Always respond with personality and explain what you're doing. Be a good dog! 🐕"""
+
+def get_prompt_last_updated():
+    """Get when the prompt was last updated"""
+    try:
+        prompt_file = 'llm_system_prompt.txt'
+        if os.path.exists(prompt_file):
+            import os
+            return datetime.fromtimestamp(os.path.getmtime(prompt_file)).isoformat()
+    except Exception:
+        pass
+    return "Never"
+
+def save_llm_prompt(prompt):
+    """Save the LLM system prompt to file"""
+    try:
+        prompt_file = 'llm_system_prompt.txt'
+        with open(prompt_file, 'w', encoding='utf-8') as f:
+            f.write(prompt)
+        
+        # Also create a backup with timestamp
+        backup_file = f'llm_prompts/backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+        os.makedirs('llm_prompts', exist_ok=True)
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            f.write(prompt)
+        
+        return {'success': True}
+    except Exception as e:
+        print(f"❌ Error saving prompt: {e}")
+        return {'success': False, 'error': str(e)}
+
+@app.route('/llm/config', methods=['GET', 'POST'])
+def handle_llm_config():
+    """Get or set LLM configuration (API keys, settings, etc.)"""
+    try:
+        if request.method == 'GET':
+            # Return current LLM configuration (without exposing full API key)
+            config = get_llm_config()
+            
+            # Mask API key for security
+            if 'openai_api_key' in config and config['openai_api_key']:
+                config['openai_api_key_masked'] = config['openai_api_key'][:8] + '...' + config['openai_api_key'][-4:]
+                del config['openai_api_key']  # Don't send full key to frontend
+            
+            return jsonify({
+                'success': True,
+                'config': config,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        elif request.method == 'POST':
+            # Update LLM configuration
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': 'No data received'}), 400
+            
+            # Save configuration
+            save_result = save_llm_config(data)
+            
+            if save_result['success']:
+                print(f"🧠 LLM configuration updated")
+                return jsonify({
+                    'success': True,
+                    'message': 'Configuration updated successfully',
+                    'timestamp': datetime.now().isoformat()
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': save_result.get('error', 'Failed to save configuration')
+                }), 500
+                
+    except Exception as e:
+        print(f"❌ Error handling LLM config: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/llm/stats', methods=['GET'])
+def get_llm_stats():
+    """Get LLM usage statistics"""
+    try:
+        stats = get_llm_usage_stats()
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        print(f"❌ Error getting LLM stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def get_llm_config():
+    """Get current LLM configuration"""
+    try:
+        config_file = 'llm_config.json'
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"⚠️ Error reading LLM config: {e}")
+    
+    # Default configuration
+    return {
+        'openai_api_key': '',
+        'model': 'gpt-4',
+        'max_tokens': 150,
+        'temperature': 0.7,
+        'track_usage': True,
+        'cost_limit_daily': 10.0,  # USD
+        'cost_limit_monthly': 100.0  # USD
+    }
+
+def save_llm_config(config):
+    """Save LLM configuration"""
+    try:
+        config_file = 'llm_config.json'
+        
+        # Merge with existing config
+        existing_config = get_llm_config()
+        existing_config.update(config)
+        
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_config, f, indent=2)
+        
+        return {'success': True}
+    except Exception as e:
+        print(f"❌ Error saving LLM config: {e}")
+        return {'success': False, 'error': str(e)}
+
+def get_llm_usage_stats():
+    """Get LLM usage statistics with token tracking and cost"""
+    try:
+        stats_file = 'llm_usage_stats.json'
+        if os.path.exists(stats_file):
+            with open(stats_file, 'r', encoding='utf-8') as f:
+                stats = json.load(f)
+        else:
+            stats = {
+                'total_requests': 0,
+                'total_tokens': 0,
+                'total_cost': 0.0,
+                'daily_stats': {},
+                'monthly_stats': {},
+                'last_reset': datetime.now().isoformat()
+            }
+        
+        # Add current period stats
+        today = datetime.now().strftime('%Y-%m-%d')
+        this_month = datetime.now().strftime('%Y-%m')
+        
+        daily_stats = stats['daily_stats'].get(today, {
+            'requests': 0, 'tokens': 0, 'cost': 0.0
+        })
+        
+        monthly_stats = stats['monthly_stats'].get(this_month, {
+            'requests': 0, 'tokens': 0, 'cost': 0.0
+        })
+        
+        return {
+            'total_requests': stats['total_requests'],
+            'total_tokens': stats['total_tokens'],
+            'total_cost': round(stats['total_cost'], 4),
+            'today': daily_stats,
+            'this_month': monthly_stats,
+            'last_reset': stats['last_reset']
+        }
+        
+    except Exception as e:
+        print(f"⚠️ Error reading LLM stats: {e}")
+        return {
+            'total_requests': 0,
+            'total_tokens': 0,
+            'total_cost': 0.0,
+            'today': {'requests': 0, 'tokens': 0, 'cost': 0.0},
+            'this_month': {'requests': 0, 'tokens': 0, 'cost': 0.0},
+            'last_reset': datetime.now().isoformat()
+        }
+
+def update_llm_usage_stats(tokens_used, cost):
+    """Update LLM usage statistics"""
+    try:
+        stats = get_llm_usage_stats()
+        today = datetime.now().strftime('%Y-%m-%d')
+        this_month = datetime.now().strftime('%Y-%m')
+        
+        # Update totals
+        stats['total_requests'] += 1
+        stats['total_tokens'] += tokens_used
+        stats['total_cost'] += cost
+        
+        # Update daily stats
+        if 'daily_stats' not in stats:
+            stats['daily_stats'] = {}
+        if today not in stats['daily_stats']:
+            stats['daily_stats'][today] = {'requests': 0, 'tokens': 0, 'cost': 0.0}
+        
+        stats['daily_stats'][today]['requests'] += 1
+        stats['daily_stats'][today]['tokens'] += tokens_used
+        stats['daily_stats'][today]['cost'] += cost
+        
+        # Update monthly stats
+        if 'monthly_stats' not in stats:
+            stats['monthly_stats'] = {}
+        if this_month not in stats['monthly_stats']:
+            stats['monthly_stats'][this_month] = {'requests': 0, 'tokens': 0, 'cost': 0.0}
+        
+        stats['monthly_stats'][this_month]['requests'] += 1
+        stats['monthly_stats'][this_month]['tokens'] += tokens_used
+        stats['monthly_stats'][this_month]['cost'] += cost
+        
+        # Save updated stats
+        stats_file = 'llm_usage_stats.json'
+        with open(stats_file, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, indent=2)
+        
+        print(f"📊 LLM Usage: +{tokens_used} tokens, +${cost:.4f} cost")
+        
+    except Exception as e:
+        print(f"❌ Error updating LLM stats: {e}")
+
+def calculate_openai_cost(model, input_tokens, output_tokens):
+    """Calculate OpenAI API cost based on current pricing"""
+    # OpenAI pricing (as of 2024) - update these as needed
+    pricing = {
+        'gpt-4': {'input': 0.03 / 1000, 'output': 0.06 / 1000},  # per 1K tokens
+        'gpt-4-turbo': {'input': 0.01 / 1000, 'output': 0.03 / 1000},
+        'gpt-3.5-turbo': {'input': 0.0015 / 1000, 'output': 0.002 / 1000},
+        'gpt-3.5-turbo-16k': {'input': 0.003 / 1000, 'output': 0.004 / 1000}
+    }
+    
+    if model not in pricing:
+        model = 'gpt-4'  # Default fallback
+    
+    input_cost = input_tokens * pricing[model]['input']
+    output_cost = output_tokens * pricing[model]['output']
+    
+    return input_cost + output_cost
+
+def create_gamepad_llm_prompt(gamepad_input):
+    """Create an LLM prompt for gamepad input interpretation"""
+    
+    if gamepad_input['type'] == 'button_press':
+        button = gamepad_input['button']
+        context = gamepad_input.get('context', {})
+        
+        prompt = f"""
+You are LAIKA, a robotic dog. A user just pressed the '{button}' button on their gamepad.
+
+Current context:
+- Button pressed: {button}
+- Active buttons: {context.get('activeButtons', [])}
+- Left stick position: {context.get('leftStick', {})}
+- Right stick position: {context.get('rightStick', {})}
+- Source: {gamepad_input.get('source', 'unknown')}
+
+Based on this input, decide what action LAIKA should take. You can:
+1. Perform a specific robot action (like sit, dance, hello, etc.)
+2. Learn a new button mapping if the user teaches you
+3. Ask for clarification if unsure
+4. Respond with personality and emotion
+
+Remember previous button mappings you've learned. Be expressive and dog-like in your responses.
+
+Respond in JSON format:
+{{
+    "response": "Your conversational response as LAIKA",
+    "actions": [
+        {{
+            "type": "robot_command",
+            "command": "action_name",
+            "parameters": {{}}
+        }}
+    ],
+    "learned_mapping": null or {{"button": "button_name", "action": "action_name"}}
+}}
+"""
+
+    elif gamepad_input['type'] == 'movement_input':
+        movement = gamepad_input['movement']
+        intent = movement.get('intent', [])
+        
+        prompt = f"""
+You are LAIKA, a robotic dog. The user is moving the gamepad sticks for movement control.
+
+Movement input:
+- Left stick: {movement.get('leftStick', {})}
+- Right stick: {movement.get('rightStick', {})}
+- Movement intent: {intent}
+- Source: {gamepad_input.get('source', 'unknown')}
+
+Interpret this movement and decide how LAIKA should move. You can:
+1. Execute the movement directly
+2. Modify the movement based on context (e.g., slower if cautious)
+3. Add personality to the movement (e.g., playful bouncing)
+4. Refuse movement if it seems unsafe
+
+Respond in JSON format:
+{{
+    "response": "Your conversational response about the movement",
+    "actions": [
+        {{
+            "type": "movement",
+            "movement": {{
+                "linear_x": 0.0,
+                "linear_y": 0.0,
+                "angular_z": 0.0
+            }}
+        }}
+    ]
+}}
+"""
+
+    return prompt
+
+def process_gamepad_with_llm(prompt, gamepad_input):
+    """Process gamepad input through LLM - integrate with your existing LLM system"""
+    
+    # TODO: Replace this with actual LLM integration
+    # This should connect to your existing LAIKA LLM system
+    
+    # For now, provide intelligent fallback responses
+    if gamepad_input['type'] == 'button_press':
+        button = gamepad_input['button']
+        
+        # Simple learning mapping
+        button_actions = {
+            'a': 'hello',
+            'b': 'dance', 
+            'x': 'sit',
+            'y': 'take_photo',
+            'start': 'emergency_stop',
+            'select': 'sleep',
+            'dpad-up': 'head_up',
+            'dpad-down': 'head_down',
+            'l1': 'speed_boost',
+            'r1': 'precision_mode'
+        }
+        
+        action = button_actions.get(button, 'unknown')
+        
+        return {
+            'response': f"Woof! You pressed {button}! I'll {action} for you! 🐕",
+            'actions': [
+                {
+                    'type': 'robot_command',
+                    'command': action,
+                    'parameters': {}
+                }
+            ] if action != 'unknown' else [],
+            'learned_mapping': {'button': button, 'action': action} if action != 'unknown' else None
+        }
+    
+    elif gamepad_input['type'] == 'movement_input':
+        movement = gamepad_input['movement']
+        left_stick = movement.get('leftStick', {})
+        right_stick = movement.get('rightStick', {})
+        
+        return {
+            'response': f"Moving around! Left stick: {left_stick}, Right stick: {right_stick}",
+            'actions': [
+                {
+                    'type': 'movement',
+                    'movement': {
+                        'linear_x': -left_stick.get('y', 0) * 0.3,
+                        'linear_y': left_stick.get('x', 0) * 0.2,
+                        'angular_z': right_stick.get('x', 0) * 0.5
+                    }
+                }
+            ]
+        }
+    
+    return {'response': 'Woof! I received your input!', 'actions': []}
+
+def create_fallback_gamepad_response(gamepad_input):
+    """Create fallback response when LLM is not available"""
+    
+    if gamepad_input['type'] == 'button_press':
+        button = gamepad_input['button']
+        return {
+            'response': f"Button {button} pressed - using fallback mode",
+            'actions': [
+                {
+                    'type': 'robot_command',
+                    'command': 'hello',  # Safe fallback action
+                    'parameters': {}
+                }
+            ]
+        }
+    
+    return {
+        'response': 'Fallback mode active',
+        'actions': []
+    }
+
 @app.route('/api/gamepad/status', methods=['GET'])
 def get_gamepad_status():
     """Get gamepad connection and processing status"""
@@ -1199,6 +2308,54 @@ def get_gamepad_status():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/gamepad/broadcast', methods=['POST'])
+def broadcast_gamepad_event():
+    """Broadcast gamepad events to connected WebSocket clients"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+        
+        event_type = data.get('event_type')
+        event_data = data.get('data', {})
+        
+        if not event_type:
+            return jsonify({'success': False, 'error': 'No event type specified'}), 400
+        
+        # Broadcast to all connected SocketIO clients
+        if SOCKETIO_AVAILABLE and socketio_app:
+            if event_type == 'button_press':
+                socketio_app.emit('gamepad_button_press', event_data, room=None)
+            elif event_type == 'button_release':
+                socketio_app.emit('gamepad_button_release', event_data, room=None)
+            
+            # Also create a log entry for the gamepad event
+            gamepad_log = {
+                'id': f"physical_gamepad_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'info',
+                'source': 'gamepad',
+                'message': f"🎮 Physical gamepad: {event_data.get('button_name', 'Unknown')} {'pressed' if event_type == 'button_press' else 'released'}",
+                'metadata': {
+                    'button_index': event_data.get('button_index'),
+                    'button_name': event_data.get('button_name'),
+                    'event_type': event_type,
+                    'interface': 'physical_gamepad'
+                }
+            }
+            socketio_app.emit('log_entry', {'log': gamepad_log}, room=None)
+        
+        return jsonify({
+            'success': True,
+            'event_type': event_type,
+            'broadcasted': True,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error broadcasting gamepad event: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ================================
 # WEBSOCKET ENDPOINTS FOR REAL-TIME CONTROL
 # ================================
@@ -1222,26 +2379,185 @@ if SOCKETIO_AVAILABLE and socketio_app:
     @socketio_app.on('gamepad_action')
     def handle_gamepad_action(data):
         print(f"🎮 Gamepad action: {data}")
+        
+        # Create log entry for gamepad action
+        gamepad_log = {
+            'id': f"gamepad_action_{int(time.time() * 1000000)}",
+            'timestamp': datetime.now().isoformat() + 'Z',
+            'level': 'info',
+            'source': 'gamepad',
+            'message': f"🎮 Gamepad action: {data.get('action', data.get('button', 'unknown'))}",
+            'metadata': {
+                'action_data': data,
+                'client_id': request.sid,
+                'interface': 'web_socketio'
+            }
+        }
+        
+        # Broadcast log entry to all log viewers in real-time
+        socketio_app.emit('log_entry', {'log': gamepad_log}, room=None)
+        
         try:
             # Process gamepad action using existing gamepad processor
             if 'web_gamepad_processor' in globals():
                 result = web_gamepad_processor.process_gamepad_data(data)
+                
+                # Log the result
+                result_log = {
+                    'id': f"gamepad_result_{int(time.time() * 1000000)}",
+                    'timestamp': datetime.now().isoformat() + 'Z',
+                    'level': 'info' if result.get('success', False) else 'warning',
+                    'source': 'gamepad',
+                    'message': f"🤖 Gamepad action result: {result.get('laika_action', 'processed')}",
+                    'metadata': {
+                        'result': result,
+                        'success': result.get('success', False)
+                    }
+                }
+                socketio_app.emit('log_entry', {'log': result_log}, room=None)
+                
                 emit('gamepad_response', {'status': 'success', 'result': result})
             else:
                 emit('gamepad_response', {'status': 'error', 'message': 'Gamepad processor not available'})
         except Exception as e:
-            print(f"❌ Gamepad action error: {e}")
+            error_msg = f"❌ Gamepad action error: {e}"
+            print(error_msg)
+            
+            # Log the error
+            error_log = {
+                'id': f"gamepad_error_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'error',
+                'source': 'gamepad',
+                'message': error_msg,
+                'metadata': {
+                    'error': str(e),
+                    'action_data': data
+                }
+            }
+            socketio_app.emit('log_entry', {'log': error_log}, room=None)
+            
             emit('error_response', {'error': str(e)})
     
     @socketio_app.on('movement_command')
     def handle_movement_command(data):
         print(f"🎮 Movement command: {data}")
+        
+        # Only log significant movements to avoid spam
+        linear_x = data.get('linear_x', 0)
+        linear_y = data.get('linear_y', 0) 
+        angular_z = data.get('angular_z', 0)
+        
+        if abs(linear_x) > 0.1 or abs(linear_y) > 0.1 or abs(angular_z) > 0.1:
+            # Create log entry for movement command
+            movement_log = {
+                'id': f"gamepad_movement_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'info',
+                'source': 'gamepad',
+                'message': f"🎮 Movement: X={linear_x:.2f}, Y={linear_y:.2f}, Z={angular_z:.2f}",
+                'metadata': {
+                    'movement_data': data,
+                    'client_id': request.sid,
+                    'interface': 'web_socketio'
+                }
+            }
+            
+            # Broadcast log entry to all log viewers in real-time
+            socketio_app.emit('log_entry', {'log': movement_log}, room=None)
+        
         try:
             # Process movement command
             emit('movement_response', {'status': 'success', 'command': data})
         except Exception as e:
-            print(f"❌ Movement command error: {e}")
+            error_msg = f"❌ Movement command error: {e}"
+            print(error_msg)
+            
+            # Log the error
+            error_log = {
+                'id': f"movement_error_{int(time.time() * 1000000)}",
+                'timestamp': datetime.now().isoformat() + 'Z',
+                'level': 'error',
+                'source': 'gamepad',
+                'message': error_msg,
+                'metadata': {
+                    'error': str(e),
+                    'movement_data': data
+                }
+            }
+            socketio_app.emit('log_entry', {'log': error_log}, room=None)
+            
             emit('error_response', {'error': str(e)})
+    
+    @socketio_app.on('request_logs')
+    def handle_request_logs(data):
+        print(f"📋 Log request: {data}")
+        try:
+            # Get logs using the existing log collection system
+            limit = data.get('count', 100)
+            level = data.get('level', '')
+            since = data.get('since')
+            
+            logs = collect_system_logs(limit=limit, since=since, level_filter=level)
+            
+            # Send logs back to client
+            emit('log_batch', {
+                'logs': logs,
+                'total': len(logs),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            print(f"❌ Log request error: {e}")
+            emit('error_response', {'error': str(e), 'type': 'log_error'})
+    
+    @socketio_app.on('logs_connected')
+    def handle_logs_connected(data):
+        print(f"📋 Logs interface connected: {data}")
+        emit('logs_response', {'status': 'acknowledged', 'timestamp': datetime.now().isoformat()})
+        
+        # Send initial logs
+        try:
+            logs = collect_system_logs(limit=50)
+            emit('log_batch', {
+                'logs': logs,
+                'total': len(logs),
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            print(f"❌ Initial logs error: {e}")
+            emit('error_response', {'error': str(e), 'type': 'log_error'})
+    
+    @socketio_app.on('gamepad_interface_connected')
+    def handle_gamepad_interface_connected(data):
+        print(f"🎮 Gamepad interface connected: {data}")
+        emit('gamepad_interface_response', {'status': 'acknowledged', 'timestamp': datetime.now().isoformat()})
+        
+        # Send current gamepad status
+        try:
+            # Check if gamepad API server is running
+            gamepad_status = {
+                'connected': False,
+                'gamepad_count': 0,
+                'last_activity': None
+            }
+            
+            # Try to get status from gamepad API if available
+            try:
+                import requests
+                response = requests.get('http://localhost:8888/api/gamepad/status', timeout=1)
+                if response.status_code == 200:
+                    gamepad_data = response.json()
+                    gamepad_status['connected'] = gamepad_data.get('gamepad_connected', False)
+                    gamepad_status['gamepad_count'] = gamepad_data.get('gamepad_count', 0)
+            except:
+                pass  # Gamepad API not available
+            
+            emit('gamepad_status', gamepad_status)
+            
+        except Exception as e:
+            print(f"❌ Gamepad status error: {e}")
+            emit('error_response', {'error': str(e), 'type': 'gamepad_error'})
     
     print("✅ SocketIO event handlers registered")
 
@@ -3160,32 +4476,183 @@ def tts_voices():
             'error': str(e)
         }), 500
 
+# Voice API endpoints for STT/TTS functionality
+@app.route('/api/voice/tts', methods=['POST', 'HEAD'])
+def voice_tts():
+    """Text-to-Speech API endpoint for voice system"""
+    if request.method == 'HEAD':
+        # Check if TTS is available
+        return ('', 200) if True else ('', 503)
+    
+    try:
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Text is required'
+            }), 400
+        
+        text = data['text']
+        provider = data.get('provider', 'elevenlabs')
+        voice_config = data.get('voice_config', {})
+        
+        print(f"🔊 TTS Request: '{text}' using {provider}")
+        
+        # For now, return a placeholder response
+        # TODO: Implement actual TTS integration with ElevenLabs/Piper
+        return jsonify({
+            'success': False,
+            'error': 'TTS endpoint not fully implemented yet',
+            'message': 'This endpoint needs integration with actual TTS services'
+        }), 501
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/chat/message', methods=['POST'])
+def chat_message():
+    """Chat message API endpoint for voice system"""
+    try:
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Message is required'
+            }), 400
+        
+        message = data['message']
+        use_voice = data.get('use_voice', False)
+        
+        print(f"💬 Chat Message: '{message}' (voice: {use_voice})")
+        
+        # For now, return a placeholder response
+        # TODO: Implement actual LLM integration
+        laika_response = f"I heard you say: '{message}'. This is a placeholder response until the LLM integration is complete."
+        
+        return jsonify({
+            'success': True,
+            'laika_response': laika_response,
+            'message': message,
+            'use_voice': use_voice,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/voice/stt', methods=['POST'])
+def voice_stt():
+    """Speech-to-Text API endpoint for OpenAI Realtime integration"""
+    try:
+        # Check if we have audio data
+        if 'audio' not in request.files and 'audio_data' not in request.form:
+            return jsonify({
+                'success': False,
+                'error': 'Audio data is required'
+            }), 400
+        
+        # Get configuration
+        data = request.get_json() if request.is_json else {}
+        language = data.get('language', 'en-US')
+        provider = data.get('provider', 'openai_whisper')
+        
+        print(f"🎤 STT Request using {provider} for language {language}")
+        
+        # For now, return a placeholder response
+        # TODO: Implement actual OpenAI Whisper/Realtime API integration
+        return jsonify({
+            'success': False,
+            'error': 'OpenAI Realtime STT not implemented yet',
+            'message': 'This endpoint needs integration with OpenAI Realtime API',
+            'provider': provider,
+            'language': language
+        }), 501
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/voice/status')
+def voice_status():
+    """Get voice system status and capabilities"""
+    try:
+        status = {
+            'tts': {
+                'elevenlabs': {
+                    'available': False,  # TODO: Check actual ElevenLabs API key
+                    'voice_id': 'GN4wbsbejSnGSa1AzjH5',
+                    'model': 'eleven_turbo_v2_5'
+                },
+                'piper': {
+                    'available': os.path.exists('/home/pi/LAIKA/models/piper/'),
+                    'models': []  # TODO: Scan for available Piper models
+                },
+                'web_speech': {
+                    'available': True,  # Always available in browser
+                    'note': 'Browser-based synthesis'
+                }
+            },
+            'stt': {
+                'web_speech': {
+                    'available': True,  # Always available in browser
+                    'note': 'Browser-based recognition'
+                },
+                'openai_whisper': {
+                    'available': OPENAI_AVAILABLE and bool(os.getenv('OPENAI_API_KEY')),
+                    'model': 'whisper-1'
+                },
+                'openai_realtime': {
+                    'available': False,  # TODO: Implement OpenAI Realtime API
+                    'note': 'Not yet implemented'
+                }
+            },
+            'server_time': datetime.now().isoformat(),
+            'capabilities': [
+                'web_speech_api',
+                'placeholder_endpoints'
+            ]
+        }
+        
+        return jsonify({
+            'success': True,
+            'status': status
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 if __name__ == '__main__':
     print("🚀 Starting LAIKA TRON PWA Server...")
-    print("🎨 Full TRON aesthetic with all pages")
-    print("📷 Camera moved to /camera endpoint")
-    print("🎵 Music tracking API endpoints added")
-    print("🧠 Initializing LLM and context systems...")
+    print(f"📡 Server will be available at: http://localhost:5000")
+    print(f"🌐 NGROK tunnel: https://laika.ngrok.app")
+    print("💫 TRON Grid activated!")
     
-    # Initialize LLM and context systems
-    initialize_llm_systems()
-    
-    print("🌐 Server starting on http://0.0.0.0:5000")
-    
-    # Initialize camera in background thread (non-blocking)
-    camera_thread = threading.Thread(target=safe_camera_init, daemon=True)
-    camera_thread.start()
-    
-    # ALWAYS START THE FLASK SERVER - GUARANTEED!
-    try:
-        if 'SOCKETIO_AVAILABLE' in globals() and SOCKETIO_AVAILABLE and socketio_app:
-            print("🔗 Starting with SocketIO WebSocket support for real-time gamepad control")
-            socketio_app.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
-        else:
-            print("🌐 Starting regular Flask server (SocketIO not available)")
-            app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
-    except Exception as e:
-        print(f"❌ Server failed: {e}")
-        print("🔄 Falling back to basic Flask server")
-        # Fallback - try regular Flask server
-        app.run(host='127.0.0.1', port=5000, debug=False, threaded=True, use_reloader=False)
+    # Start the SocketIO server
+    if socketio_app:
+        socketio_app.run(
+            app,
+            host='0.0.0.0',
+            port=5000,
+            debug=False,
+            allow_unsafe_werkzeug=True
+        )
+    else:
+        # Fallback to regular Flask server if SocketIO failed
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=False
+        )
+

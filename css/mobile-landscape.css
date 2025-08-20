@@ -113,7 +113,7 @@
     }
 
     .video-wrapper {
-        aspect-ratio: 16/9 !important;
+        aspect-ratio: 4/3 !important;
     }
 
     .control-card {
@@ -170,6 +170,10 @@
         grid-template-columns: 1fr 250px !important;
         gap: 10px !important;
         height: calc(100vh - var(--header-height) - var(--status-bar-height) - 20px);
+    }
+
+    .control-page .video-wrapper {
+        aspect-ratio: 4/3 !important;
     }
 
     .gamepad-container {
@@ -341,6 +345,7 @@
     textarea,
     select {
         -webkit-appearance: none !important;
+        appearance: none !important;
         border-radius: 8px !important;
         font-size: 16px !important; /* Prevent zoom on iOS */
     }
@@ -390,6 +395,10 @@
         grid-template-columns: 1fr 300px !important;
     }
 
+    .control-page .video-wrapper {
+        aspect-ratio: 4/3 !important;
+    }
+
     .gamepad {
         max-width: 450px !important;
         height: 200px !important;
@@ -415,6 +424,10 @@
 
     .control-main {
         grid-template-columns: 1fr 200px !important;
+    }
+
+    .control-page .video-wrapper {
+        aspect-ratio: 4/3 !important;
     }
 
     .emergency-stop {

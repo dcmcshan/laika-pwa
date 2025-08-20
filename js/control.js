@@ -18,6 +18,7 @@ class LAIKAControl {
         
         // Enhanced gamepad manager
         this.gamepadManager = null;
+        this.virtualGamepad = null;
         
         // Gamepad API integration
         this.gamepadAPI = {
@@ -82,6 +83,8 @@ class LAIKAControl {
     }
 
     async init() {
+        // Initialize virtual gamepad first
+        this.initializeVirtualGamepad();
         this.setupEventListeners();
         this.setupEnhancedGamepadSupport();
         this.updateUI();
@@ -417,26 +420,29 @@ class LAIKAControl {
         }
     }
 
-    processGamepadInput(gamepad) {
-        // Analog sticks
+    processGamepadInput(gamepad, changes = null) {
+        // Enhanced gamepad processing with change detection
+        const deadzone = 0.1;
+        
+        // Analog sticks with improved deadzone handling
         const leftStick = {
-            x: Math.abs(gamepad.axes[0]) > 0.1 ? gamepad.axes[0] : 0,
-            y: Math.abs(gamepad.axes[1]) > 0.1 ? gamepad.axes[1] : 0
+            x: Math.abs(gamepad.axes[0]) > deadzone ? gamepad.axes[0] : 0,
+            y: Math.abs(gamepad.axes[1]) > deadzone ? gamepad.axes[1] : 0
         };
         
         const rightStick = {
-            x: Math.abs(gamepad.axes[2]) > 0.1 ? gamepad.axes[2] : 0,
-            y: Math.abs(gamepad.axes[3]) > 0.1 ? gamepad.axes[3] : 0
+            x: Math.abs(gamepad.axes[2]) > deadzone ? gamepad.axes[2] : 0,
+            y: Math.abs(gamepad.axes[3]) > deadzone ? gamepad.axes[3] : 0
         };
 
-        // Update visual sticks
+        // Update visual sticks (if UI elements exist)
         this.updateVisualStick('left', leftStick);
         this.updateVisualStick('right', rightStick);
 
         this.controlState.leftStick = leftStick;
         this.controlState.rightStick = rightStick;
 
-        // Buttons
+        // Enhanced button mapping to match physical gamepad
         const buttonMapping = [
             'a', 'b', 'x', 'y',           // 0-3: Face buttons
             'l1', 'r1', 'l2', 'r2',       // 4-7: Shoulder buttons  
@@ -446,18 +452,38 @@ class LAIKAControl {
             'dpad-left', 'dpad-right'      // 14-15: D-pad left/right
         ];
 
-        gamepad.buttons.forEach((button, index) => {
-            const buttonName = buttonMapping[index];
-            if (!buttonName) return;
+        // Process button changes (if provided) or all buttons
+        if (changes && changes.buttons) {
+            // Process only changed buttons for efficiency
+            changes.buttons.forEach(buttonChange => {
+                const buttonName = buttonMapping[buttonChange.index];
+                if (!buttonName) return;
 
-            if (button.pressed && !this.controlState.buttons.has(buttonName)) {
-                this.onButtonPress(buttonName);
-            } else if (!button.pressed && this.controlState.buttons.has(buttonName)) {
-                this.onButtonRelease(buttonName);
-            }
-        });
+                if (buttonChange.pressed && !this.controlState.buttons.has(buttonName)) {
+                    this.onButtonPress(buttonName);
+                } else if (!buttonChange.pressed && this.controlState.buttons.has(buttonName)) {
+                    this.onButtonRelease(buttonName);
+                }
+            });
+        } else {
+            // Fallback to processing all buttons
+            gamepad.buttons.forEach((button, index) => {
+                const buttonName = buttonMapping[index];
+                if (!buttonName) return;
 
-        this.sendMovementCommand();
+                if (button.pressed && !this.controlState.buttons.has(buttonName)) {
+                    this.onButtonPress(buttonName);
+                } else if (!button.pressed && this.controlState.buttons.has(buttonName)) {
+                    this.onButtonRelease(buttonName);
+                }
+            });
+        }
+
+        // Send movement command only if significant movement detected
+        if (Math.abs(leftStick.x) > 0.05 || Math.abs(leftStick.y) > 0.05 || 
+            Math.abs(rightStick.x) > 0.05 || Math.abs(rightStick.y) > 0.05) {
+            this.sendMovementCommand();
+        }
     }
 
     updateVisualStick(stickType, position) {
@@ -1707,7 +1733,7 @@ class LAIKAControl {
         }, 5000);
     }
 
-    // Enhanced button press with gamepad API integration
+    // Enhanced button press - route through unified LLM endpoint
     async onButtonPress(buttonName) {
         this.controlState.buttons.add(buttonName);
         
@@ -1717,10 +1743,14 @@ class LAIKAControl {
             button.classList.add('pressed');
         }
         
-        // Send event to gamepad API
+        // Send button press through LLM for intelligent processing
+        await this.sendRobotAction('', buttonName, 'web_control_gamepad');
+        
+        // Keep direct dpad handling for responsiveness if needed
         if (buttonName.startsWith('dpad-')) {
             const direction = buttonName.split('-')[1];
-            await this.sendGamepadDpadEvent(direction, true);
+            // Could still send to gamepad API for immediate feedback
+            // await this.sendGamepadDpadEvent(direction, true);
         } else {
             await this.sendGamepadButtonEvent(buttonName, 'button_press');
         }
@@ -1812,6 +1842,228 @@ class LAIKAControl {
         this.telemetry.linearVel = Math.sqrt(linear_x * linear_x + linear_y * linear_y);
         this.telemetry.angularVel = Math.abs(angular_z);
         this.updateTelemetryDisplay();
+    }
+
+    // Initialize virtual gamepad for touch devices
+    initializeVirtualGamepad() {
+        try {
+            // Load virtual gamepad if available
+            if (typeof VirtualGamepad !== 'undefined') {
+                this.virtualGamepad = new VirtualGamepad(this.gamepadManager || this);
+                console.log('🎮 Virtual gamepad initialized');
+            } else {
+                console.log('⚠️ VirtualGamepad class not available');
+            }
+        } catch (error) {
+            console.error('❌ Error initializing virtual gamepad:', error);
+        }
+    }
+
+    // Send all control inputs through unified LLM endpoint
+    async sendRobotAction(action, buttonName = '', source = 'web_control') {
+        console.log(`🧠 Sending to LLM: ${action} (${buttonName})`);
+        
+        // Determine the input to send to LLM
+        let input = action;
+        if (buttonName) {
+            input = buttonName; // Send button name for gamepad inputs
+        }
+        
+        // Try WebSocket first (lowest latency)
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const message = {
+                type: 'llm_input',
+                input: input,
+                source: source,
+                original_action: action,
+                button: buttonName,
+                timestamp: Date.now()
+            };
+            
+            this.ws.send(JSON.stringify(message));
+            console.log(`🧠 Sent to LLM via WebSocket: "${input}"`);
+            return;
+        }
+        
+        // Fallback to unified LLM HTTP endpoint
+        try {
+            const response = await fetch('/llm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: input,
+                    type: buttonName ? 'gamepad' : 'control',
+                    source: source,
+                    button: buttonName,
+                    original_action: action,
+                    timestamp: Date.now()
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(`🧠 LLM response: ${result.response}`);
+                if (result.action_executed) {
+                    console.log(`✅ Action "${result.action}" executed successfully`);
+                }
+            } else {
+                console.error(`❌ Failed to send to LLM:`, response.statusText);
+            }
+        } catch (error) {
+            console.error(`❌ Error sending to LLM:`, error);
+        }
+    }
+
+    // Send text commands directly to LLM (for voice commands, chat, etc.)
+    async sendTextToLLM(text, source = 'web_control') {
+        console.log(`🧠 Sending text to LLM: "${text}"`);
+        
+        // Try WebSocket first
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const message = {
+                type: 'llm_input',
+                input: text,
+                source: source,
+                timestamp: Date.now()
+            };
+            
+            this.ws.send(JSON.stringify(message));
+            console.log(`🧠 Sent text to LLM via WebSocket: "${text}"`);
+            return;
+        }
+        
+        // Fallback to HTTP
+        try {
+            const response = await fetch('/llm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: text,
+                    type: 'text',
+                    source: source,
+                    timestamp: Date.now()
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(`🧠 LLM response: ${result.response}`);
+                return result;
+            } else {
+                console.error(`❌ Failed to send text to LLM:`, response.statusText);
+            }
+        } catch (error) {
+            console.error(`❌ Error sending text to LLM:`, error);
+        }
+    }
+
+    // Method for handling voice commands from STT
+    async handleVoiceCommand(transcript) {
+        console.log(`🎤 Voice command received: "${transcript}"`);
+        
+        // Show visual feedback
+        this.showVoiceCommandFeedback(transcript);
+        
+        // Send to LLM for processing
+        const result = await this.sendTextToLLM(transcript, 'voice_command');
+        
+        if (result && result.response) {
+            this.showLLMResponse(result.response);
+        }
+        
+        return result;
+    }
+
+    // Method for handling chat messages
+    async handleChatMessage(message) {
+        console.log(`💬 Chat message: "${message}"`);
+        
+        // Send to LLM for processing
+        const result = await this.sendTextToLLM(message, 'web_chat');
+        
+        if (result && result.response) {
+            this.showLLMResponse(result.response);
+        }
+        
+        return result;
+    }
+
+    // Show voice command feedback in UI
+    showVoiceCommandFeedback(transcript) {
+        // Create or update voice feedback element
+        let voiceFeedback = document.getElementById('voice-feedback');
+        if (!voiceFeedback) {
+            voiceFeedback = document.createElement('div');
+            voiceFeedback.id = 'voice-feedback';
+            voiceFeedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 255, 255, 0.9);
+                color: #000;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-family: 'Orbitron', monospace;
+                font-size: 14px;
+                z-index: 1000;
+                max-width: 300px;
+                box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            `;
+            document.body.appendChild(voiceFeedback);
+        }
+        
+        voiceFeedback.innerHTML = `🎤 "${transcript}"`;
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            if (voiceFeedback) {
+                voiceFeedback.remove();
+            }
+        }, 3000);
+    }
+
+    // Show LLM response in UI
+    showLLMResponse(response) {
+        // Create or update LLM response element
+        let llmResponse = document.getElementById('llm-response');
+        if (!llmResponse) {
+            llmResponse = document.createElement('div');
+            llmResponse.id = 'llm-response';
+            llmResponse.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                background: rgba(0, 255, 0, 0.9);
+                color: #000;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-family: 'Orbitron', monospace;
+                font-size: 14px;
+                z-index: 1000;
+                max-width: 400px;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            `;
+            document.body.appendChild(llmResponse);
+        }
+        
+        llmResponse.innerHTML = `🤖 ${response}`;
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (llmResponse) {
+                llmResponse.remove();
+            }
+        }, 5000);
+    }
+
+    // Method to execute any action through LLM (for compatibility)
+    async executeRobotAction(action) {
+        console.log(`🧠 Executing robot action through LLM: ${action}`);
+        return await this.sendRobotAction(action, '', 'web_control_action');
     }
 }
 

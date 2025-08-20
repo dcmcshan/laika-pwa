@@ -289,6 +289,18 @@ Current capabilities:
 
        When users request actions, use these EXACT action keywords in your responses. The system will automatically detect and execute them:
 
+       **CRITICAL RULE: When the user input is EXACTLY one of these single words: "sit", "stand", "dance", "photo", "hello", "wave", "bow", "lie", "stop", "reset" - respond with ONLY the action and absolutely nothing else:**
+       
+       Examples:
+       User: "sit" → Your response: "*sit*"
+       User: "dance" → Your response: "*dance*"
+       User: "photo" → Your response: "*photo*"
+       User: "stand" → Your response: "*stand*"
+       
+       DO NOT add "Sure!", "OK!", "There!", or ANY other words. Just the action in asterisks.
+       
+       **For longer phrases like "Can you sit down?" or "Please take a photo", you may add brief context.**
+
        **Robot ActionGroups (Physical Movements):**
        - *sit* - Sit down in resting position
        - *stand* - Stand up from sitting  

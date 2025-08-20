@@ -433,6 +433,20 @@ class LAIKAMusic {
 
     triggerBeatBehaviors() {
         if (this.behaviors.dance) {
+            // Send beat dance trigger to behavior system
+            this.sendMessage({
+                type: 'behavior-trigger',
+                input_type: 'ros_topic',
+                input_data: {
+                    topic: '/beat_detected',
+                    data: 'beat',
+                    bpm: this.beatDetector.bpm,
+                    energy: this.beatDetector.energy,
+                    intensity: Math.min(this.beatDetector.energy / 100, 1.0)
+                }
+            });
+            
+            // Also send legacy robot-behavior message for compatibility
             this.sendMessage({
                 type: 'robot-behavior',
                 behavior: 'dance-beat',

@@ -1,0 +1,30 @@
+{
+  "total_requests": 4,
+  "total_tokens": 314,
+  "total_cost": 0.012709999999999999,
+  "today": {
+    "requests": 1,
+    "tokens": 77,
+    "cost": 0.00309
+  },
+  "this_month": {
+    "requests": 1,
+    "tokens": 77,
+    "cost": 0.00309
+  },
+  "last_reset": "2025-08-20T19:39:29.186897",
+  "daily_stats": {
+    "2025-08-20": {
+      "requests": 1,
+      "tokens": 79,
+      "cost": 0.0032099999999999997
+    }
+  },
+  "monthly_stats": {
+    "2025-08": {
+      "requests": 1,
+      "tokens": 79,
+      "cost": 0.0032099999999999997
+    }
+  }
+}

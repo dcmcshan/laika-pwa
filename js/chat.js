@@ -155,21 +155,25 @@ class LAIKAChat {
 
     async sendViaHTTP(message) {
         try {
-            const response = await fetch('/api/chat', {
+            // Use unified LLM endpoint for all chat messages
+            const response = await fetch('/llm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message,
+                    input: message,
+                    type: 'chat',
+                    source: 'web_chat',
+                    personality: this.currentPersonality,
                     user_id: this.getUserId(),
-                    personality: this.currentPersonality
+                    timestamp: Date.now()
                 })
             });
 
             if (response.ok) {
                 const data = await response.json();
-                this.handleMessage(data);
+                this.handleLLMResponse(data);
             } else {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -180,6 +184,31 @@ class LAIKAChat {
         }
     }
 
+    handleLLMResponse(data) {
+        this.hideTypingIndicator();
+        
+        if (data.success) {
+            // Add LAIKA's response to chat
+            this.addMessage('laika', data.response, {
+                tokens_used: data.tokens_used,
+                cost: data.estimated_cost,
+                model: data.model_used,
+                action_executed: data.action_executed,
+                action: data.action
+            });
+            
+            // Show action feedback if an action was executed
+            if (data.action_executed && data.action) {
+                setTimeout(() => {
+                    this.addMessage('system', `🤖 Executed action: ${data.action}`);
+                }, 500);
+            }
+        } else {
+            this.addMessage('system', `Error: ${data.error || 'Unknown error'}`);
+        }
+    }
+
+    // Keep the old handleMessage for backward compatibility
     handleMessage(data) {
         this.hideTypingIndicator();
         

@@ -194,9 +194,8 @@ class LAIKACamera {
         console.log('🌐 Connecting to LAIKA camera service via ngrok...');
         
         try {
-            // Check if we're running under ngrok
-            const isNgrok = window.location.hostname.includes('ngrok.app') || window.location.hostname.includes('ngrok.io');
-            const baseUrl = isNgrok ? window.location.origin : 'http://localhost:5000';
+            // Use the correct server URL
+            const baseUrl = this.getServerUrl();
             
             // Test camera status
             const response = await fetch(`${baseUrl}/api/camera/status`);
@@ -963,8 +962,38 @@ class LAIKACamera {
             // Start the video stream automatically
             const video = document.getElementById('videoStream');
             if (video) {
-                // Set the stream source
-                video.src = `${this.getServerUrl()}/api/camera/stream?fps=10&quality=medium`;
+                // Use the correct stream endpoint
+                const streamUrl = `${this.getServerUrl()}/camera/stream`;
+                console.log(`🔗 Auto-starting stream with URL: ${streamUrl}`);
+                
+                // For HTTPS/ngrok, we need to use an img element for MJPEG
+                if (window.location.protocol === 'https:') {
+                    // Replace video with img for MJPEG stream
+                    const img = document.createElement('img');
+                    img.id = 'videoStream';
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    img.style.background = 'linear-gradient(45deg, #1a1a1a, #2a2a2a)';
+                    
+                    img.onload = () => {
+                        console.log('✅ Camera stream started');
+                        this.isStreaming = true;
+                        this.updateUI();
+                        this.updateConnectionStatus();
+                    };
+                    
+                    img.onerror = (error) => {
+                        console.error('❌ Failed to load camera stream:', error);
+                        this.enableSimulationMode();
+                    };
+                    
+                    img.src = streamUrl;
+                    video.parentNode.replaceChild(img, video);
+                } else {
+                    // HTTP - use video element
+                    video.src = streamUrl;
+                }
                 
                 // Update UI to show streaming state
                 this.isStreaming = true;
@@ -989,7 +1018,9 @@ class LAIKACamera {
 
     getServerUrl() {
         // Return the server URL for API calls
-        return `${window.location.protocol}//${window.location.hostname}:5000`;
+        // For ngrok, use the same origin (no port needed)
+        const isNgrok = window.location.hostname.includes('ngrok');
+        return isNgrok ? window.location.origin : `${window.location.protocol}//${window.location.hostname}:5000`;
     }
 
     // Pan/Tilt Control
@@ -1265,6 +1296,7 @@ class LAIKACamera {
     async sendCameraParameterHTTP(parameter, value) {
         try {
             const serverUrls = [
+                this.getServerUrl(),  // Use the correct server URL for ngrok
                 `http://${window.location.hostname}:5000`,
                 'http://laika.local:5000',
                 'http://localhost:5000'
@@ -1304,6 +1336,7 @@ class LAIKACamera {
     async sendCameraPresetHTTP(preset, settings) {
         try {
             const serverUrls = [
+                this.getServerUrl(),  // Use the correct server URL for ngrok
                 `http://${window.location.hostname}:5000`,
                 'http://laika.local:5000',
                 'http://localhost:5000'
@@ -1343,6 +1376,7 @@ class LAIKACamera {
     async loadCameraParametersHTTP() {
         try {
             const serverUrls = [
+                this.getServerUrl(),  // Use the correct server URL for ngrok
                 `http://${window.location.hostname}:5000`,
                 'http://laika.local:5000',
                 'http://localhost:5000'

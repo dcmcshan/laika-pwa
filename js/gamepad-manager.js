@@ -324,12 +324,15 @@ class GamepadManager {
         const changes = this.getInputChanges(gamepad, previousState);
         
         if (changes.buttons.length > 0 || changes.axes.length > 0) {
+            // Process button actions using physical gamepad mapping
+            this.processGamepadActions(gamepad, changes);
+            
             // Send to control instance
             if (this.control && this.control.processGamepadInput) {
                 this.control.processGamepadInput(gamepad, changes);
             }
 
-            // Send to robot if passthrough enabled
+            // Send to robot if passthrough enabled (direct robot control)
             if (this.passthroughMode) {
                 this.sendGamepadToRobot(gamepad, changes);
             }
@@ -337,6 +340,277 @@ class GamepadManager {
 
         // Update previous state
         this.previousStates.set(index, this.cloneGamepadState(gamepad));
+    }
+
+    // LLM-based gamepad action processing - let LAIKA's brain decide what to do
+    async processGamepadActions(gamepad, changes) {
+        const buttonMapping = this.getStandardButtonMapping();
+        
+        // Process button presses through LLM
+        for (const buttonChange of changes.buttons) {
+            if (buttonChange.pressed) {
+                const buttonName = buttonMapping[buttonChange.index];
+                
+                if (buttonName) {
+                    console.log(`🎮 Web gamepad button ${buttonName} -> sending to LLM for interpretation`);
+                    await this.sendGamepadInputToLLM({
+                        type: 'button_press',
+                        button: buttonName,
+                        timestamp: Date.now(),
+                        context: this.getGamepadContext(gamepad)
+                    });
+                }
+            }
+        }
+
+        // Process analog stick movements through LLM (with throttling)
+        this.processAnalogMovementLLM(gamepad);
+    }
+
+    // Send gamepad context to LLM for intelligent interpretation
+    getGamepadContext(gamepad) {
+        return {
+            leftStick: {
+                x: gamepad.axes[0] || 0,
+                y: gamepad.axes[1] || 0,
+                magnitude: Math.sqrt((gamepad.axes[0] || 0)**2 + (gamepad.axes[1] || 0)**2)
+            },
+            rightStick: {
+                x: gamepad.axes[2] || 0,
+                y: gamepad.axes[3] || 0,
+                magnitude: Math.sqrt((gamepad.axes[2] || 0)**2 + (gamepad.axes[3] || 0)**2)
+            },
+            activeButtons: Array.from({length: gamepad.buttons.length}, (_, i) => 
+                gamepad.buttons[i].pressed ? this.getStandardButtonMapping()[i] : null
+            ).filter(Boolean),
+            gamepadId: gamepad.id,
+            timestamp: Date.now()
+        };
+    }
+
+    // Enhanced button mapping to match physical gamepad exactly
+    getStandardButtonMapping() {
+        return {
+            0: 'a',           // A/Cross button
+            1: 'b',           // B/Circle button  
+            2: 'x',           // X/Square button
+            3: 'y',           // Y/Triangle button
+            4: 'l1',          // Left shoulder button
+            5: 'r1',          // Right shoulder button
+            6: 'l2',          // Left trigger
+            7: 'r2',          // Right trigger
+            8: 'select',      // Select/Back button
+            9: 'start',       // Start/Menu button
+            10: 'left-stick', // Left stick press
+            11: 'right-stick',// Right stick press
+            12: 'dpad-up',    // D-pad up
+            13: 'dpad-down',  // D-pad down
+            14: 'dpad-left',  // D-pad left
+            15: 'dpad-right'  // D-pad right
+        };
+    }
+
+    // Enhanced physical gamepad action mapping (matches enhanced_gamepad_handler.py)
+    getPhysicalGamepadActions() {
+        return {
+            'a': 'hello',           // Greeting gesture
+            'b': 'dance',           // Dance routine
+            'x': 'play_sound',      // Play sound/bark
+            'y': 'take_photo',      // Take photo
+            'l1': 'speed_boost',    // Increase speed
+            'r1': 'precision_mode', // Precision mode
+            'l2': 'crouch',         // Lower stance
+            'r2': 'stretch',        // Stretch routine
+            'select': 'sleep',      // Sleep mode
+            'start': 'emergency_stop', // Emergency stop
+            'left-stick': 'center_head',   // Center head
+            'right-stick': 'led_rainbow',  // LED rainbow
+            'dpad-up': 'head_up',     // Head up
+            'dpad-down': 'head_down', // Head down  
+            'dpad-left': 'head_left', // Head left
+            'dpad-right': 'head_right' // Head right
+        };
+    }
+
+    // Process analog stick movements through LLM with intelligent interpretation
+    processAnalogMovementLLM(gamepad) {
+        const deadzone = 0.15;
+        
+        // Left stick: movement (x = strafe, y = forward/back)
+        const leftX = Math.abs(gamepad.axes[0]) > deadzone ? gamepad.axes[0] : 0;
+        const leftY = Math.abs(gamepad.axes[1]) > deadzone ? -gamepad.axes[1] : 0; // Invert Y
+        
+        // Right stick: rotation and head control
+        const rightX = Math.abs(gamepad.axes[2]) > deadzone ? gamepad.axes[2] : 0;
+        const rightY = Math.abs(gamepad.axes[3]) > deadzone ? -gamepad.axes[3] : 0; // Invert Y
+        
+        // Throttle movement updates to avoid overwhelming the LLM
+        const now = Date.now();
+        if (!this.lastMovementUpdate || (now - this.lastMovementUpdate) > 200) { // 5Hz max
+            
+            // Send movement intent to LLM if significant movement detected
+            if (Math.abs(leftX) > 0.05 || Math.abs(leftY) > 0.05 || 
+                Math.abs(rightX) > 0.05 || Math.abs(rightY) > 0.05) {
+                
+                this.sendGamepadInputToLLM({
+                    type: 'movement_input',
+                    movement: {
+                        leftStick: { x: leftX, y: leftY },
+                        rightStick: { x: rightX, y: rightY },
+                        intent: this.interpretMovementIntent(leftX, leftY, rightX, rightY)
+                    },
+                    timestamp: now,
+                    context: this.getGamepadContext(gamepad)
+                });
+                
+                this.lastMovementUpdate = now;
+            }
+        }
+    }
+
+    // Interpret movement intent for the LLM
+    interpretMovementIntent(leftX, leftY, rightX, rightY) {
+        const intents = [];
+        
+        // Analyze left stick (movement)
+        if (Math.abs(leftY) > 0.1) {
+            intents.push(leftY > 0 ? 'move_forward' : 'move_backward');
+        }
+        if (Math.abs(leftX) > 0.1) {
+            intents.push(leftX > 0 ? 'strafe_right' : 'strafe_left');
+        }
+        
+        // Analyze right stick (look/turn)
+        if (Math.abs(rightX) > 0.1) {
+            intents.push(rightX > 0 ? 'turn_right' : 'turn_left');
+        }
+        if (Math.abs(rightY) > 0.1) {
+            intents.push(rightY > 0 ? 'look_up' : 'look_down');
+        }
+        
+        return intents;
+    }
+
+    // Send gamepad input to unified LLM endpoint
+    async sendGamepadInputToLLM(gamepadInput) {
+        try {
+            // Extract the button name or movement info
+            let input = '';
+            if (gamepadInput.type === 'button_press') {
+                input = gamepadInput.button;
+            } else if (gamepadInput.type === 'movement_input') {
+                input = `movement: ${JSON.stringify(gamepadInput.movement.intent)}`;
+            }
+
+            // First try WebSocket for real-time communication
+            if (this.control && this.control.ws && this.control.ws.readyState === WebSocket.OPEN) {
+                const message = {
+                    type: 'llm_input',
+                    input: input,
+                    source: 'web_gamepad',
+                    gamepad_context: gamepadInput.context,
+                    timestamp: Date.now()
+                };
+                
+                this.control.ws.send(JSON.stringify(message));
+                console.log(`🧠 Sent to LLM via WebSocket: "${input}"`);
+                return;
+            }
+
+            // Fallback to simple HTTP endpoint
+            const response = await fetch('/llm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: input,
+                    type: 'gamepad',
+                    source: 'web_gamepad',
+                    button: gamepadInput.button,
+                    timestamp: Date.now()
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(`🧠 LLM response:`, result.response);
+                
+                // Action is automatically executed by the server
+                if (result.action_executed) {
+                    console.log(`✅ Action "${result.action}" executed successfully`);
+                }
+            } else {
+                console.error(`❌ Failed to send to LLM:`, response.statusText);
+            }
+        } catch (error) {
+            console.error(`❌ Error sending to LLM:`, error);
+        }
+    }
+
+    // Execute actions suggested by the LLM
+    async executeLLMSuggestedActions(actions) {
+        for (const action of actions) {
+            console.log(`🤖 Executing LLM-suggested action:`, action);
+            
+            if (action.type === 'robot_command') {
+                await this.sendDirectRobotCommand(action.command, action.parameters);
+            } else if (action.type === 'movement') {
+                await this.sendMovementCommand(action.movement);
+            } else if (action.type === 'speech') {
+                console.log(`🗣️ LAIKA says: ${action.text}`);
+                // Could integrate with TTS system here
+            }
+        }
+    }
+
+    // Send direct robot command (bypassing further LLM processing)
+    async sendDirectRobotCommand(command, parameters = {}) {
+        try {
+            const response = await fetch('/api/robot/direct_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    command: command,
+                    parameters: parameters,
+                    source: 'llm_gamepad_processor',
+                    timestamp: Date.now()
+                })
+            });
+
+            if (!response.ok) {
+                console.error(`❌ Failed to send direct robot command:`, response.statusText);
+            }
+        } catch (error) {
+            console.error(`❌ Error sending direct robot command:`, error);
+        }
+    }
+
+    // Send movement command (matches physical gamepad motion control)
+    async sendMovementCommand(movement) {
+        try {
+            const response = await fetch('/gamepad_movement', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(movement)
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to send movement command:', response.statusText);
+            }
+        } catch (error) {
+            console.error('❌ Error sending movement command:', error);
+        }
+    }
+
+    // Send head movement command
+    async sendHeadMovement(yValue) {
+        const action = yValue > 0 ? 'head_up' : 'head_down';
+        await this.sendRobotAction(action, 'right-stick-y');
     }
 
     processControllerInput(controllerData, source) {

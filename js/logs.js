@@ -120,6 +120,13 @@ class LAIKALogs {
     }
 
     async connectWebSocket() {
+        // For ngrok environment, use SocketIO through the main tunnel
+        if (window.location.hostname.includes('ngrok')) {
+            console.log('🌐 Detected ngrok environment - using SocketIO through main tunnel');
+            this.connectSocketIO();
+            return;
+        }
+        
         const wsUrls = [
             `ws://${window.location.hostname}:8765/logs`,
             'ws://laika.local:8765/logs',
@@ -187,6 +194,128 @@ class LAIKALogs {
                     await this.loadRealLogs();
                 }
             }
+        }
+    }
+
+    connectSocketIO() {
+        // Check if SocketIO is available
+        if (typeof io === 'undefined') {
+            console.error('❌ SocketIO not available - loading from CDN...');
+            this.loadSocketIOAndConnect();
+            return;
+        } else {
+            this.initializeSocketIO();
+        }
+    }
+
+    initializeSocketIO() {
+        try {
+            console.log('🔗 Connecting to LAIKA logs via SocketIO...');
+            
+            // Connect to the current origin (ngrok tunnel) with proper Engine.IO version
+            this.socket = io(window.location.origin, {
+                transports: ['polling', 'websocket'],
+                upgrade: true,
+                rememberUpgrade: true,
+                forceNew: true,
+                // Explicitly specify Engine.IO version 4 for compatibility
+                query: {
+                    EIO: '4'
+                },
+                timeout: 10000
+            });
+
+            this.socket.on('connect', () => {
+                console.log('✅ SocketIO connected to LAIKA logs');
+                this.isConnected = true;
+                this.updateConnectionStatus();
+                
+                // Send initial handshake
+                this.socket.emit('logs_connected', {
+                    client_id: 'logs_interface',
+                    timestamp: Date.now()
+                });
+                
+                // Request initial logs
+                this.socket.emit('request_logs', {
+                    count: 100
+                });
+            });
+
+            this.socket.on('disconnect', () => {
+                console.log('📡 SocketIO disconnected');
+                this.isConnected = false;
+                this.updateConnectionStatus();
+                setTimeout(() => this.reconnect(), 3000);
+            });
+
+            this.socket.on('logs_response', (data) => {
+                console.log('📋 Logs response:', data);
+            });
+
+            this.socket.on('log_batch', (data) => {
+                console.log('📋 Received log batch:', data.logs.length, 'logs');
+                if (data.logs && Array.isArray(data.logs)) {
+                    data.logs.forEach(log => this.addLogEntry(log, false));
+                    this.applyFilters();
+                    this.updateUI();
+                }
+            });
+
+            this.socket.on('log_entry', (data) => {
+                console.log('📋 New log entry:', data);
+                if (data.log) {
+                    this.addLogEntry(data.log);
+                }
+            });
+
+            this.socket.on('error_response', (data) => {
+                console.error('❌ SocketIO logs error:', data);
+                if (data.type === 'log_error') {
+                    this.updateConnectionStatus();
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ SocketIO initialization failed:', error);
+            this.isConnected = false;
+            this.updateConnectionStatus();
+        }
+    }
+
+    loadSocketIOAndConnect() {
+        // Load SocketIO from CDN if not available
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+        script.onload = () => {
+            console.log('✅ SocketIO loaded from CDN');
+            this.initializeSocketIO();
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load SocketIO from CDN');
+            // Fall back to HTTP polling
+            this.loadRealLogs();
+        };
+        document.head.appendChild(script);
+    }
+
+    sendMessage(message) {
+        if (this.socket && this.socket.connected) {
+            // Using SocketIO
+            console.log('📋 Sending message via SocketIO:', message);
+            if (message.type === 'request-logs') {
+                this.socket.emit('request_logs', {
+                    count: message.count || 100,
+                    level: message.level,
+                    since: message.since
+                });
+            }
+        } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            // Using WebSocket
+            console.log('📋 Sending message via WebSocket:', message);
+            this.ws.send(JSON.stringify(message));
+        } else {
+            console.log('📡 No connection available, message queued');
         }
     }
 

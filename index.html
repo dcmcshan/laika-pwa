@@ -459,6 +459,13 @@
                 inset 0 0 30px rgba(255, 107, 192, 0.2);
         }
 
+        .nav-card.llm-card:hover {
+            border-color: var(--electric-blue);
+            box-shadow: 
+                0 10px 30px rgba(0, 128, 255, 0.5),
+                inset 0 0 30px rgba(0, 128, 255, 0.2);
+        }
+
         /* Install Banner */
         .install-banner {
             background: 
@@ -623,6 +630,36 @@
                         <li>Volume & speed control</li>
                         <li>Voice testing & preview</li>
                         <li>Female voice selection</li>
+                    </ul>
+                </a>
+
+                <!-- Gamepad Interface -->
+                <a href="gamepad" class="nav-card gamepad-card">
+                    <span class="nav-icon">🎮</span>
+                    <h3 class="nav-title">Gamepad Interface</h3>
+                    <p class="nav-description">
+                        Real-time gamepad visualization and monitoring. See physical gamepad button presses highlighted in real-time.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Live button highlighting</li>
+                        <li>Connection status monitoring</li>
+                        <li>Button activity log</li>
+                        <li>Gamepad statistics</li>
+                    </ul>
+                </a>
+
+                <!-- LLM Direct Commands -->
+                <a href="llm" class="nav-card llm-card">
+                    <span class="nav-icon">🤖</span>
+                    <h3 class="nav-title">LLM Commands</h3>
+                    <p class="nav-description">
+                        Direct LLM command interface for robot actions. Execute sit, stand, wave, and other commands via REST API.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Direct robot action API</li>
+                        <li>Instant command execution</li>
+                        <li>/llm/sit, /llm/stand endpoints</li>
+                        <li>Real-time action feedback</li>
                     </ul>
                 </a>
 

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 LAIKA Gamepad Interface</title>
+    <link rel="stylesheet" href="css/tron-theme.css">
+    <style>
+        .gamepad-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+
+        .gamepad-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .gamepad-title {
+            color: #00ffff;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .connection-status {
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+
+        .gamepad-visual {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            background: linear-gradient(145deg, #1e1e1e, #2d2d2d);
+            border: 3px solid #00ffff;
+            border-radius: 50px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            margin: 20px 0;
+        }
+
+        .gamepad-button {
+            position: absolute;
+            border: 2px solid #666;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            color: #ccc;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s ease;
+            user-select: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .gamepad-button.pressed {
+            background: linear-gradient(145deg, #00ffff, #0088cc);
+            border-color: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px #00ffff, inset 0 2px 4px rgba(0,0,0,0.5);
+            transform: scale(0.95);
+        }
+
+        /* Face buttons (A, B, X, Y) */
+        .btn-a { top: 220px; right: 80px; width: 50px; height: 50px; border-radius: 50%; }
+        .btn-b { top: 170px; right: 30px; width: 50px; height: 50px; border-radius: 50%; }
+        .btn-x { top: 170px; right: 130px; width: 50px; height: 50px; border-radius: 50%; }
+        .btn-y { top: 120px; right: 80px; width: 50px; height: 50px; border-radius: 50%; }
+
+        /* D-pad */
+        .dpad-up { top: 120px; left: 80px; width: 40px; height: 30px; border-radius: 8px; }
+        .dpad-down { top: 220px; left: 80px; width: 40px; height: 30px; border-radius: 8px; }
+        .dpad-left { top: 170px; left: 30px; width: 30px; height: 40px; border-radius: 8px; }
+        .dpad-right { top: 170px; left: 130px; width: 30px; height: 40px; border-radius: 8px; }
+
+        /* Shoulder buttons */
+        .btn-l1 { top: 20px; left: 80px; width: 60px; height: 30px; border-radius: 15px; }
+        .btn-r1 { top: 20px; right: 80px; width: 60px; height: 30px; border-radius: 15px; }
+        .btn-l2 { top: 60px; left: 80px; width: 60px; height: 20px; border-radius: 10px; }
+        .btn-r2 { top: 60px; right: 80px; width: 60px; height: 20px; border-radius: 10px; }
+
+        /* Center buttons */
+        .btn-select { top: 140px; left: 220px; width: 40px; height: 25px; border-radius: 12px; }
+        .btn-start { top: 140px; right: 220px; width: 40px; height: 25px; border-radius: 12px; }
+        .btn-home { top: 180px; left: 270px; width: 60px; height: 30px; border-radius: 15px; }
+
+        /* Analog sticks */
+        .stick-left { top: 250px; left: 120px; width: 60px; height: 60px; border-radius: 50%; }
+        .stick-right { top: 250px; right: 120px; width: 60px; height: 60px; border-radius: 50%; }
+
+        .gamepad-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .info-card h3 {
+            color: #00ffff;
+            margin-top: 0;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .button-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .button-log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .button-log-entry.pressed {
+            color: #00ff00;
+        }
+
+        .button-log-entry.released {
+            color: #ff6666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .stat-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .controls-info {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="gamepad-container">
+        <!-- Header -->
+        <div class="gamepad-header">
+            <h1 class="gamepad-title">🎮 LAIKA Gamepad Interface</h1>
+            <div class="connection-status disconnected" id="connectionStatus">
+                🔴 Gamepad Disconnected
+            </div>
+        </div>
+
+        <!-- Visual Gamepad -->
+        <div class="gamepad-visual" id="gamepadVisual">
+            <!-- Face buttons -->
+            <div class="gamepad-button btn-a" data-button="0">A</div>
+            <div class="gamepad-button btn-b" data-button="1">B</div>
+            <div class="gamepad-button btn-x" data-button="2">X</div>
+            <div class="gamepad-button btn-y" data-button="3">Y</div>
+
+            <!-- D-pad -->
+            <div class="gamepad-button dpad-up" data-button="12">↑</div>
+            <div class="gamepad-button dpad-down" data-button="13">↓</div>
+            <div class="gamepad-button dpad-left" data-button="14">←</div>
+            <div class="gamepad-button dpad-right" data-button="15">→</div>
+
+            <!-- Shoulder buttons -->
+            <div class="gamepad-button btn-l1" data-button="4">L1</div>
+            <div class="gamepad-button btn-r1" data-button="5">R1</div>
+            <div class="gamepad-button btn-l2" data-button="6">L2</div>
+            <div class="gamepad-button btn-r2" data-button="7">R2</div>
+
+            <!-- Center buttons -->
+            <div class="gamepad-button btn-select" data-button="8">SELECT</div>
+            <div class="gamepad-button btn-start" data-button="9">START</div>
+            <div class="gamepad-button btn-home" data-button="16">HOME</div>
+
+            <!-- Analog sticks -->
+            <div class="gamepad-button stick-left" data-button="10">L3</div>
+            <div class="gamepad-button stick-right" data-button="11">R3</div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="gamepad-info">
+            <div class="info-card">
+                <h3>📋 Button Activity Log</h3>
+                <div class="button-log" id="buttonLog">
+                    <div class="button-log-entry">Waiting for gamepad input...</div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>📊 Gamepad Statistics</h3>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item">
+                        <span>Total Presses:</span>
+                        <span class="stat-value" id="totalPresses">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Active Buttons:</span>
+                        <span class="stat-value" id="activeButtons">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Last Button:</span>
+                        <span class="stat-value" id="lastButton">None</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Connection Time:</span>
+                        <span class="stat-value" id="connectionTime">--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Info -->
+        <div class="controls-info">
+            <p>🎮 Connect a physical gamepad to see real-time button highlighting</p>
+            <p>🔄 This interface listens to both web and physical gamepad inputs</p>
+        </div>
+    </div>
+
+    <!-- Include Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/gamepad-interface.js"></script>
+</body>
+</html>
+

@@ -50,7 +50,7 @@ echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-python3 server.py
+python3 tron_server.py
 
 
 

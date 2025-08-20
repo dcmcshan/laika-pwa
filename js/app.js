@@ -963,11 +963,6 @@ class LAIKAController {
     }
 
     async executeRobotAction(action) {
-        if (!this.isConnected) {
-            this.showError('Not connected to LAIKA');
-            return;
-        }
-
         console.log(`Executing robot action: ${action}`);
         
         try {
@@ -1022,12 +1017,8 @@ class LAIKAController {
 
             const command = actionMap[action] || action;
             
-            // Send command based on connection type
-            if (this.connectionType === 'network') {
-                await this.sendNetworkCommand(command);
-            } else if (this.connectionType === 'ble') {
-                await this.simulateRobotCommand(command);
-            }
+            // Send command via HTTP API to TRON server (works regardless of connection type)
+            await this.sendRobotActionAPI(command);
             
             this.showSuccess(`Command "${action}" sent to LAIKA`);
             
@@ -1039,6 +1030,34 @@ class LAIKAController {
             if (button) {
                 this.setButtonLoading(button, false);
             }
+        }
+    }
+
+    async sendRobotActionAPI(command) {
+        try {
+            // Use the gamepad_action endpoint which handles robot commands
+            const response = await fetch('/gamepad_action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: command
+                })
+            });
+
+            const result = await response.json();
+            
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log(`✅ Robot action ${command} executed successfully:`, result);
+            return result;
+            
+        } catch (error) {
+            console.error(`❌ Failed to send robot action ${command}:`, error);
+            throw error;
         }
     }
 

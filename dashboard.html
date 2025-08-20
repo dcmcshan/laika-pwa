@@ -903,6 +903,48 @@
                 </div>
             </div>
 
+            <!-- Fan Control & Cooling Widget -->
+            <div class="widget fan-widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <span class="widget-icon">🌀</span>
+                        Fan Control & Cooling
+                    </h3>
+                    <div class="widget-status healthy" id="fanStatus">
+                        <div class="status-dot"></div>
+                        Normal
+                    </div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge" id="fanGauge" style="--gauge-value: 216deg;">
+                        <div class="gauge-value" id="fanSpeed">60%</div>
+                    </div>
+                    <div class="gauge-label">Fan Speed</div>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">💨 Fan State:</span>
+                    <span class="metric-value" id="fanState">3<span class="metric-unit">/4</span></span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🎛️ Control Mode:</span>
+                    <span class="metric-value" id="fanMode">Auto</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🔥 Thermal Target:</span>
+                    <span class="metric-value" id="thermalTarget">65<span class="metric-unit">°C</span></span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🌡️ Cooling Efficiency:</span>
+                    <span class="metric-value" id="coolingEfficiency">85<span class="metric-unit">%</span></span>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder" id="fanChart">
+                        📈 Fan Speed & Temperature Chart
+                        <div class="loading"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Servo Health Widget -->
             <div class="widget servo-widget">
                 <div class="widget-header">
