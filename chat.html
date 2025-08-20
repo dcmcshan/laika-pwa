@@ -12,6 +12,9 @@
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
     
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
         
@@ -90,6 +93,8 @@
             border-right: 1px solid var(--atomic-cyan);
             position: relative;
             z-index: 2;
+            padding-top: 60px; /* Account for fixed header */
+            padding-bottom: 50px; /* Account for fixed footer */
         }
 
         /* Header */
@@ -732,6 +737,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/header-footer.js"></script>
     <script src="js/chat.js"></script>
     
     <!-- Service Worker Registration -->

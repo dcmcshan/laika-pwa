@@ -21,6 +21,9 @@
     <!-- Mobile Optimizations -->
     <link href="css/mobile-landscape.css" rel="stylesheet">
     
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
         
@@ -116,22 +119,23 @@
             z-index: -1;
         }
 
-        /* Header */
-        .header {
+        /* Hero Section */
+        .hero-section {
             background: 
                 linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan)),
                 linear-gradient(45deg, transparent 30%, rgba(0, 255, 255, 0.1) 50%, transparent 70%);
             color: var(--atomic-bg);
-            padding: 40px 20px;
+            padding: 60px 20px 40px;
             text-align: center;
             position: relative;
             border-bottom: 2px solid var(--atomic-cyan);
             box-shadow: 
                 0 4px 20px var(--glow-cyan),
                 inset 0 -2px 0 rgba(255, 255, 255, 0.3);
+            margin-top: 70px; /* Account for fixed header */
         }
 
-        .header::before {
+        .hero-section::before {
             content: '';
             position: absolute;
             top: 0;
@@ -150,8 +154,8 @@
         }
 
         .robot-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
+            font-size: 64px;
+            margin-bottom: 15px;
             display: block;
             text-shadow: 
                 0 0 10px var(--atomic-bg),
@@ -168,11 +172,11 @@
 
         .app-title {
             font-family: 'Orbitron', monospace;
-            font-size: 48px;
+            font-size: 36px;
             font-weight: 900;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-transform: uppercase;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
             text-shadow: 
                 0 0 10px var(--atomic-bg),
                 0 0 20px var(--atomic-bg);
@@ -180,11 +184,11 @@
 
         .app-subtitle {
             font-family: 'Exo 2', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 300;
             opacity: 0.9;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             text-shadow: 0 0 5px var(--atomic-bg);
         }
 
@@ -297,50 +301,9 @@
             font-weight: bold;
         }
 
-        /* Status Bar */
-        .status-bar {
-            background: var(--atomic-bg);
-            border-top: 2px solid var(--atomic-cyan);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: 'Orbitron', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--atomic-cyan);
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--atomic-cyan);
-            box-shadow: 0 0 10px var(--glow-cyan);
-            animation: statusPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes statusPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .status-indicator.connected {
-            background: var(--atomic-cyan);
-            animation: statusPulse 2s ease-in-out infinite;
-        }
-
-        .status-indicator.disconnected {
-            background: var(--atomic-orange);
-            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        /* Main content adjustments for fixed header/footer */
+        .nav-container {
+            padding-bottom: 80px; /* Account for fixed footer */
         }
 
         /* Responsive Design */
@@ -516,8 +479,8 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <div class="header">
+        <!-- Hero Section -->
+        <div class="hero-section">
             <span class="robot-icon">🐕</span>
             <h1 class="app-title">LAIKA</h1>
             <p class="app-subtitle">Atomic-Age Robot Companion</p>
@@ -721,22 +684,7 @@
             </div>
         </div>
 
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <div class="status-item">
-                <div class="status-indicator connected"></div>
-                <span>LAIKA ONLINE</span>
-            </div>
-            <div class="status-item">
-                <span>⚡ 85%</span>
-            </div>
-            <div class="status-item">
-                <span>📡 WiFi Connected</span>
-            </div>
-            <div class="status-item">
-                <span id="currentTime">--:--</span>
-            </div>
-        </div>
+        <!-- Header and Footer will be automatically inserted by header-footer.js -->
     </div>
 
     <!-- Scripts -->
@@ -819,6 +767,9 @@
             });
         }
     </script>
+    
+    <!-- Header/Footer System -->
+    <script src="js/header-footer.js"></script>
     
     <!-- Gamepad Navigation System -->
     <script src="js/gamepad-navigation.js"></script>
