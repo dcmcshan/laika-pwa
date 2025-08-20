@@ -385,15 +385,76 @@ def camera_stream():
     return Response(generate_camera_frames(fps=fps, quality=quality),
                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
+def generate_audio_stream():
+    """Generate audio stream from LAIKA's microphone"""
+    try:
+        # Audio configuration matching LAIKA's setup
+        CHUNK = 1024
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 2
+        RATE = 48000
+        DEVICE_INDEX = None
+        
+        # Find the USB audio device (hw:2,0 as used in LAIKA)
+        audio = pyaudio.PyAudio()
+        for i in range(audio.get_device_count()):
+            info = audio.get_device_info_by_index(i)
+            if 'USB' in info['name'] or i == 2:  # hw:2,0 corresponds to device index 2
+                DEVICE_INDEX = i
+                print(f"Using audio device: {info['name']}")
+                break
+        
+        if DEVICE_INDEX is None:
+            # Fallback to default input device
+            DEVICE_INDEX = audio.get_default_input_device_info()['index']
+            print("Using default audio input device")
+        
+        stream = audio.open(
+            format=FORMAT,
+            channels=CHANNELS,
+            rate=RATE,
+            input=True,
+            input_device_index=DEVICE_INDEX,
+            frames_per_buffer=CHUNK
+        )
+        
+        print(f"🎤 Audio streaming started - Device: {DEVICE_INDEX}, Rate: {RATE}Hz, Channels: {CHANNELS}")
+        
+        while True:
+            try:
+                data = stream.read(CHUNK, exception_on_overflow=False)
+                # Convert to base64 for web streaming
+                audio_b64 = base64.b64encode(data).decode('utf-8')
+                
+                # Send as Server-Sent Events (SSE) format
+                yield f"data: {audio_b64}\n\n"
+                
+                # Small delay to prevent overwhelming the client
+                time.sleep(0.01)
+                
+            except Exception as e:
+                print(f"❌ Audio streaming error: {e}")
+                break
+                
+    except Exception as e:
+        print(f"❌ Failed to initialize audio streaming: {e}")
+        yield f"data: error:{str(e)}\n\n"
+    finally:
+        try:
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+        except:
+            pass
+
 @app.route('/api/audio/stream')
 def audio_stream():
-    """Audio stream endpoint (placeholder for future implementation)"""
-    # This would connect to LAIKA's audio output in the future
-    # For now, return a simple response
-    return jsonify({
-        'status': 'Audio streaming not yet implemented',
-        'message': 'Future feature: Real-time audio from LAIKA'
-    })
+    """Audio stream endpoint for real-time audio from LAIKA"""
+    return Response(generate_audio_stream(), 
+                   mimetype='text/plain',
+                   headers={'Cache-Control': 'no-cache',
+                           'Connection': 'keep-alive',
+                           'Access-Control-Allow-Origin': '*'})
 
 @app.route('/api/camera/parameters', methods=['GET'])
 def get_camera_parameters():
@@ -992,7 +1053,7 @@ def get_processes():
                 cpu_percent = proc.cpu_percent()
                 
                 # Get memory info
-                memory_info = pinfo.get('memory_info', psutil._psutil_linux.pmem())
+                memory_info = pinfo.get('memory_info')
                 memory_mb = memory_info.rss / 1024 / 1024 if memory_info else 0
                 
                 # Get process age
