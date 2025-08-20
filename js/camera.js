@@ -18,6 +18,18 @@ class LAIKACamera {
             sceneAnalysis: false
         };
         
+        // Camera settings
+        this.cameraSettings = {
+            exposure: -3.0,
+            brightness: 120,
+            contrast: 60,
+            saturation: 80,
+            gain: 100,
+            whiteBalance: 4000,
+            autoExposure: false,
+            autoWhiteBalance: true
+        };
+        
         // WebRTC and WebSocket connections
         this.ws = null;
         this.peerConnection = null;
@@ -40,7 +52,11 @@ class LAIKACamera {
     async init() {
         this.setupEventListeners();
         this.updateUI();
+        this.updateCameraSettingsUI();
         this.startStatusUpdates();
+        
+        // Load camera parameters from server
+        await this.loadCameraParametersHTTP();
         
         // Attempt to connect
         await this.connectWebSocket();
@@ -86,7 +102,38 @@ class LAIKACamera {
 
         // AI feature toggles
         document.querySelectorAll('.feature-toggle').forEach(toggle => {
-            toggle.addEventListener('click', (e) => this.toggleAIFeature(e.currentTarget.dataset.feature));
+            if (toggle.dataset.feature) {
+                toggle.addEventListener('click', (e) => this.toggleAIFeature(e.currentTarget.dataset.feature));
+            } else if (toggle.dataset.setting) {
+                toggle.addEventListener('click', (e) => this.toggleCameraSetting(e.currentTarget.dataset.setting));
+            }
+        });
+
+        // Camera settings sliders
+        document.getElementById('exposureSlider').addEventListener('input', (e) => this.setCameraSetting('exposure', parseFloat(e.target.value)));
+        document.getElementById('brightnessSlider').addEventListener('input', (e) => this.setCameraSetting('brightness', parseInt(e.target.value)));
+        document.getElementById('contrastSlider').addEventListener('input', (e) => this.setCameraSetting('contrast', parseInt(e.target.value)));
+        document.getElementById('saturationSlider').addEventListener('input', (e) => this.setCameraSetting('saturation', parseInt(e.target.value)));
+        document.getElementById('gainSlider').addEventListener('input', (e) => this.setCameraSetting('gain', parseInt(e.target.value)));
+        document.getElementById('whiteBalanceSlider').addEventListener('input', (e) => this.setCameraSetting('whiteBalance', parseInt(e.target.value)));
+
+        // Camera settings buttons
+        document.getElementById('exposureDownBtn').addEventListener('click', () => this.adjustCameraSetting('exposure', -0.5));
+        document.getElementById('exposureUpBtn').addEventListener('click', () => this.adjustCameraSetting('exposure', 0.5));
+        document.getElementById('brightnessDownBtn').addEventListener('click', () => this.adjustCameraSetting('brightness', -5));
+        document.getElementById('brightnessUpBtn').addEventListener('click', () => this.adjustCameraSetting('brightness', 5));
+        document.getElementById('contrastDownBtn').addEventListener('click', () => this.adjustCameraSetting('contrast', -5));
+        document.getElementById('contrastUpBtn').addEventListener('click', () => this.adjustCameraSetting('contrast', 5));
+        document.getElementById('saturationDownBtn').addEventListener('click', () => this.adjustCameraSetting('saturation', -5));
+        document.getElementById('saturationUpBtn').addEventListener('click', () => this.adjustCameraSetting('saturation', 5));
+        document.getElementById('gainDownBtn').addEventListener('click', () => this.adjustCameraSetting('gain', -10));
+        document.getElementById('gainUpBtn').addEventListener('click', () => this.adjustCameraSetting('gain', 10));
+        document.getElementById('whiteBalanceDownBtn').addEventListener('click', () => this.adjustCameraSetting('whiteBalance', -100));
+        document.getElementById('whiteBalanceUpBtn').addEventListener('click', () => this.adjustCameraSetting('whiteBalance', 100));
+
+        // Camera presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.applyCameraPreset(e.target.dataset.preset));
         });
 
         // Video element events
@@ -516,6 +563,286 @@ class LAIKACamera {
         });
         
         console.log(`🧠 AI ${feature}: ${this.aiFeatures[feature] ? 'enabled' : 'disabled'}`);
+    }
+
+    // Camera Settings Methods
+    setCameraSetting(setting, value) {
+        // Apply limits based on setting type
+        switch (setting) {
+            case 'exposure':
+                value = Math.max(-7, Math.min(1, value));
+                break;
+            case 'brightness':
+                value = Math.max(0, Math.min(255, value));
+                break;
+            case 'contrast':
+                value = Math.max(0, Math.min(100, value));
+                break;
+            case 'saturation':
+                value = Math.max(0, Math.min(100, value));
+                break;
+            case 'gain':
+                value = Math.max(0, Math.min(200, value));
+                break;
+            case 'whiteBalance':
+                value = Math.max(2800, Math.min(6500, value));
+                break;
+        }
+
+        this.cameraSettings[setting] = value;
+        this.updateCameraSettingsUI();
+        
+        // Send to LAIKA camera service via HTTP API
+        this.sendCameraParameterHTTP(setting, value);
+
+        console.log(`📸 Camera ${setting}: ${value}`);
+    }
+
+    adjustCameraSetting(setting, delta) {
+        const currentValue = this.cameraSettings[setting];
+        this.setCameraSetting(setting, currentValue + delta);
+    }
+
+    toggleCameraSetting(setting) {
+        const newValue = !this.cameraSettings[setting];
+        this.cameraSettings[setting] = newValue;
+        
+        const toggle = document.querySelector(`[data-setting="${setting}"]`);
+        const toggleSwitch = toggle.querySelector('.toggle-switch');
+        
+        if (newValue) {
+            toggle.classList.add('active');
+            toggleSwitch.classList.add('active');
+        } else {
+            toggle.classList.remove('active');
+            toggleSwitch.classList.remove('active');
+        }
+        
+        // Send to LAIKA camera service
+        this.sendMessage({
+            type: 'camera-command',
+            action: 'set-auto-parameter',
+            parameter: setting,
+            enabled: newValue
+        });
+        
+        console.log(`📸 ${setting}: ${newValue ? 'enabled' : 'disabled'}`);
+    }
+
+    applyCameraPreset(preset) {
+        let presetSettings = {};
+        
+        switch (preset) {
+            case 'daylight':
+                presetSettings = {
+                    exposure: -1.0,
+                    brightness: 100,
+                    contrast: 50,
+                    saturation: 70,
+                    gain: 50,
+                    whiteBalance: 5500,
+                    autoExposure: false,
+                    autoWhiteBalance: true
+                };
+                break;
+            case 'lowlight':
+                presetSettings = {
+                    exposure: -3.0,
+                    brightness: 140,
+                    contrast: 70,
+                    saturation: 80,
+                    gain: 150,
+                    whiteBalance: 3200,
+                    autoExposure: false,
+                    autoWhiteBalance: false
+                };
+                break;
+            case 'indoor':
+                presetSettings = {
+                    exposure: -2.0,
+                    brightness: 120,
+                    contrast: 60,
+                    saturation: 75,
+                    gain: 80,
+                    whiteBalance: 4000,
+                    autoExposure: true,
+                    autoWhiteBalance: true
+                };
+                break;
+            case 'reset':
+                presetSettings = {
+                    exposure: -1.0,
+                    brightness: 100,
+                    contrast: 50,
+                    saturation: 50,
+                    gain: 50,
+                    whiteBalance: 4000,
+                    autoExposure: true,
+                    autoWhiteBalance: true
+                };
+                break;
+        }
+        
+        // Apply all settings
+        Object.keys(presetSettings).forEach(setting => {
+            if (setting === 'autoExposure' || setting === 'autoWhiteBalance') {
+                this.cameraSettings[setting] = presetSettings[setting];
+                const toggle = document.querySelector(`[data-setting="${setting}"]`);
+                const toggleSwitch = toggle?.querySelector('.toggle-switch');
+                if (toggle && toggleSwitch) {
+                    if (presetSettings[setting]) {
+                        toggle.classList.add('active');
+                        toggleSwitch.classList.add('active');
+                    } else {
+                        toggle.classList.remove('active');
+                        toggleSwitch.classList.remove('active');
+                    }
+                }
+            } else {
+                this.setCameraSetting(setting, presetSettings[setting]);
+            }
+        });
+        
+        // Update preset button states
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        if (preset !== 'reset') {
+            document.querySelector(`[data-preset="${preset}"]`).classList.add('active');
+        }
+        
+        // Send preset to LAIKA
+        this.sendCameraPresetHTTP(preset, presetSettings);
+        
+        console.log(`📸 Applied camera preset: ${preset}`);
+    }
+
+    updateCameraSettingsUI() {
+        // Update slider values
+        document.getElementById('exposureSlider').value = this.cameraSettings.exposure;
+        document.getElementById('brightnessSlider').value = this.cameraSettings.brightness;
+        document.getElementById('contrastSlider').value = this.cameraSettings.contrast;
+        document.getElementById('saturationSlider').value = this.cameraSettings.saturation;
+        document.getElementById('gainSlider').value = this.cameraSettings.gain;
+        document.getElementById('whiteBalanceSlider').value = this.cameraSettings.whiteBalance;
+        
+        // Update value displays
+        document.getElementById('exposureValue').textContent = this.cameraSettings.exposure.toFixed(1);
+        document.getElementById('brightnessValue').textContent = this.cameraSettings.brightness;
+        document.getElementById('contrastValue').textContent = this.cameraSettings.contrast;
+        document.getElementById('saturationValue').textContent = this.cameraSettings.saturation;
+        document.getElementById('gainValue').textContent = this.cameraSettings.gain;
+        document.getElementById('whiteBalanceValue').textContent = `${this.cameraSettings.whiteBalance}K`;
+    }
+
+    // HTTP API Methods for Camera Parameters
+    async sendCameraParameterHTTP(parameter, value) {
+        try {
+            const serverUrls = [
+                `http://${window.location.hostname}:5000`,
+                'http://laika.local:5000',
+                'http://localhost:5000'
+            ];
+
+            for (const serverUrl of serverUrls) {
+                try {
+                    const response = await fetch(`${serverUrl}/api/camera/parameters`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            parameter: parameter,
+                            value: value
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log(`✅ Camera parameter sent: ${parameter} = ${value}`);
+                        return;
+                    } else {
+                        console.warn(`⚠️ Failed to set camera parameter: ${result.error}`);
+                    }
+                } catch (e) {
+                    console.log(`Failed to connect to ${serverUrl}: ${e.message}`);
+                }
+            }
+            
+            console.warn('⚠️ Could not connect to any camera service');
+        } catch (error) {
+            console.error('❌ Error sending camera parameter:', error);
+        }
+    }
+
+    async sendCameraPresetHTTP(preset, settings) {
+        try {
+            const serverUrls = [
+                `http://${window.location.hostname}:5000`,
+                'http://laika.local:5000',
+                'http://localhost:5000'
+            ];
+
+            for (const serverUrl of serverUrls) {
+                try {
+                    const response = await fetch(`${serverUrl}/api/camera/preset`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            preset: preset,
+                            settings: settings
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log(`✅ Camera preset applied: ${preset}`);
+                        return;
+                    } else {
+                        console.warn(`⚠️ Failed to apply preset: ${result.error}`);
+                    }
+                } catch (e) {
+                    console.log(`Failed to connect to ${serverUrl}: ${e.message}`);
+                }
+            }
+            
+            console.warn('⚠️ Could not connect to any camera service');
+        } catch (error) {
+            console.error('❌ Error sending camera preset:', error);
+        }
+    }
+
+    async loadCameraParametersHTTP() {
+        try {
+            const serverUrls = [
+                `http://${window.location.hostname}:5000`,
+                'http://laika.local:5000',
+                'http://localhost:5000'
+            ];
+
+            for (const serverUrl of serverUrls) {
+                try {
+                    const response = await fetch(`${serverUrl}/api/camera/parameters`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.parameters) {
+                        // Update camera settings from server
+                        Object.assign(this.cameraSettings, result.parameters);
+                        this.updateCameraSettingsUI();
+                        console.log('✅ Camera parameters loaded from server');
+                        return;
+                    }
+                } catch (e) {
+                    console.log(`Failed to connect to ${serverUrl}: ${e.message}`);
+                }
+            }
+            
+            console.log('⚠️ Could not load camera parameters from server, using defaults');
+        } catch (error) {
+            console.error('❌ Error loading camera parameters:', error);
+        }
     }
 
     updateAIOverlay() {

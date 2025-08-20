@@ -439,6 +439,122 @@
             font-weight: 600;
         }
 
+        /* Camera Settings Styles */
+        .camera-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-slider {
+            flex: 1;
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid var(--border-glow);
+            cursor: pointer;
+        }
+
+        .setting-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--primary-cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--primary-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .setting-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px var(--primary-cyan);
+        }
+
+        .control-btn.small {
+            min-width: 32px;
+            padding: 6px;
+            font-size: 12px;
+        }
+
+        .setting-value {
+            font-size: 11px;
+            color: var(--primary-cyan);
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+            background: var(--glass-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-glow);
+        }
+
+        .auto-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-glow);
+        }
+
+        .camera-presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-glow);
+        }
+
+        .preset-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .preset-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--primary-cyan);
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: var(--accent-orange);
+            color: var(--dark-bg);
+            border-color: var(--accent-orange);
+        }
+
         .status-bar {
             background: var(--card-bg);
             border-top: 1px solid var(--border-glow);
@@ -636,6 +752,98 @@
                             <div class="quality-option" data-quality="auto">
                                 <span>Auto</span>
                                 <span>Adaptive</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Settings -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-camera-retro"></i> Camera Settings</h3>
+                        <div class="camera-settings">
+                            <!-- Exposure Control -->
+                            <div class="setting-group">
+                                <label for="exposureSlider">Exposure</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="exposureDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="exposureSlider" min="-7" max="1" value="-3" step="0.5">
+                                    <button class="control-btn small" id="exposureUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="exposureValue">-3.0</span>
+                            </div>
+
+                            <!-- Brightness Control -->
+                            <div class="setting-group">
+                                <label for="brightnessSlider">Brightness</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="brightnessDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="brightnessSlider" min="0" max="255" value="120" step="5">
+                                    <button class="control-btn small" id="brightnessUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="brightnessValue">120</span>
+                            </div>
+
+                            <!-- Contrast Control -->
+                            <div class="setting-group">
+                                <label for="contrastSlider">Contrast</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="contrastDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="contrastSlider" min="0" max="100" value="60" step="5">
+                                    <button class="control-btn small" id="contrastUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="contrastValue">60</span>
+                            </div>
+
+                            <!-- Saturation Control -->
+                            <div class="setting-group">
+                                <label for="saturationSlider">Saturation</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="saturationDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="saturationSlider" min="0" max="100" value="80" step="5">
+                                    <button class="control-btn small" id="saturationUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="saturationValue">80</span>
+                            </div>
+
+                            <!-- Gain Control -->
+                            <div class="setting-group">
+                                <label for="gainSlider">Gain/ISO</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="gainDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="gainSlider" min="0" max="200" value="100" step="10">
+                                    <button class="control-btn small" id="gainUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="gainValue">100</span>
+                            </div>
+
+                            <!-- White Balance Control -->
+                            <div class="setting-group">
+                                <label for="whiteBalanceSlider">White Balance</label>
+                                <div class="slider-container">
+                                    <button class="control-btn small" id="whiteBalanceDownBtn"><i class="fas fa-minus"></i></button>
+                                    <input type="range" class="setting-slider" id="whiteBalanceSlider" min="2800" max="6500" value="4000" step="100">
+                                    <button class="control-btn small" id="whiteBalanceUpBtn"><i class="fas fa-plus"></i></button>
+                                </div>
+                                <span class="setting-value" id="whiteBalanceValue">4000K</span>
+                            </div>
+
+                            <!-- Auto Controls -->
+                            <div class="auto-controls">
+                                <div class="feature-toggle" data-setting="autoExposure">
+                                    <span>Auto Exposure</span>
+                                    <div class="toggle-switch"></div>
+                                </div>
+                                <div class="feature-toggle" data-setting="autoWhiteBalance">
+                                    <span>Auto White Balance</span>
+                                    <div class="toggle-switch active"></div>
+                                </div>
+                            </div>
+
+                            <!-- Preset Buttons -->
+                            <div class="camera-presets">
+                                <button class="preset-btn" data-preset="daylight">☀️ Daylight</button>
+                                <button class="preset-btn" data-preset="lowlight">🌙 Low Light</button>
+                                <button class="preset-btn" data-preset="indoor">🏠 Indoor</button>
+                                <button class="preset-btn" data-preset="reset">🔄 Reset</button>
                             </div>
                         </div>
                     </div>

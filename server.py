@@ -229,8 +229,23 @@ class ROS2Node(Node if ROS2_AVAILABLE else object):
         """Handle robot pose from ROS2"""
         slam_manager.update_robot_pose(msg)
 
+# Try to import enhanced camera controller
+try:
+    sys.path.append('/home/pi/LAIKA')
+    from laika_camera_control_service import LAIKACameraController
+    ENHANCED_CAMERA_AVAILABLE = True
+except ImportError:
+    print("Enhanced camera controller not available, using basic camera")
+    ENHANCED_CAMERA_AVAILABLE = False
+
 # Global instances
-camera = MockCamera() if not CAMERA_AVAILABLE else Camera()
+if ENHANCED_CAMERA_AVAILABLE:
+    camera = LAIKACameraController()
+elif CAMERA_AVAILABLE:
+    camera = Camera()
+else:
+    camera = MockCamera()
+
 slam_manager = SLAMMapManager()
 ros_node = None
 
