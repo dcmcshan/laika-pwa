@@ -523,25 +523,130 @@ class LAIKACamera {
         try {
             const audio = document.getElementById('audioStream');
             if (audio) {
-                // For live audio from LAIKA, we'd connect to an audio stream endpoint
-                // This could be WebRTC audio or WebSocket audio stream
-                audio.src = `${this.getServerUrl()}/api/audio/stream`;
-                await audio.play();
+                console.log('🎵 Starting audio stream...');
+                
+                // Use Server-Sent Events for audio streaming to avoid STT conflicts
+                this.audioEventSource = new EventSource(`${this.getServerUrl()}/api/audio/stream`);
+                
+                // Create Web Audio API context for audio processing
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.audioGainNode = this.audioContext.createGain();
+                this.audioGainNode.gain.value = this.audioSettings.volume / 100;
+                
+                // Create audio buffer source
+                this.audioBuffer = [];
+                this.isAudioPlaying = false;
+                
+                this.audioEventSource.onmessage = (event) => {
+                    try {
+                        const audioData = event.data;
+                        
+                        // Skip error messages
+                        if (audioData.startsWith('error')) {
+                            console.warn('Audio stream error:', audioData);
+                            return;
+                        }
+                        
+                        // Decode base64 audio data
+                        const binaryData = atob(audioData);
+                        const audioBytes = new Uint8Array(binaryData.length);
+                        for (let i = 0; i < binaryData.length; i++) {
+                            audioBytes[i] = binaryData.charCodeAt(i);
+                        }
+                        
+                        // Convert to audio buffer and play
+                        this.playAudioChunk(audioBytes);
+                        
+                    } catch (error) {
+                        console.warn('Audio processing error:', error);
+                    }
+                };
+                
+                this.audioEventSource.onerror = (error) => {
+                    console.error('❌ Audio stream connection error:', error);
+                    // Try to reconnect after a delay
+                    setTimeout(() => {
+                        if (this.audioEnabled) {
+                            this.startAudioStream();
+                        }
+                    }, 2000);
+                };
+                
+                this.audioEnabled = true;
                 this.audioStream = audio;
-                console.log('🎵 Audio stream started');
+                console.log('✅ Audio stream started with SSE');
             }
         } catch (error) {
             console.error('❌ Failed to start audio stream:', error);
         }
     }
+    
+    playAudioChunk(audioBytes) {
+        try {
+            if (!this.audioContext || this.audioContext.state === 'closed') {
+                return;
+            }
+            
+            // Convert raw PCM data to AudioBuffer
+            const samples = audioBytes.length / 4; // 16-bit stereo = 4 bytes per sample
+            const audioBuffer = this.audioContext.createBuffer(2, samples / 2, 48000);
+            
+            // Convert bytes to float samples
+            const leftChannel = audioBuffer.getChannelData(0);
+            const rightChannel = audioBuffer.getChannelData(1);
+            
+            for (let i = 0; i < samples / 2; i++) {
+                // Little-endian 16-bit samples
+                const leftSample = (audioBytes[i * 4 + 1] << 8) | audioBytes[i * 4];
+                const rightSample = (audioBytes[i * 4 + 3] << 8) | audioBytes[i * 4 + 2];
+                
+                // Convert to float [-1, 1]
+                leftChannel[i] = leftSample < 32768 ? leftSample / 32768 : (leftSample - 65536) / 32768;
+                rightChannel[i] = rightSample < 32768 ? rightSample / 32768 : (rightSample - 65536) / 32768;
+            }
+            
+            // Create buffer source and play
+            const source = this.audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(this.audioGainNode);
+            this.audioGainNode.connect(this.audioContext.destination);
+            source.start();
+            
+        } catch (error) {
+            console.warn('Audio playback error:', error);
+        }
+    }
 
     stopAudioStream() {
-        const audio = document.getElementById('audioStream');
-        if (audio) {
-            audio.pause();
-            audio.src = '';
+        try {
+            // Close Server-Sent Events connection
+            if (this.audioEventSource) {
+                this.audioEventSource.close();
+                this.audioEventSource = null;
+            }
+            
+            // Close Web Audio API context
+            if (this.audioContext && this.audioContext.state !== 'closed') {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+            
+            // Clean up audio elements
+            const audio = document.getElementById('audioStream');
+            if (audio) {
+                audio.pause();
+                audio.src = '';
+            }
+            
             this.audioStream = null;
-            console.log('🔇 Audio stream stopped');
+            this.audioEnabled = false;
+            this.audioGainNode = null;
+            this.isAudioPlaying = false;
+            
+            console.log('🔇 Audio stream stopped and cleaned up');
+            
+        } catch (error) {
+            console.error('Error stopping audio stream:', error);
         }
     }
 

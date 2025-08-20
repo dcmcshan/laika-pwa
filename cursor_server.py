@@ -26,6 +26,15 @@ except ImportError:
     OPENAI_AVAILABLE = False
     AsyncOpenAI = None
 
+# Import configuration
+try:
+    from openai_config import get_openai_config, is_openai_configured
+except ImportError:
+    def get_openai_config():
+        return {"openai_api_key": os.getenv("OPENAI_API_KEY", ""), "openai_model": "gpt-4o-mini"}
+    def is_openai_configured():
+        return bool(os.getenv("OPENAI_API_KEY"))
+
 logger = logging.getLogger(__name__)
 
 class CursorServerAPI:
@@ -35,16 +44,17 @@ class CursorServerAPI:
         self.config = config or {}
         
         # OpenAI client setup
+        openai_config = get_openai_config()
         self.openai_client = None
-        self.openai_model = self.config.get("openai_model", "gpt-4o-mini")
-        self.openai_api_key = self.config.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
+        self.openai_model = self.config.get("openai_model", openai_config.get("openai_model", "gpt-4o-mini"))
+        self.openai_api_key = self.config.get("openai_api_key") or openai_config.get("openai_api_key")
         
         # Initialize OpenAI client
-        if OPENAI_AVAILABLE and self.openai_api_key:
+        if OPENAI_AVAILABLE and self.openai_api_key and is_openai_configured():
             self.openai_client = AsyncOpenAI(api_key=self.openai_api_key)
-            logger.info("✅ OpenAI client initialized")
+            logger.info("✅ OpenAI client initialized with model: %s", self.openai_model)
         else:
-            logger.warning("⚠️ OpenAI not available - using simulation mode")
+            logger.warning("⚠️ OpenAI not configured - using simulation mode")
         
         # Cursor server connection details (for detection only)
         self.cursor_host = "127.0.0.1"
@@ -449,11 +459,14 @@ What would you like to work on? The more specific you are, the better I can help
         """Get API status"""
         return {
             'cursor_available': self.is_available,
+            'openai_available': bool(self.openai_client),
+            'openai_model': self.openai_model,
             'cursor_host': self.cursor_host,
             'cursor_port': self.cursor_port,
             'has_token': bool(self.connection_token),
             'active_sessions': len(self.sessions),
-            'max_sessions': self.max_sessions
+            'max_sessions': self.max_sessions,
+            'backend': 'openai' if self.openai_client else 'simulation'
         }
 
 # Create global instance

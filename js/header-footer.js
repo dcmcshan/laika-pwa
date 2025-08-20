@@ -56,16 +56,16 @@ class LAIKAHeaderFooter {
                         </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link disabled" data-page="chat" title="Coming Soon">
+                        <a href="chat.html" class="nav-link" data-page="chat">
                             <span class="nav-icon">💬</span>
                             <span>Chat</span>
-                        </span>
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <span class="nav-link disabled" data-page="dashboard" title="Coming Soon">
+                        <a href="dashboard.html" class="nav-link" data-page="dashboard">
                             <span class="nav-icon">📊</span>
                             <span>Dashboard</span>
-                        </span>
+                        </a>
                     </li>
                     <li class="nav-item">
                         <span class="nav-link disabled" data-page="camera" title="Coming Soon">
