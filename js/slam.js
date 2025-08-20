@@ -173,9 +173,10 @@ class LAIKASLAMMap {
 
     async connectWebSocket() {
         const wsUrls = [
-            `ws://${window.location.hostname}:8765/slam`,
-            'ws://laika.local:8765/slam',
-            'ws://localhost:8765/slam'
+            `ws://${window.location.hostname}:${window.location.port || 80}/ws/slam`,
+            `ws://${window.location.hostname}/ws/slam`,
+            'ws://laika.local/ws/slam',
+            'ws://localhost/ws/slam'
         ];
 
         for (const url of wsUrls) {
