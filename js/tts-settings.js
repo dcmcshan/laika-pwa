@@ -1,18 +1,19 @@
 /**
  * LAIKA TTS Settings Controller
- * Handles voice provider selection, ElevenLabs integration, and voice testing
+ * Handles voice provider selection, API configuration, and voice testing
  */
 
 class TTSSettings {
     constructor() {
-        this.currentProvider = 'piper';
+        this.currentProvider = 'piper'; // Default to Piper
         this.currentVoice = null;
         this.elevenLabsApiKey = '';
-        this.voices = [];
-        this.isPlaying = false;
-        this.audioContext = null;
+        this.openaiApiKey = '';
+        this.voices = {};
+        this.audioPlayer = null;
         
         this.initializeEventListeners();
+        this.initializeSliders();
         this.loadSettings();
         this.updateUI();
     }
@@ -27,62 +28,59 @@ class TTSSettings {
             });
         });
 
-        // Voice option selection
-        document.querySelectorAll('.voice-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                if (e.target.type !== 'radio') {
-                    const radio = option.querySelector('input[type="radio"]');
-                    radio.checked = true;
-                    this.currentProvider = radio.value;
-                    this.updateUI();
-                    this.saveSettings();
-                }
-            });
-        });
-
         // ElevenLabs API key testing
-        const testApiKeyBtn = document.getElementById('test-api-key');
-        if (testApiKeyBtn) {
-            testApiKeyBtn.addEventListener('click', () => this.testElevenLabsAPI());
+        const testElevenLabsBtn = document.getElementById('test-elevenlabs-api');
+        if (testElevenLabsBtn) {
+            testElevenLabsBtn.addEventListener('click', () => this.testElevenLabsAPI());
         }
 
-        // Load voices button
-        const loadVoicesBtn = document.getElementById('load-voices');
-        if (loadVoicesBtn) {
-            loadVoicesBtn.addEventListener('click', () => this.loadElevenLabsVoices());
+        // OpenAI API key testing
+        const testOpenAIBtn = document.getElementById('test-openai-api');
+        if (testOpenAIBtn) {
+            testOpenAIBtn.addEventListener('click', () => this.testOpenAIAPI());
         }
 
-        // Text tabs
-        document.querySelectorAll('.text-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchTextTab(e.target.dataset.tab);
+        // Voice selection dropdowns
+        document.querySelectorAll('.voice-dropdown').forEach(dropdown => {
+            dropdown.addEventListener('change', (e) => {
+                this.currentVoice = e.target.value;
+                this.updatePlayButton(e.target.id);
+                this.saveSettings();
             });
         });
 
-        // Test voice button
-        const testVoiceBtn = document.getElementById('test-voice');
-        if (testVoiceBtn) {
-            testVoiceBtn.addEventListener('click', () => this.testVoice());
+        // Play buttons
+        document.querySelectorAll('.play-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const provider = e.target.id.replace('-play-btn', '');
+                this.testVoiceWithProvider(provider);
+            });
+        });
+
+        // Auto-translate button
+        const translateBtn = document.getElementById('translate-button');
+        if (translateBtn) {
+            translateBtn.addEventListener('click', () => this.autoTranslate());
         }
 
-        // Stop voice button
-        const stopVoiceBtn = document.getElementById('stop-voice');
-        if (stopVoiceBtn) {
-            stopVoiceBtn.addEventListener('click', () => this.stopVoice());
+        // Text area changes for auto-translation
+        const englishTextarea = document.getElementById('english-textarea');
+        const russianTextarea = document.getElementById('russian-textarea');
+        
+        if (englishTextarea) {
+            englishTextarea.addEventListener('input', () => this.handleTextChange('english'));
+        }
+        if (russianTextarea) {
+            russianTextarea.addEventListener('input', () => this.handleTextChange('russian'));
         }
 
         // Test buttons
         document.querySelectorAll('.test-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const text = e.target.dataset.text;
-                if (text) {
-                    this.testVoiceWithText(text);
-                }
+                this.testVoiceWithText(text);
             });
         });
-
-        // Sliders
-        this.initializeSliders();
 
         // Save settings
         const saveBtn = document.getElementById('save-settings');
@@ -106,64 +104,58 @@ class TTSSettings {
     initializeSliders() {
         // Volume slider
         const volumeSlider = document.getElementById('volume-slider');
-        const volumeValue = document.getElementById('volume-value');
-        if (volumeSlider && volumeValue) {
+        if (volumeSlider) {
             volumeSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                volumeValue.textContent = `${value}%`;
-                this.updateVolume(value);
+                document.getElementById('volume-value').textContent = e.target.value + '%';
+                this.updateVolume();
             });
         }
 
         // Rate slider
         const rateSlider = document.getElementById('rate-slider');
-        const rateValue = document.getElementById('rate-value');
-        if (rateSlider && rateValue) {
+        if (rateSlider) {
             rateSlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                rateValue.textContent = `${value}x`;
-                this.updateRate(value);
+                document.getElementById('rate-value').textContent = e.target.value + 'x';
+                this.updateRate();
             });
         }
 
         // Stability slider (ElevenLabs)
         const stabilitySlider = document.getElementById('stability-slider');
-        const stabilityValue = document.getElementById('stability-value');
-        if (stabilitySlider && stabilityValue) {
+        if (stabilitySlider) {
             stabilitySlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                stabilityValue.textContent = value;
-                this.updateStability(value);
+                document.getElementById('stability-value').textContent = e.target.value;
+                this.updateStability();
             });
         }
 
         // Similarity slider (ElevenLabs)
         const similaritySlider = document.getElementById('similarity-slider');
-        const similarityValue = document.getElementById('similarity-value');
-        if (similaritySlider && similarityValue) {
+        if (similaritySlider) {
             similaritySlider.addEventListener('input', (e) => {
-                const value = e.target.value;
-                similarityValue.textContent = value;
-                this.updateSimilarity(value);
+                document.getElementById('similarity-value').textContent = e.target.value;
+                this.updateSimilarity();
             });
         }
     }
 
     updateUI() {
-        // Update voice option styling
-        document.querySelectorAll('.voice-option').forEach(option => {
-            option.classList.remove('selected');
-            const radio = option.querySelector('input[type="radio"]');
-            if (radio.checked) {
-                option.classList.add('selected');
+        // Show/hide provider-specific sections
+        const providers = ['elevenlabs', 'openai', 'piper', 'system'];
+        providers.forEach(provider => {
+            const configSection = document.getElementById(`${provider}-config`);
+            const voiceOption = document.querySelector(`[data-provider="${provider}"]`);
+            
+            if (configSection && voiceOption) {
+                if (this.currentProvider === provider) {
+                    configSection.style.display = 'block';
+                    voiceOption.classList.add('selected');
+                } else {
+                    configSection.style.display = 'none';
+                    voiceOption.classList.remove('selected');
+                }
             }
         });
-
-        // Show/hide ElevenLabs configuration
-        const elevenLabsConfig = document.getElementById('elevenlabs-config');
-        if (elevenLabsConfig) {
-            elevenLabsConfig.style.display = this.currentProvider === 'elevenlabs' ? 'block' : 'none';
-        }
 
         // Show/hide ElevenLabs-specific controls
         const stabilityControl = document.getElementById('stability-control');
@@ -176,99 +168,32 @@ class TTSSettings {
             similarityControl.style.display = this.currentProvider === 'elevenlabs' ? 'block' : 'none';
         }
 
-        // Update voice selection based on provider
+        // Update voice selection
         this.updateVoiceSelection();
     }
 
     updateVoiceSelection() {
-        const container = document.getElementById('voice-selection-container');
-        if (!container) return;
+        // Enable/disable play buttons based on voice selection
+        const providers = ['elevenlabs', 'openai', 'piper', 'system'];
+        providers.forEach(provider => {
+            const dropdown = document.getElementById(`${provider}-voice-dropdown`);
+            const playBtn = document.getElementById(`${provider}-play-btn`);
+            
+            if (dropdown && playBtn) {
+                const hasVoice = dropdown.value && dropdown.value !== '';
+                playBtn.disabled = !hasVoice;
+            }
+        });
+    }
 
-        container.innerHTML = '';
-
-        switch (this.currentProvider) {
-            case 'elevenlabs':
-                this.renderElevenLabsVoices(container);
-                break;
-            case 'piper':
-                this.renderPiperVoices(container);
-                break;
-            case 'system':
-                this.renderSystemVoices(container);
-                break;
+    updatePlayButton(dropdownId) {
+        const provider = dropdownId.replace('-voice-dropdown', '');
+        const playBtn = document.getElementById(`${provider}-play-btn`);
+        const dropdown = document.getElementById(dropdownId);
+        
+        if (playBtn && dropdown) {
+            playBtn.disabled = !dropdown.value || dropdown.value === '';
         }
-    }
-
-    renderElevenLabsVoices(container) {
-        if (this.voices.length === 0) {
-            container.innerHTML = `
-                <div class="voice-option">
-                    <p>No voices loaded. Click "Load Available Voices" to fetch from ElevenLabs.</p>
-                </div>
-            `;
-            return;
-        }
-
-        this.voices.forEach(voice => {
-            const voiceElement = document.createElement('div');
-            voiceElement.className = 'voice-card';
-            voiceElement.innerHTML = `
-                <h4>${voice.name}</h4>
-                <p>${voice.description || 'No description available'}</p>
-                <p><strong>Category:</strong> ${voice.category}</p>
-                <p><strong>Language:</strong> ${voice.labels?.language || 'Unknown'}</p>
-                <button class="btn btn-secondary" onclick="window.ttsSettings.selectVoice('${voice.voice_id}')">
-                    Select Voice
-                </button>
-                <button class="btn" onclick="window.ttsSettings.previewVoice('${voice.voice_id}')">
-                    Preview
-                </button>
-            `;
-            container.appendChild(voiceElement);
-        });
-    }
-
-    renderPiperVoices(container) {
-        const piperVoices = [
-            { id: 'joe', name: 'Joe (English Male)', description: 'Clear male English voice', language: 'en-US' },
-            { id: 'amy', name: 'Amy (English Female)', description: 'Natural female English voice', language: 'en-US' },
-            { id: 'russian', name: 'Russian Voice', description: 'Russian language voice', language: 'ru-RU' }
-        ];
-
-        piperVoices.forEach(voice => {
-            const voiceElement = document.createElement('div');
-            voiceElement.className = 'voice-card';
-            voiceElement.innerHTML = `
-                <h4>${voice.name}</h4>
-                <p>${voice.description}</p>
-                <p><strong>Language:</strong> ${voice.language}</p>
-                <button class="btn btn-secondary" onclick="window.ttsSettings.selectVoice('${voice.id}')">
-                    Select Voice
-                </button>
-            `;
-            container.appendChild(voiceElement);
-        });
-    }
-
-    renderSystemVoices(container) {
-        const systemVoices = [
-            { id: 'espeak', name: 'eSpeak', description: 'Fast system TTS', language: 'en-US' },
-            { id: 'festival', name: 'Festival', description: 'Festival TTS engine', language: 'en-US' }
-        ];
-
-        systemVoices.forEach(voice => {
-            const voiceElement = document.createElement('div');
-            voiceElement.className = 'voice-card';
-            voiceElement.innerHTML = `
-                <h4>${voice.name}</h4>
-                <p>${voice.description}</p>
-                <p><strong>Language:</strong> ${voice.language}</p>
-                <button class="btn btn-secondary" onclick="window.ttsSettings.selectVoice('${voice.id}')">
-                    Select Voice
-                </button>
-            `;
-            container.appendChild(voiceElement);
-        });
     }
 
     async testElevenLabsAPI() {
@@ -276,11 +201,11 @@ class TTSSettings {
         const apiKey = apiKeyInput.value.trim();
         
         if (!apiKey) {
-            this.showStatus('Please enter an API key', 'error');
+            this.showStatus('Please enter an ElevenLabs API key', 'error');
             return;
         }
 
-        this.showStatus('Testing API key...', 'info');
+        this.showStatus('Testing ElevenLabs API key...', 'info');
         
         try {
             const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -291,24 +216,53 @@ class TTSSettings {
 
             if (response.ok) {
                 this.elevenLabsApiKey = apiKey;
-                this.showStatus('API key is valid!', 'success');
+                this.showStatus('ElevenLabs API key is valid!', 'success');
                 this.loadElevenLabsVoices();
+                this.saveSettings();
             } else {
-                this.showStatus('Invalid API key. Please check and try again.', 'error');
+                this.showStatus('Invalid ElevenLabs API key', 'error');
             }
         } catch (error) {
-            this.showStatus('Error testing API key: ' + error.message, 'error');
+            this.showStatus('Failed to test API key: ' + error.message, 'error');
+        }
+    }
+
+    async testOpenAIAPI() {
+        const apiKeyInput = document.getElementById('openai-api-key');
+        const apiKey = apiKeyInput.value.trim();
+        
+        if (!apiKey) {
+            this.showStatus('Please enter an OpenAI API key', 'error');
+            return;
+        }
+
+        this.showStatus('Testing OpenAI API key...', 'info');
+        
+        try {
+            const response = await fetch('https://api.openai.com/v1/models', {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+
+            if (response.ok) {
+                this.openaiApiKey = apiKey;
+                this.showStatus('OpenAI API key is valid!', 'success');
+                this.saveSettings();
+            } else {
+                this.showStatus('Invalid OpenAI API key', 'error');
+            }
+        } catch (error) {
+            this.showStatus('Failed to test API key: ' + error.message, 'error');
         }
     }
 
     async loadElevenLabsVoices() {
         if (!this.elevenLabsApiKey) {
-            this.showStatus('Please enter and test your API key first', 'error');
+            this.showStatus('Please configure ElevenLabs API key first', 'error');
             return;
         }
 
-        this.showStatus('Loading voices from ElevenLabs...', 'info');
-        
         try {
             const response = await fetch('https://api.elevenlabs.io/v1/voices', {
                 headers: {
@@ -317,309 +271,233 @@ class TTSSettings {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                this.voices = data.voices || [];
-                this.updateVoiceSelection();
-                this.showStatus(`Loaded ${this.voices.length} voices from ElevenLabs`, 'success');
+                const voices = await response.json();
+                this.voices.elevenlabs = voices.voices || [];
+                this.renderElevenLabsVoices();
+                this.showStatus(`Loaded ${this.voices.elevenlabs.length} ElevenLabs voices`, 'success');
             } else {
-                this.showStatus('Error loading voices: ' + response.statusText, 'error');
+                this.showStatus('Failed to load ElevenLabs voices', 'error');
             }
         } catch (error) {
-            this.showStatus('Error loading voices: ' + error.message, 'error');
+            this.showStatus('Failed to load voices: ' + error.message, 'error');
         }
     }
 
-    selectVoice(voiceId) {
-        this.currentVoice = voiceId;
-        this.showStatus(`Selected voice: ${voiceId}`, 'success');
-        this.saveSettings();
-    }
+    renderElevenLabsVoices() {
+        const dropdown = document.getElementById('elevenlabs-voice-dropdown');
+        if (!dropdown) return;
 
-    async previewVoice(voiceId) {
-        if (this.currentProvider !== 'elevenlabs') {
-            this.showStatus('Voice preview only available for ElevenLabs', 'info');
-            return;
+        dropdown.innerHTML = '<option value="">Select a voice...</option>';
+        
+        if (this.voices.elevenlabs) {
+            this.voices.elevenlabs.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.voice_id;
+                option.textContent = `${voice.name} (${voice.labels?.accent || 'Unknown'})`;
+                dropdown.appendChild(option);
+            });
         }
-
-        const text = "Welcome to Burning Man. I am LAIKA, your Loyal AI K9 Agent.";
-        await this.testVoiceWithText(text, voiceId);
     }
 
-    switchTextTab(tabName) {
-        // Update tab styling
-        document.querySelectorAll('.text-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-        // Update content visibility
-        document.querySelectorAll('.text-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        document.getElementById(`${tabName}-text`).classList.add('active');
-    }
-
-    async testVoice() {
-        const activeTab = document.querySelector('.text-tab.active');
-        const tabName = activeTab.dataset.tab;
-        const textarea = document.getElementById(`${tabName}-textarea`);
-        const text = textarea.value.trim();
-
+    async testVoiceWithProvider(provider) {
+        const textarea = document.getElementById('english-textarea');
+        const text = textarea ? textarea.value.trim() : 'Hello, I am LAIKA';
+        
         if (!text) {
-            this.showStatus('Please enter some text to test', 'error');
+            this.showStatus('Please enter text to test', 'error');
             return;
         }
 
-        await this.testVoiceWithText(text);
+        this.testVoiceWithText(text, provider);
     }
 
-    async testVoiceWithText(text, voiceId = null) {
-        if (this.isPlaying) {
-            this.stopVoice();
+    async testVoiceWithText(text, provider = null) {
+        const selectedProvider = provider || this.currentProvider;
+        
+        this.showStatus(`Testing ${selectedProvider} TTS...`, 'info');
+        
+        try {
+            // Use the LAIKA TTS endpoint
+            const response = await fetch('/api/tts/speak', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    provider: selectedProvider,
+                    voice: this.currentVoice,
+                    volume: document.getElementById('volume-slider')?.value || 70,
+                    rate: document.getElementById('rate-slider')?.value || 1.0
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showStatus(`✅ ${result.message}`, 'success');
+            } else {
+                this.showStatus(`❌ ${result.error}`, 'error');
+            }
+        } catch (error) {
+            this.showStatus('Failed to test voice: ' + error.message, 'error');
+        }
+    }
+
+    async autoTranslate() {
+        const englishTextarea = document.getElementById('english-textarea');
+        const russianTextarea = document.getElementById('russian-textarea');
+        
+        if (!englishTextarea || !russianTextarea) return;
+
+        const englishText = englishTextarea.value.trim();
+        const russianText = russianTextarea.value.trim();
+
+        // Determine which text to translate
+        let sourceText, targetTextarea, targetLang;
+        
+        if (englishText && !russianText) {
+            sourceText = englishText;
+            targetTextarea = russianTextarea;
+            targetLang = 'ru';
+        } else if (russianText && !englishText) {
+            sourceText = russianText;
+            targetTextarea = englishTextarea;
+            targetLang = 'en';
+        } else {
+            // If both have text, translate English to Russian
+            sourceText = englishText;
+            targetTextarea = russianTextarea;
+            targetLang = 'ru';
         }
 
-        this.showStatus('Generating speech...', 'info');
-        this.isPlaying = true;
+        if (!sourceText) {
+            this.showStatus('Please enter text to translate', 'error');
+            return;
+        }
+
+        this.showStatus('Translating...', 'info');
 
         try {
-            let audioUrl;
-            
-            switch (this.currentProvider) {
-                case 'elevenlabs':
-                    audioUrl = await this.generateElevenLabsSpeech(text, voiceId);
-                    break;
-                case 'piper':
-                    audioUrl = await this.generatePiperSpeech(text);
-                    break;
-                case 'system':
-                    audioUrl = await this.generateSystemSpeech(text);
-                    break;
-                default:
-                    throw new Error('Unknown provider');
-            }
+            const response = await fetch('/api/tts/speak', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: sourceText,
+                    translate_to: targetLang
+                })
+            });
 
-            if (audioUrl) {
-                await this.playAudio(audioUrl);
-                this.showStatus('Playing audio...', 'success');
+            const result = await response.json();
+            
+            if (result.success && result.translated) {
+                targetTextarea.value = result.text;
+                this.showStatus('Translation completed!', 'success');
+            } else {
+                this.showStatus('Translation failed', 'error');
             }
         } catch (error) {
-            this.showStatus('Error generating speech: ' + error.message, 'error');
-            this.isPlaying = false;
+            this.showStatus('Translation error: ' + error.message, 'error');
         }
     }
 
-    async generateElevenLabsSpeech(text, voiceId = null) {
-        const voice = voiceId || this.currentVoice || 'pNInz6obpgDQGcFmaJgB'; // Default voice
-        const apiKey = this.elevenLabsApiKey;
-
-        if (!apiKey) {
-            throw new Error('ElevenLabs API key not configured');
-        }
-
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-            method: 'POST',
-            headers: {
-                'xi-api-key': apiKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                model_id: 'eleven_monolingual_v1',
-                voice_settings: {
-                    stability: parseFloat(document.getElementById('stability-slider')?.value || 0.5),
-                    similarity_boost: parseFloat(document.getElementById('similarity-slider')?.value || 0.75)
-                }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`ElevenLabs API error: ${response.statusText}`);
-        }
-
-        const audioBlob = await response.blob();
-        return URL.createObjectURL(audioBlob);
+    handleTextChange(source) {
+        // Auto-translate on text change (debounced)
+        clearTimeout(this.translateTimeout);
+        this.translateTimeout = setTimeout(() => {
+            this.autoTranslate();
+        }, 1000); // 1 second delay
     }
 
-    async generatePiperSpeech(text) {
-        // Call local Piper TTS API
-        const response = await fetch('/api/tts/speak', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                provider: 'piper',
-                voice: this.currentVoice || 'joe',
-                rate: parseFloat(document.getElementById('rate-slider')?.value || 1.0),
-                volume: parseFloat(document.getElementById('volume-slider')?.value || 70) / 100
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Piper TTS error: ${response.statusText}`);
-        }
-
-        const audioBlob = await response.blob();
-        return URL.createObjectURL(audioBlob);
+    updateVolume() {
+        const volume = document.getElementById('volume-slider')?.value || 70;
+        // Volume control would be applied to audio playback
+        console.log('Volume updated:', volume);
     }
 
-    async generateSystemSpeech(text) {
-        // Call system TTS API
-        const response = await fetch('/api/tts/speak', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                provider: 'system',
-                voice: this.currentVoice || 'espeak',
-                rate: parseFloat(document.getElementById('rate-slider')?.value || 1.0),
-                volume: parseFloat(document.getElementById('volume-slider')?.value || 70) / 100
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`System TTS error: ${response.statusText}`);
-        }
-
-        const audioBlob = await response.blob();
-        return URL.createObjectURL(audioBlob);
+    updateRate() {
+        const rate = document.getElementById('rate-slider')?.value || 1.0;
+        // Rate control would be applied to TTS generation
+        console.log('Rate updated:', rate);
     }
 
-    async playAudio(audioUrl) {
-        return new Promise((resolve, reject) => {
-            const audio = new Audio(audioUrl);
-            
-            audio.addEventListener('ended', () => {
-                this.isPlaying = false;
-                URL.revokeObjectURL(audioUrl);
-                this.showStatus('Audio playback completed', 'success');
-                resolve();
-            });
-
-            audio.addEventListener('error', (error) => {
-                this.isPlaying = false;
-                URL.revokeObjectURL(audioUrl);
-                reject(error);
-            });
-
-            audio.volume = parseFloat(document.getElementById('volume-slider')?.value || 70) / 100;
-            audio.playbackRate = parseFloat(document.getElementById('rate-slider')?.value || 1.0);
-            
-            audio.play().catch(reject);
-        });
+    updateStability() {
+        const stability = document.getElementById('stability-slider')?.value || 0.5;
+        // Stability control for ElevenLabs
+        console.log('Stability updated:', stability);
     }
 
-    stopVoice() {
-        this.isPlaying = false;
-        // Stop any currently playing audio
-        const audioElements = document.querySelectorAll('audio');
-        audioElements.forEach(audio => {
-            audio.pause();
-            audio.currentTime = 0;
-        });
-        this.showStatus('Audio stopped', 'info');
-    }
-
-    updateVolume(value) {
-        // Update volume for any currently playing audio
-        const audioElements = document.querySelectorAll('audio');
-        audioElements.forEach(audio => {
-            audio.volume = value / 100;
-        });
-    }
-
-    updateRate(value) {
-        // Update playback rate for any currently playing audio
-        const audioElements = document.querySelectorAll('audio');
-        audioElements.forEach(audio => {
-            audio.playbackRate = value;
-        });
-    }
-
-    updateStability(value) {
-        // ElevenLabs specific - would be used in API calls
-    }
-
-    updateSimilarity(value) {
-        // ElevenLabs specific - would be used in API calls
+    updateSimilarity() {
+        const similarity = document.getElementById('similarity-slider')?.value || 0.75;
+        // Similarity control for ElevenLabs
+        console.log('Similarity updated:', similarity);
     }
 
     showStatus(message, type = 'info') {
         const statusElement = document.getElementById('tts-status');
-        if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = `status-message status-${type}`;
-            statusElement.style.display = 'block';
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                statusElement.style.display = 'none';
-            }, 5000);
-        }
+        if (!statusElement) return;
+
+        statusElement.textContent = message;
+        statusElement.className = `status-message status-${type}`;
+        statusElement.style.display = 'block';
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            statusElement.style.display = 'none';
+        }, 5000);
     }
 
     loadSettings() {
         try {
-            const settings = localStorage.getItem('laika-tts-settings');
-            if (settings) {
-                const data = JSON.parse(settings);
-                this.currentProvider = data.provider || 'piper';
-                this.currentVoice = data.voice || null;
-                this.elevenLabsApiKey = data.elevenLabsApiKey || '';
-                
-                // Update UI elements
-                const providerRadio = document.getElementById(`provider-${this.currentProvider}`);
-                if (providerRadio) {
-                    providerRadio.checked = true;
-                }
+            const settings = JSON.parse(localStorage.getItem('laika_tts_settings') || '{}');
+            
+            this.currentProvider = settings.provider || 'piper';
+            this.currentVoice = settings.voice || null;
+            this.elevenLabsApiKey = settings.elevenLabsApiKey || '';
+            this.openaiApiKey = settings.openaiApiKey || '';
 
-                const apiKeyInput = document.getElementById('elevenlabs-api-key');
-                if (apiKeyInput) {
-                    apiKeyInput.value = this.elevenLabsApiKey;
-                }
+            // Update UI elements
+            const providerRadio = document.getElementById(`provider-${this.currentProvider}`);
+            if (providerRadio) {
+                providerRadio.checked = true;
+            }
 
-                // Update sliders
-                if (data.volume !== undefined) {
-                    const volumeSlider = document.getElementById('volume-slider');
-                    const volumeValue = document.getElementById('volume-value');
-                    if (volumeSlider && volumeValue) {
-                        volumeSlider.value = data.volume;
-                        volumeValue.textContent = `${data.volume}%`;
-                    }
-                }
+            // Set API keys
+            const elevenLabsInput = document.getElementById('elevenlabs-api-key');
+            if (elevenLabsInput) {
+                elevenLabsInput.value = this.elevenLabsApiKey;
+            }
 
-                if (data.rate !== undefined) {
-                    const rateSlider = document.getElementById('rate-slider');
-                    const rateValue = document.getElementById('rate-value');
-                    if (rateSlider && rateValue) {
-                        rateSlider.value = data.rate;
-                        rateValue.textContent = `${data.rate}x`;
-                    }
-                }
+            const openaiInput = document.getElementById('openai-api-key');
+            if (openaiInput) {
+                openaiInput.value = this.openaiApiKey;
+            }
 
-                if (data.stability !== undefined) {
-                    const stabilitySlider = document.getElementById('stability-slider');
-                    const stabilityValue = document.getElementById('stability-value');
-                    if (stabilitySlider && stabilityValue) {
-                        stabilitySlider.value = data.stability;
-                        stabilityValue.textContent = data.stability;
-                    }
-                }
-
-                if (data.similarity !== undefined) {
-                    const similaritySlider = document.getElementById('similarity-slider');
-                    const similarityValue = document.getElementById('similarity-value');
-                    if (similaritySlider && similarityValue) {
-                        similaritySlider.value = data.similarity;
-                        similarityValue.textContent = data.similarity;
-                    }
+            // Set voice selections
+            if (this.currentVoice) {
+                const voiceDropdown = document.getElementById(`${this.currentProvider}-voice-dropdown`);
+                if (voiceDropdown) {
+                    voiceDropdown.value = this.currentVoice;
                 }
             }
+
+            // Set slider values
+            const volumeSlider = document.getElementById('volume-slider');
+            if (volumeSlider) {
+                volumeSlider.value = settings.volume || 70;
+                document.getElementById('volume-value').textContent = (settings.volume || 70) + '%';
+            }
+
+            const rateSlider = document.getElementById('rate-slider');
+            if (rateSlider) {
+                rateSlider.value = settings.rate || 1.0;
+                document.getElementById('rate-value').textContent = (settings.rate || 1.0) + 'x';
+            }
+
         } catch (error) {
-            console.error('Error loading settings:', error);
+            console.error('Failed to load settings:', error);
         }
     }
 
@@ -629,49 +507,43 @@ class TTSSettings {
                 provider: this.currentProvider,
                 voice: this.currentVoice,
                 elevenLabsApiKey: this.elevenLabsApiKey,
-                volume: parseFloat(document.getElementById('volume-slider')?.value || 70),
-                rate: parseFloat(document.getElementById('rate-slider')?.value || 1.0),
-                stability: parseFloat(document.getElementById('stability-slider')?.value || 0.5),
-                similarity: parseFloat(document.getElementById('similarity-slider')?.value || 0.75)
+                openaiApiKey: this.openaiApiKey,
+                volume: document.getElementById('volume-slider')?.value || 70,
+                rate: document.getElementById('rate-slider')?.value || 1.0,
+                stability: document.getElementById('stability-slider')?.value || 0.5,
+                similarity: document.getElementById('similarity-slider')?.value || 0.75
             };
 
-            localStorage.setItem('laika-tts-settings', JSON.stringify(settings));
-            this.showStatus('Settings saved successfully', 'success');
+            localStorage.setItem('laika_tts_settings', JSON.stringify(settings));
+            this.showStatus('Settings saved!', 'success');
         } catch (error) {
-            this.showStatus('Error saving settings: ' + error.message, 'error');
+            console.error('Failed to save settings:', error);
+            this.showStatus('Failed to save settings', 'error');
         }
     }
 
     resetSettings() {
-        if (confirm('Are you sure you want to reset all settings to defaults?')) {
-            localStorage.removeItem('laika-tts-settings');
+        if (confirm('Are you sure you want to reset all TTS settings?')) {
+            localStorage.removeItem('laika_tts_settings');
             location.reload();
         }
     }
 
     exportConfig() {
         try {
-            const settings = {
-                provider: this.currentProvider,
-                voice: this.currentVoice,
-                volume: parseFloat(document.getElementById('volume-slider')?.value || 70),
-                rate: parseFloat(document.getElementById('rate-slider')?.value || 1.0),
-                stability: parseFloat(document.getElementById('stability-slider')?.value || 0.5),
-                similarity: parseFloat(document.getElementById('similarity-slider')?.value || 0.75),
-                timestamp: new Date().toISOString()
-            };
-
-            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'laika-tts-config.json';
-            a.click();
-            URL.revokeObjectURL(url);
+            const settings = JSON.parse(localStorage.getItem('laika_tts_settings') || '{}');
+            const dataStr = JSON.stringify(settings, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
             
-            this.showStatus('Configuration exported successfully', 'success');
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'laika_tts_config.json';
+            link.click();
+            
+            this.showStatus('Configuration exported!', 'success');
         } catch (error) {
-            this.showStatus('Error exporting configuration: ' + error.message, 'error');
+            console.error('Failed to export config:', error);
+            this.showStatus('Failed to export configuration', 'error');
         }
     }
 }

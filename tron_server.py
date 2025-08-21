@@ -822,8 +822,14 @@ def tts_speak():
         import os
         
         # Path to laika_say.py
-        laika_say_path = '/home/pi/LAIKA/laika_say.py'
+        import platform
+        if platform.system() == 'Darwin':  # macOS
+            laika_say_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'laika_say.py')
+        else:  # Raspberry Pi
+            laika_say_path = '/home/pi/LAIKA/laika_say.py'
         
+        print(f"DEBUG: Looking for laika_say.py at: {laika_say_path}")
+        print(f"DEBUG: File exists: {os.path.exists(laika_say_path)}")
         if not os.path.exists(laika_say_path):
             return jsonify({'success': False, 'error': 'TTS system not available'})
         
@@ -834,7 +840,7 @@ def tts_speak():
                 capture_output=True,
                 text=True,
                 timeout=45,  # 45 second timeout (increased from 30)
-                cwd='/home/pi/LAIKA'
+                cwd=os.path.dirname(laika_say_path)
             )
             
             if result.returncode == 0:
