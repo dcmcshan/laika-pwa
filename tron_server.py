@@ -584,6 +584,13 @@ def tts_settings_page():
     base_path = os.path.dirname(os.path.abspath(__file__))
     return send_file(os.path.join(base_path, 'tts-settings.html'))
 
+@app.route('/stt')
+def stt_page():
+    """Serve the STT comparison and testing page"""
+    import os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    return send_file(os.path.join(base_path, 'stt.html'))
+
 # Static file serving
 @app.route('/css/<path:filename>')
 def css_files(filename):
@@ -1467,12 +1474,59 @@ def handle_llm_request():
                 # Get system prompt
                 system_prompt = get_current_system_prompt()
                 
+                # Get current context and sensors data
+                context_data = None
+                sensors_data = None
+                
+                if context_camera:
+                    try:
+                        # Capture fresh context if this is a visual query
+                        if any(word in input_text.lower() for word in ['look', 'see', 'what', 'photo', 'picture', 'camera']):
+                            context_camera.capture_context_now()
+                        context_data = context_camera.get_context_data()
+                    except Exception as e:
+                        print(f"⚠️  Context capture error: {e}")
+                
+                if sensor_telemetry:
+                    try:
+                        sensors_data = sensor_telemetry.get_current_telemetry()
+                    except Exception as e:
+                        print(f"⚠️  Sensors error: {e}")
+                
+                # Enhance user input with context
+                enhanced_input = input_text
+                if sensors_data:
+                    enhanced_input += f"\n\nCurrent sensor context: {json.dumps(sensors_data, indent=2)}"
+                
+                # Check if this is a visual query
+                is_visual_query = any(word in input_text.lower() for word in ['look', 'see', 'what', 'photo', 'picture', 'camera', 'image'])
+                
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": enhanced_input}
+                ]
+                
+                # Add visual context if available and needed
+                if is_visual_query and context_data and context_camera:
+                    try:
+                        context_image_path = context_camera.get_context_image_path()
+                        if context_image_path and os.path.exists(context_image_path):
+                            # Encode image for OpenAI Vision API
+                            base64_image = context_camera.encode_context_image()
+                            if base64_image:
+                                # Use vision model for visual queries
+                                messages[1]["content"] = [
+                                    {"type": "text", "text": enhanced_input + "\n\nI'm looking at this image from my camera:"},
+                                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                                ]
+                                model = "gpt-4o"  # Use vision model
+                                print("📷 Added camera context to LLM query")
+                    except Exception as e:
+                        print(f"⚠️  Visual context error: {e}")
+                
                 response = openai_client.chat.completions.create(
                     model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": input_text}
-                    ],
+                    messages=messages,
                     max_tokens=500,
                     temperature=0.7
                 )
@@ -1762,6 +1816,132 @@ def api_get_llm_history():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# Context and Sensors API endpoints
+@app.route('/api/llm/context/image')
+def get_context_image():
+    """Get current context image"""
+    try:
+        context_image_path = '/home/pi/LAIKA/captured_images/context.jpg'
+        
+        if os.path.exists(context_image_path):
+            return send_file(context_image_path, mimetype='image/jpeg')
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Context image not found'
+            }), 404
+            
+    except Exception as e:
+        print(f"❌ Error getting context image: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/llm/context/capture', methods=['POST'])
+def capture_context():
+    """Capture new context image"""
+    try:
+        if context_camera:
+            success = context_camera.capture_context_now()
+            if success:
+                context_data = context_camera.get_context_data()
+                return jsonify({
+                    'success': True,
+                    'data': context_data,
+                    'message': 'Context captured successfully'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to capture context'
+                }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Context camera system not available'
+            }), 503
+            
+    except Exception as e:
+        print(f"❌ Error capturing context: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/llm/context/refresh', methods=['POST'])
+def refresh_context():
+    """Refresh context data"""
+    try:
+        if context_camera:
+            # Force a new capture
+            success = context_camera.capture_context_now()
+            context_data = context_camera.get_context_data()
+            
+            return jsonify({
+                'success': True,
+                'data': context_data,
+                'message': 'Context refreshed successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Context camera system not available'
+            }), 503
+            
+    except Exception as e:
+        print(f"❌ Error refreshing context: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/llm/sensors')
+def get_sensors_data():
+    """Get current sensors data"""
+    try:
+        if sensor_telemetry:
+            telemetry_data = sensor_telemetry.get_current_telemetry()
+            return jsonify(telemetry_data)
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Sensor telemetry system not available'
+            }), 503
+            
+    except Exception as e:
+        print(f"❌ Error getting sensors data: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/llm/sensors/refresh', methods=['POST'])
+def refresh_sensors():
+    """Refresh sensors data"""
+    try:
+        if sensor_telemetry:
+            sensor_telemetry.force_refresh()
+            telemetry_data = sensor_telemetry.get_current_telemetry()
+            
+            return jsonify({
+                'success': True,
+                'data': telemetry_data,
+                'message': 'Sensors refreshed successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Sensor telemetry system not available'
+            }), 503
+            
+    except Exception as e:
+        print(f"❌ Error refreshing sensors: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 def determine_action_from_button(button_input):
     """Simple button to action mapping - LLM can learn and override these"""
