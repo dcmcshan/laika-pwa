@@ -1,0 +1,28 @@
+# STT Services Requirements
+# Install with: pip install -r requirements_stt.txt
+
+# Core dependencies
+flask>=2.3.0
+flask-cors>=4.0.0
+werkzeug>=2.3.0
+
+# Local Whisper STT
+openai-whisper>=20230918  # For local Whisper model
+
+# OpenAI API (for Whisper and Realtime)
+openai>=1.0.0
+
+# ElevenLabs (if they provide STT)
+elevenlabs>=0.2.0  # Check latest version
+
+# Audio processing
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
+
+# Async support for realtime
+aiofiles>=23.0.0
+websockets>=11.0.0
+
+# Additional utilities
+python-dotenv>=1.0.0  # For environment variables
+requests>=2.31.0

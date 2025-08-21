@@ -3,182 +3,671 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00FFFF">
     <title>LAIKA - TTS Voice Settings</title>
-    <link rel="stylesheet" href="css/tron-styles.css">
-    <link rel="stylesheet" href="css/cards.css">
-    <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LAIKA TTS">
+    
+    <!-- Mobile Optimizations -->
+    <link href="css/mobile-landscape.css" rel="stylesheet">
+    
+    <!-- Header/Footer Styles -->
+    <link rel="stylesheet" href="css/header-footer.css">
+    
     <style>
-        .voice-preview-container {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid #00ffff;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
         
-        .voice-option {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(0, 255, 255, 0.3);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
+            --success-green: #00FF88;
+            --error-red: #FF4444;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-cyan);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            padding: 80px 20px 20px;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--atomic-cyan);
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), transparent);
+            border-radius: 10px;
+        }
+
+        .page-header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5em;
+            font-weight: 900;
+            color: var(--atomic-cyan);
+            text-shadow: 0 0 20px var(--glow-cyan);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .page-header p {
+            font-size: 1.1em;
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+
+        /* Navigation Links */
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--atomic-cyan);
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid var(--atomic-cyan);
             border-radius: 6px;
-            padding: 12px;
-            margin: 8px 0;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-link:hover {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(20, 20, 32, 0.8);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.2),
+                inset 0 0 20px rgba(0, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--atomic-cyan), transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .card-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .card-header h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5em;
+            color: var(--atomic-cyan);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card-header p {
+            color: var(--text-dim);
+            font-size: 0.95em;
+        }
+
+        /* Voice Provider Options */
+        .voice-option {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
             cursor: pointer;
             transition: all 0.3s ease;
+            position: relative;
         }
-        
+
         .voice-option:hover {
             background: rgba(0, 255, 255, 0.1);
-            border-color: #00ffff;
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
         }
-        
+
         .voice-option.selected {
-            background: rgba(0, 255, 255, 0.2);
-            border-color: #00ffff;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.15);
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
         }
-        
+
         .voice-provider {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
+            gap: 15px;
+            margin-bottom: 10px;
         }
-        
+
+        .provider-radio {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--atomic-cyan);
+        }
+
+        .provider-label {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--text-cyan);
+        }
+
         .provider-badge {
-            background: linear-gradient(45deg, #ff6b35, #f7931e);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
             font-size: 0.8em;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
-        .provider-badge.piper {
-            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+
+        .provider-badge.premium {
+            background: linear-gradient(45deg, var(--atomic-orange), #FF8C42);
+            color: white;
         }
-        
-        .provider-badge.system {
-            background: linear-gradient(45deg, #9C27B0, #E91E63);
+
+        .provider-badge.local {
+            background: linear-gradient(45deg, var(--success-green), #4CAF50);
+            color: white;
         }
-        
-        .voice-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+
+        .provider-badge.fallback {
+            background: linear-gradient(45deg, var(--atomic-pink), #E91E63);
+            color: white;
+        }
+
+        .provider-description {
+            color: var(--text-dim);
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .provider-features {
+            font-size: 0.85em;
+            color: var(--text-dim);
+            opacity: 0.8;
+        }
+
+        /* ElevenLabs Specific Styles */
+        .elevenlabs-section {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 107, 53, 0.5);
+            border-radius: 6px;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', monospace;
+            margin: 10px 0;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: var(--atomic-orange);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+        }
+
+        .voice-download-section {
             margin: 20px 0;
         }
-        
+
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .voice-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .voice-card:hover {
+            border-color: var(--atomic-orange);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
+        }
+
+        .voice-card h4 {
+            color: var(--atomic-orange);
+            margin-bottom: 8px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .voice-card p {
+            color: var(--text-dim);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        /* Sample Text Areas */
+        .sample-text-section {
+            margin: 20px 0;
+        }
+
+        .text-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .text-tab {
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 6px 6px 0 0;
+            color: var(--text-cyan);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9em;
+        }
+
+        .text-tab.active {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            border-color: var(--atomic-cyan);
+        }
+
+        .text-tab:hover:not(.active) {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: var(--atomic-cyan);
+        }
+
+        .text-content {
+            display: none;
+        }
+
+        .text-content.active {
+            display: block;
+        }
+
+        .sample-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 6px;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', monospace;
+            font-size: 1em;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        .sample-textarea:focus {
+            outline: none;
+            border-color: var(--atomic-cyan);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--atomic-cyan), var(--dark-cyan));
+            color: var(--atomic-bg);
+        }
+
+        .btn-secondary {
+            border-color: var(--atomic-orange);
+            color: var(--atomic-orange);
+        }
+
+        .btn-secondary:hover {
+            background: var(--atomic-orange);
+            color: var(--atomic-bg);
+        }
+
+        .btn-success {
+            border-color: var(--success-green);
+            color: var(--success-green);
+        }
+
+        .btn-success:hover {
+            background: var(--success-green);
+            color: var(--atomic-bg);
+        }
+
+        /* Voice Controls */
+        .voice-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
         .control-group {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(0, 255, 255, 0.3);
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
         }
-        
+
+        .control-group h3 {
+            color: var(--atomic-cyan);
+            margin-bottom: 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1em;
+        }
+
         .slider-container {
-            margin: 10px 0;
+            margin: 15px 0;
         }
-        
+
         .slider {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.2);
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
             outline: none;
             -webkit-appearance: none;
+            cursor: pointer;
         }
-        
+
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #00ffff;
+            background: var(--atomic-cyan);
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 15px var(--glow-cyan);
+            border: 2px solid var(--atomic-bg);
         }
-        
+
         .slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #00ffff;
+            background: var(--atomic-cyan);
             cursor: pointer;
-            border: none;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            border: 2px solid var(--atomic-bg);
+            box-shadow: 0 0 15px var(--glow-cyan);
         }
-        
+
+        .value-display {
+            text-align: center;
+            margin-top: 10px;
+            font-family: 'Orbitron', monospace;
+            color: var(--atomic-cyan);
+            font-size: 1.1em;
+        }
+
+        /* Test Buttons */
         .test-buttons {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin: 15px 0;
+            margin: 20px 0;
         }
-        
+
         .test-btn {
-            background: linear-gradient(45deg, #1e3c72, #2a5298);
-            border: 1px solid #00ffff;
-            color: #00ffff;
-            padding: 8px 16px;
+            padding: 10px 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--atomic-cyan);
+            color: var(--atomic-cyan);
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Orbitron', monospace;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
+
         .test-btn:hover {
-            background: linear-gradient(45deg, #2a5298, #1e3c72);
+            background: var(--atomic-cyan);
+            color: var(--atomic-bg);
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
         }
-        
-        .volume-meter {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-            margin: 10px 0;
-            overflow: hidden;
+
+        /* Status Messages */
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9em;
         }
-        
-        .volume-level {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
-            border-radius: 3px;
-            transition: width 0.3s ease;
+
+        .status-success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success-green);
+            color: var(--success-green);
         }
-        
+
+        .status-error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error-red);
+            color: var(--error-red);
+        }
+
+        .status-info {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--atomic-cyan);
+            color: var(--atomic-cyan);
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
+            .main-content {
+                padding: 60px 15px 15px;
+            }
+
+            .page-header h1 {
+                font-size: 2em;
+            }
+
             .voice-controls {
                 grid-template-columns: 1fr;
             }
+
+            .test-buttons {
+                flex-direction: column;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--atomic-cyan);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="logo-section">
-                    <div class="logo">
-                        <span class="logo-text">LAIKA</span>
-                        <span class="logo-subtitle">TTS Voice Settings</span>
-                    </div>
-                </div>
-                <nav class="nav">
-                    <a href="index.html" class="nav-link">Dashboard</a>
-                    <a href="chat.html" class="nav-link">Chat</a>
-                    <a href="control.html" class="nav-link">Control</a>
-                    <a href="settings.html" class="nav-link">Settings</a>
-                </nav>
-            </div>
+        <header class="laika-header">
+            <a href="index.html" class="header-brand">
+                <span class="brand-icon">🤖</span>
+                <span>LAIKA</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Dashboard</a>
+                <a href="chat.html" class="nav-link">Chat</a>
+                <a href="control.html" class="nav-link">Control</a>
+                <a href="settings.html" class="nav-link">Settings</a>
+            </nav>
         </header>
 
         <!-- Main Content -->
-        <main class="main">
+        <main class="main-content">
+            <!-- Page Header -->
             <div class="page-header">
                 <h1>🗣️ Voice Settings</h1>
                 <p>Configure LAIKA's text-to-speech voice and audio parameters</p>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">Dashboard</a>
+                    <a href="chat.html" class="nav-link">Chat Control</a>
+                </div>
             </div>
 
             <!-- Voice Provider Selection -->
@@ -188,34 +677,53 @@
                     <p>Select the TTS engine for LAIKA's voice</p>
                 </div>
                 <div class="card-content">
+                    <!-- ElevenLabs Option -->
                     <div class="voice-option" data-provider="elevenlabs">
                         <div class="voice-provider">
-                            <input type="radio" name="provider" value="elevenlabs" id="provider-elevenlabs">
-                            <label for="provider-elevenlabs"><strong>ElevenLabs</strong></label>
-                            <span class="provider-badge">Premium</span>
+                            <input type="radio" name="provider" value="elevenlabs" id="provider-elevenlabs" class="provider-radio">
+                            <label for="provider-elevenlabs" class="provider-label">ElevenLabs</label>
+                            <span class="provider-badge premium">Premium</span>
                         </div>
-                        <p>High-quality AI voices with natural speech patterns and emotion</p>
-                        <small>Requires API key • Best quality • Cloud-based</small>
+                        <p class="provider-description">High-quality AI voices with natural speech patterns and emotion</p>
+                        <small class="provider-features">Requires API key • Best quality • Cloud-based</small>
+                        
+                        <!-- ElevenLabs Configuration -->
+                        <div class="elevenlabs-section" id="elevenlabs-config" style="display: none;">
+                            <h4>🔑 API Configuration</h4>
+                            <input type="password" id="elevenlabs-api-key" class="api-key-input" 
+                                   placeholder="Enter your ElevenLabs API key...">
+                            <button class="btn btn-secondary" id="test-api-key">Test API Key</button>
+                            
+                            <div class="voice-download-section">
+                                <h4>🎵 Available Voices</h4>
+                                <button class="btn btn-secondary" id="load-voices">Load Available Voices</button>
+                                <div class="voice-grid" id="voice-grid">
+                                    <!-- Voices will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
+                    <!-- Piper TTS Option -->
                     <div class="voice-option" data-provider="piper">
                         <div class="voice-provider">
-                            <input type="radio" name="provider" value="piper" id="provider-piper" checked>
-                            <label for="provider-piper"><strong>Piper TTS</strong></label>
-                            <span class="provider-badge piper">Local</span>
+                            <input type="radio" name="provider" value="piper" id="provider-piper" class="provider-radio" checked>
+                            <label for="provider-piper" class="provider-label">Piper TTS</label>
+                            <span class="provider-badge local">Local</span>
                         </div>
-                        <p>Fast local text-to-speech with good quality voices</p>
-                        <small>Works offline • Fast • Multiple languages</small>
+                        <p class="provider-description">Fast local text-to-speech with good quality voices</p>
+                        <small class="provider-features">Works offline • Fast • Multiple languages</small>
                     </div>
                     
+                    <!-- System TTS Option -->
                     <div class="voice-option" data-provider="system">
                         <div class="voice-provider">
-                            <input type="radio" name="provider" value="system" id="provider-system">
-                            <label for="provider-system"><strong>System TTS</strong></label>
-                            <span class="provider-badge system">Fallback</span>
+                            <input type="radio" name="provider" value="system" id="provider-system" class="provider-radio">
+                            <label for="provider-system" class="provider-label">System TTS</label>
+                            <span class="provider-badge fallback">Fallback</span>
                         </div>
-                        <p>Built-in system text-to-speech (espeak/festival)</p>
-                        <small>Always available • Basic quality • Lightweight</small>
+                        <p class="provider-description">Built-in system text-to-speech (espeak/festival)</p>
+                        <small class="provider-features">Always available • Basic quality • Lightweight</small>
                     </div>
                 </div>
             </div>
@@ -233,6 +741,47 @@
                 </div>
             </div>
 
+            <!-- Sample Text Testing -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🧪 Voice Testing</h2>
+                    <p>Test LAIKA's voice with different phrases</p>
+                </div>
+                <div class="card-content">
+                    <div class="sample-text-section">
+                        <div class="text-tabs">
+                            <div class="text-tab active" data-tab="english">English</div>
+                            <div class="text-tab" data-tab="russian">Русский</div>
+                        </div>
+                        
+                        <div class="text-content active" id="english-text">
+                            <textarea class="sample-textarea" id="english-textarea" placeholder="Enter English text to test...">Welcome to Burning Man. I am LAIKA, your Loyal AI K9 Agent.</textarea>
+                        </div>
+                        
+                        <div class="text-content" id="russian-text">
+                            <textarea class="sample-textarea" id="russian-textarea" placeholder="Введите русский текст для тестирования...">Добро пожаловать на Burning Man. Я ЛАЙКА, ваш Верный ИИ К9 Агент.</textarea>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-primary" id="test-voice">🎵 Test Voice</button>
+                            <button class="btn btn-secondary" id="stop-voice">⏹️ Stop</button>
+                        </div>
+                    </div>
+                    
+                                         <div class="test-buttons">
+                         <button class="test-btn" data-text="Welcome to Burning Man. I am LAIKA, your Loyal AI K9 Agent.">Burning Man</button>
+                         <button class="test-btn" data-text="I'm ready to help you with whatever you need today.">Helpful</button>
+                         <button class="test-btn" data-text="Let's go for a walk and explore together!">Excited</button>
+                         <button class="test-btn" data-text="I understand your command and I'm processing it now.">Professional</button>
+                         <button class="test-btn" data-text="Добро пожаловать на Burning Man. Я ЛАЙКА, ваш Верный ИИ К9 Агент.">Russian</button>
+                     </div>
+                    
+                    <div id="tts-status" class="status-message" style="display: none;">
+                        <!-- Status messages will appear here -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Voice Controls -->
             <div class="card">
                 <div class="card-header">
@@ -246,9 +795,6 @@
                             <h3>🔊 Volume</h3>
                             <div class="slider-container">
                                 <input type="range" min="0" max="100" value="70" class="slider" id="volume-slider">
-                                <div class="volume-meter">
-                                    <div class="volume-level" id="volume-level"></div>
-                                </div>
                                 <div class="value-display">
                                     <span id="volume-value">70%</span>
                                 </div>
@@ -267,7 +813,7 @@
                         </div>
 
                         <!-- Stability (ElevenLabs only) -->
-                        <div class="control-group" id="stability-control">
+                        <div class="control-group" id="stability-control" style="display: none;">
                             <h3>🎯 Stability</h3>
                             <div class="slider-container">
                                 <input type="range" min="0" max="1" step="0.1" value="0.5" class="slider" id="stability-slider">
@@ -275,11 +821,11 @@
                                     <span id="stability-value">0.5</span>
                                 </div>
                             </div>
-                            <small>Higher values = more consistent, Lower values = more expressive</small>
+                            <small style="color: var(--text-dim);">Higher values = more consistent, Lower values = more expressive</small>
                         </div>
 
                         <!-- Similarity Boost (ElevenLabs only) -->
-                        <div class="control-group" id="similarity-control">
+                        <div class="control-group" id="similarity-control" style="display: none;">
                             <h3>🎨 Similarity Boost</h3>
                             <div class="slider-container">
                                 <input type="range" min="0" max="1" step="0.1" value="0.75" class="slider" id="similarity-slider">
@@ -287,40 +833,7 @@
                                     <span id="similarity-value">0.75</span>
                                 </div>
                             </div>
-                            <small>How closely the AI follows the original voice</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Voice Testing -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>🧪 Voice Testing</h2>
-                    <p>Test LAIKA's voice with different phrases</p>
-                </div>
-                <div class="card-content">
-                    <div class="voice-preview-container">
-                        <h3>Test Phrases</h3>
-                        <div class="test-buttons">
-                            <button class="test-btn" data-text="Hello! I'm LAIKA, your friendly robot companion.">Greeting</button>
-                            <button class="test-btn" data-text="I'm ready to help you with whatever you need today.">Helpful</button>
-                            <button class="test-btn" data-text="Let's go for a walk and explore together!">Excited</button>
-                            <button class="test-btn" data-text="I understand your command and I'm processing it now.">Professional</button>
-                            <button class="test-btn" data-text="Привет! Меня зовут ЛАЙКА, и я ваш робот-компаньон.">Russian</button>
-                        </div>
-                        
-                        <div style="margin: 15px 0;">
-                            <label for="custom-text">Custom Text:</label>
-                            <div style="display: flex; gap: 10px; margin-top: 8px;">
-                                <input type="text" id="custom-text" placeholder="Enter text to test..." 
-                                       style="flex: 1; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,255,255,0.3); border-radius: 4px; color: #00ffff;">
-                                <button class="test-btn" id="test-custom">Test</button>
-                            </div>
-                        </div>
-                        
-                        <div id="tts-status" style="margin-top: 10px; padding: 8px; border-radius: 4px; display: none;">
-                            <!-- Status messages will appear here -->
+                            <small style="color: var(--text-dim);">How closely the AI follows the original voice</small>
                         </div>
                     </div>
                 </div>
@@ -334,23 +847,23 @@
                 </div>
                 <div class="card-content">
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <button id="save-settings" class="action-btn primary">
+                        <button id="save-settings" class="btn btn-primary">
                             💾 Save Settings
                         </button>
-                        <button id="reset-settings" class="action-btn secondary">
+                        <button id="reset-settings" class="btn btn-secondary">
                             🔄 Reset to Defaults
                         </button>
-                        <button id="export-config" class="action-btn">
+                        <button id="export-config" class="btn">
                             📤 Export Config
                         </button>
-                        <div id="save-status" style="margin-left: 10px;"></div>
+                        <div id="save-status"></div>
                     </div>
                 </div>
             </div>
         </main>
 
         <!-- Footer -->
-        <footer class="footer">
+        <footer class="laika-footer">
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>LAIKA Voice System</h4>
