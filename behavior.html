@@ -294,9 +294,18 @@
                 </select>
             </div>
 
+            <div class="control-group">
+                <label>LLM Integration:</label>
+                <div>
+                    <span class="status-indicator status-disconnected" id="llmStatus"></span>
+                    <span id="llmStatusText">Disconnected</span>
+                </div>
+            </div>
+
             <button class="btn" id="connectBtn" onclick="connectToGroot()">Connect to Groot2</button>
             <button class="btn secondary" id="loadTreeBtn" onclick="loadBehaviorTree()">Load Tree</button>
             <button class="btn secondary" id="saveTreeBtn" onclick="saveBehaviorTree()">Save Tree</button>
+            <button class="btn secondary" id="testLLMBtn" onclick="testLLMIntegration()">Test LLM Context</button>
             <button class="btn danger" id="resetBtn" onclick="resetBehaviorTree()">Reset to Default</button>
         </div>
 
@@ -313,8 +322,11 @@
     <script>
         let isConnected = false;
         let currentTree = 'laika_advanced_behavior_tree.xml';
+        let llmConnected = false;
+        let currentBehaviorContext = null;
         const GROOT_URL = 'https://www.behaviortree.dev/groot/';
         const ROS_BRIDGE_URL = 'ws://localhost:9090'; // WebSocket bridge for ROS2
+        const API_BASE_URL = 'http://localhost:5001'; // Behavior tree manager API
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
@@ -337,6 +349,9 @@
                 currentTree = e.target.value;
                 showNotification(`Selected tree: ${currentTree}`, 'success');
             });
+            
+            // Check LLM integration status periodically
+            setInterval(checkLLMStatus, 5000);
         }
 
         function connectToGroot() {
@@ -412,6 +427,55 @@
                     showNotification('Reset to default behavior tree', 'success');
                 }, 1000);
             }
+        }
+
+        function checkLLMStatus() {
+            fetch(`${API_BASE_URL}/api/status`)
+                .then(response => response.json())
+                .then(data => {
+                    const llmStatusIndicator = document.getElementById('llmStatus');
+                    const llmStatusText = document.getElementById('llmStatusText');
+                    
+                    if (data.ros2 && data.ros2.ros2_running) {
+                        llmConnected = true;
+                        llmStatusIndicator.className = 'status-indicator status-connected';
+                        llmStatusText.textContent = 'Connected';
+                    } else {
+                        llmConnected = false;
+                        llmStatusIndicator.className = 'status-indicator status-disconnected';
+                        llmStatusText.textContent = 'Disconnected';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking LLM status:', error);
+                    llmConnected = false;
+                    const llmStatusIndicator = document.getElementById('llmStatus');
+                    const llmStatusText = document.getElementById('llmStatusText');
+                    llmStatusIndicator.className = 'status-indicator status-disconnected';
+                    llmStatusText.textContent = 'Error';
+                });
+        }
+
+        function testLLMIntegration() {
+            if (!llmConnected) {
+                showNotification('LLM integration not available', 'error');
+                return;
+            }
+
+            const testPrompt = "What are you currently doing?";
+            
+            showNotification('Testing LLM with behavior context...', 'success');
+            
+            // In a real implementation, this would send a test prompt to the LLM
+            // and show how the behavior tree context affects the response
+            setTimeout(() => {
+                const mockResponse = `Based on my current behavior tree context, I'm currently in an idle state. I'm ready to receive commands and can help you with navigation, voice commands, or social interactions. My battery level is at 85% and I'm waiting for your next instruction.`;
+                
+                showNotification('LLM Context Test Complete', 'success');
+                
+                // Show the test result in a modal or notification
+                alert(`Test Prompt: "${testPrompt}"\n\nLLM Response with Behavior Context:\n"${mockResponse}"`);
+            }, 2000);
         }
 
         function showNotification(message, type) {

@@ -584,6 +584,13 @@ def tts_settings_page():
     base_path = os.path.dirname(os.path.abspath(__file__))
     return send_file(os.path.join(base_path, 'tts-settings.html'))
 
+@app.route('/stt_test')
+def stt_test_page():
+    """Serve the STT test page"""
+    import os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    return send_file(os.path.join(base_path, 'stt_test.html'))
+
 # Static file serving
 @app.route('/css/<path:filename>')
 def css_files(filename):

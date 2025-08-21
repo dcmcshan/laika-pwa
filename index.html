@@ -398,6 +398,28 @@
 
         .nav-card.map-card:hover {
             border-color: var(--dark-cyan);
+        }
+
+        .nav-card.stt-card:hover {
+            border-color: #00ff00;
+            box-shadow: 
+                0 10px 30px rgba(0, 255, 0, 0.5),
+                inset 0 0 30px rgba(0, 255, 0, 0.2);
+        }
+
+        .nav-card.llm-card:hover {
+            border-color: #ff00ff;
+            box-shadow: 
+                0 10px 30px rgba(255, 0, 255, 0.5),
+                inset 0 0 30px rgba(255, 0, 255, 0.2);
+        }
+
+        .nav-card.tts-card:hover {
+            border-color: #ffff00;
+            box-shadow: 
+                0 10px 30px rgba(255, 255, 0, 0.5),
+                inset 0 0 30px rgba(255, 255, 0, 0.2);
+        }
             box-shadow: 
                 0 10px 30px rgba(0, 188, 212, 0.5),
                 inset 0 0 30px rgba(0, 188, 212, 0.2);
@@ -588,6 +610,51 @@
 
         <!-- Navigation Container -->
         <div class="nav-container">
+                <!-- STT Test -->
+                <a href="stt_test" class="nav-card stt-card">
+                    <span class="nav-icon">🎤</span>
+                    <h3 class="nav-title">STT Test</h3>
+                    <p class="nav-description">
+                        Interactive speech recognition testing with wake word detection and real-time audio visualization.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Wake word detection</li>
+                        <li>Real-time recognition</li>
+                        <li>Multiple STT providers</li>
+                        <li>Audio visualization</li>
+                    </ul>
+                </a>
+
+                <!-- LLM Test -->
+                <a href="llm" class="nav-card llm-card">
+                    <span class="nav-icon">🤖</span>
+                    <h3 class="nav-title">LLM Test</h3>
+                    <p class="nav-description">
+                        Test LAIKA's language model with direct commands and robot action execution.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Direct LLM commands</li>
+                        <li>Robot action testing</li>
+                        <li>Conversation history</li>
+                        <li>Response analysis</li>
+                    </ul>
+                </a>
+
+                <!-- TTS Test -->
+                <a href="tts" class="nav-card tts-card">
+                    <span class="nav-icon">🗣️</span>
+                    <h3 class="nav-title">TTS Test</h3>
+                    <p class="nav-description">
+                        Test text-to-speech with ElevenLabs Ekaterina voice and multiple TTS providers.
+                    </p>
+                    <ul class="nav-features">
+                        <li>ElevenLabs Ekaterina</li>
+                        <li>Multiple TTS engines</li>
+                        <li>Voice testing</li>
+                        <li>Audio playback</li>
+                    </ul>
+                </a>
+
                 <!-- Chat Interface -->
                 <a href="chat" class="nav-card chat-card" data-link="chat">
                     <span class="nav-icon">💬</span>
