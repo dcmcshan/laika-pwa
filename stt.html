@@ -384,39 +384,18 @@
         <div class="config-section">
             <h2>🎯 Select STT Providers to Test</h2>
             <div class="config-grid">
+                <div class="config-item" data-provider="laika_robust_stt">
+                    <label>
+                        <input type="checkbox" id="provider_laika_robust_stt" checked>
+                        <span>LAIKA Robust STT</span>
+                        <span class="provider-tag">ROS2</span>
+                    </label>
+                </div>
                 <div class="config-item" data-provider="web_speech">
                     <label>
                         <input type="checkbox" id="provider_web_speech" checked>
                         <span>Web Speech API</span>
                         <span class="provider-tag">Browser</span>
-                    </label>
-                </div>
-                <div class="config-item" data-provider="whisper_local">
-                    <label>
-                        <input type="checkbox" id="provider_whisper_local" checked>
-                        <span>Whisper (Local)</span>
-                        <span class="provider-tag">Local</span>
-                    </label>
-                </div>
-                <div class="config-item" data-provider="openai_whisper">
-                    <label>
-                        <input type="checkbox" id="provider_openai_whisper" checked>
-                        <span>OpenAI Whisper</span>
-                        <span class="provider-tag">Cloud</span>
-                    </label>
-                </div>
-                <div class="config-item" data-provider="openai_realtime">
-                    <label>
-                        <input type="checkbox" id="provider_openai_realtime" checked>
-                        <span>OpenAI Realtime</span>
-                        <span class="provider-tag">Cloud</span>
-                    </label>
-                </div>
-                <div class="config-item" data-provider="elevenlabs">
-                    <label>
-                        <input type="checkbox" id="provider_elevenlabs" checked>
-                        <span>ElevenLabs STT</span>
-                        <span class="provider-tag">Cloud</span>
                     </label>
                 </div>
             </div>
@@ -427,11 +406,8 @@
             <h2>⚙️ LAIKA /stt Node Configuration</h2>
             <p>Select which STT provider LAIKA should use for the /stt node:</p>
             <select class="config-select" id="laikaSTTProvider" onchange="updateLaikaSTTProvider()">
+                <option value="laika_robust_stt">LAIKA Robust STT (ROS2)</option>
                 <option value="web_speech">Web Speech API (Browser)</option>
-                <option value="whisper_local">Whisper (Local)</option>
-                <option value="openai_whisper">OpenAI Whisper (Cloud)</option>
-                <option value="openai_realtime">OpenAI Realtime (Cloud)</option>
-                <option value="elevenlabs">ElevenLabs STT (Cloud)</option>
             </select>
             <button class="btn" onclick="saveLaikaSTTConfig()">
                 💾 Save LAIKA Configuration

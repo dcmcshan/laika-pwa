@@ -867,15 +867,16 @@
                             <input type="password" id="elevenlabs-api-key" class="api-key-input" 
                                    placeholder="Enter your ElevenLabs API key...">
                             <button class="btn btn-secondary" id="test-elevenlabs-api">Test API Key</button>
-                            
-                            <div class="voice-selection">
-                                <h4>🎵 Voice Selection</h4>
-                                <button class="btn btn-secondary" id="load-elevenlabs-voices">Load Voices</button>
-                                <select class="voice-dropdown" id="elevenlabs-voice-dropdown">
-                                    <option value="">Select a voice...</option>
-                                </select>
-                                <button class="play-button" id="elevenlabs-play-btn" disabled>▶️ Play</button>
-                            </div>
+                        </div>
+                        
+                        <!-- ElevenLabs Voice Selection -->
+                        <div class="voice-selection">
+                            <h4>🎵 Voice Selection</h4>
+                            <button class="btn btn-secondary" id="load-elevenlabs-voices">Load Voices</button>
+                            <select class="voice-dropdown" id="elevenlabs-voice-dropdown">
+                                <option value="">Select a voice...</option>
+                            </select>
+                            <button class="play-button" id="elevenlabs-play-btn" disabled>▶️ Play</button>
                         </div>
                     </div>
                     
@@ -895,15 +896,16 @@
                             <input type="password" id="openai-api-key" class="openai-api-key-input" 
                                    placeholder="Enter your OpenAI API key...">
                             <button class="btn btn-secondary" id="test-openai-api">Test API Key</button>
-                            
-                            <div class="voice-selection">
-                                <h4>🎵 Voice Selection</h4>
-                                <button class="btn btn-secondary" id="load-openai-voices">Load Voices</button>
-                                <select class="voice-dropdown" id="openai-voice-dropdown">
-                                    <option value="">Select a voice...</option>
-                                </select>
-                                <button class="play-button" id="openai-play-btn" disabled>▶️ Play</button>
-                            </div>
+                        </div>
+                        
+                        <!-- OpenAI Voice Selection -->
+                        <div class="voice-selection">
+                            <h4>🎵 Voice Selection</h4>
+                            <button class="btn btn-secondary" id="load-openai-voices">Load Voices</button>
+                            <select class="voice-dropdown" id="openai-voice-dropdown">
+                                <option value="">Select a voice...</option>
+                            </select>
+                            <button class="play-button" id="openai-play-btn" disabled>▶️ Play</button>
                         </div>
                     </div>
                     
@@ -940,17 +942,13 @@
                         <small class="provider-features">Always available • Basic quality • Lightweight</small>
                         
                         <div class="voice-selection">
-                            <h4>🎵 Available Voices</h4>
-                            <div class="voice-list" id="system-voice-list">
-                                <div class="voice-item">
-                                    <span class="voice-name">eSpeak</span>
-                                    <button class="play-voice-btn" data-voice="espeak" data-provider="system">▶️</button>
-                                </div>
-                                <div class="voice-item">
-                                    <span class="voice-name">Festival</span>
-                                    <button class="play-voice-btn" data-voice="festival" data-provider="system">▶️</button>
-                                </div>
-                            </div>
+                            <h4>🎵 Voice Selection</h4>
+                            <select class="voice-dropdown" id="system-voice-dropdown">
+                                <option value="">Select a voice...</option>
+                                <option value="espeak">eSpeak</option>
+                                <option value="festival">Festival</option>
+                            </select>
+                            <button class="play-button" id="system-play-btn" disabled>▶️ Play</button>
                         </div>
                     </div>
                 </div>

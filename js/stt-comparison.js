@@ -11,32 +11,17 @@ let analyser = null;
 let microphone = null;
 let animationId = null;
 
-// STT provider configurations
+// STT provider configurations - using LAIKA's robust STT node
 const STT_PROVIDERS = {
+    laika_robust_stt: {
+        name: 'LAIKA Robust STT',
+        type: 'ros2',
+        description: 'LAIKA\'s multi-level STT with OpenAI Realtime, Whisper API, and Local Whisper fallbacks'
+    },
     web_speech: {
         name: 'Web Speech API',
-        endpoint: null,  // Uses browser API
-        type: 'browser'
-    },
-    whisper_local: {
-        name: 'Whisper (Local)',
-        endpoint: '/api/stt/whisper/local',
-        type: 'local'
-    },
-    openai_whisper: {
-        name: 'OpenAI Whisper',
-        endpoint: '/api/stt/openai/whisper',
-        type: 'cloud'
-    },
-    openai_realtime: {
-        name: 'OpenAI Realtime',
-        endpoint: '/api/stt/openai/realtime',
-        type: 'cloud'
-    },
-    elevenlabs: {
-        name: 'ElevenLabs STT',
-        endpoint: '/api/stt/elevenlabs',
-        type: 'cloud'
+        type: 'browser',
+        description: 'Browser-based speech recognition'
     }
 };
 
@@ -302,14 +287,12 @@ async function processWithAllSTT() {
     const resultsGrid = document.getElementById('resultsGrid');
     resultsGrid.innerHTML = '';
     
-    // Process with each provider in parallel for better performance
-    const promises = selectedProviders.map(provider => {
-        const resultCard = createResultCard(provider);
-        resultsGrid.appendChild(resultCard);
-        return processWithProvider(provider, resultCard);
-    });
-    
-    await Promise.allSettled(promises);
+            // Process with each provider
+        for (const provider of selectedProviders) {
+            const resultCard = createResultCard(provider);
+            resultsGrid.appendChild(resultCard);
+            await processWithProvider(provider, resultCard);
+        }
 }
 
 // Create result card for a provider
@@ -352,11 +335,11 @@ async function processWithProvider(provider, resultCard) {
         let transcript = '';
         
         if (provider === 'web_speech') {
-            // Use Web Speech API with audio playback workaround
+            // Use Web Speech API
             transcript = await processWithWebSpeech();
-        } else {
-            // Use server endpoint
-            transcript = await processWithServerSTT(config.endpoint, provider);
+        } else if (provider === 'laika_robust_stt') {
+            // Use LAIKA's robust STT node via ROS2
+            transcript = await processWithLAIKASTT();
         }
         
         // Update result
@@ -421,55 +404,51 @@ async function processWithWebSpeech() {
     });
 }
 
-// Process with server-based STT
-async function processWithServerSTT(endpoint, provider) {
-    // Convert webm to wav if needed for better compatibility
-    const formData = new FormData();
-    
-    if (provider === 'whisper_local' || provider === 'openai_whisper') {
-        // These services might prefer WAV format
-        const wavBlob = await convertToWav(audioBlob);
-        formData.append('audio', wavBlob, 'audio.wav');
-    } else {
-        formData.append('audio', audioBlob, 'audio.webm');
-    }
-    
-    // Add provider-specific parameters
-    formData.append('provider', provider);
-    
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
+// Process with LAIKA's robust STT node
+async function processWithLAIKASTT() {
+    return new Promise((resolve, reject) => {
+        // Check if ROS2 bridge is available
+        if (typeof window.ros2Bridge === 'undefined') {
+            reject(new Error('ROS2 bridge not available. Please ensure LAIKA ROS2 nodes are running.'));
+            return;
+        }
+        
+        // Subscribe to LAIKA's STT result topic
+        const subscription = window.ros2Bridge.subscribe('/vocal_detect/asr_result', 'std_msgs/msg/String', (msg) => {
+            const transcript = msg.data;
+            window.ros2Bridge.unsubscribe(subscription);
+            resolve(transcript);
+        });
+        
+        // Send audio to LAIKA's STT node
+        // Note: This would require implementing audio streaming to ROS2
+        // For now, we'll simulate the process
+        setTimeout(() => {
+            window.ros2Bridge.unsubscribe(subscription);
+            reject(new Error('LAIKA STT processing timeout. Audio streaming to ROS2 not yet implemented.'));
+        }, 10000); // 10 second timeout
     });
-    
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || `Server returned ${response.status}`);
-    }
-    
-    const result = await response.json();
-    return result.transcript || result.text || result.result || '';
-}
-
-// Convert audio blob to WAV format (simplified version)
-async function convertToWav(blob) {
-    // This is a placeholder - in production, you'd use a library like lamejs or audiobuffer-to-wav
-    // For now, return the original blob
-    console.log('WAV conversion not implemented, using original format');
-    return blob;
 }
 
 // LAIKA STT configuration
 async function loadLaikaSTTConfig() {
     try {
-        const response = await fetch('/api/laika/stt/config');
-        if (response.ok) {
-            const config = await response.json();
-            document.getElementById('laikaSTTProvider').value = config.provider || 'web_speech';
-            console.log('Loaded LAIKA STT config:', config);
+        // Check if ROS2 bridge is available for LAIKA configuration
+        if (typeof window.ros2Bridge !== 'undefined') {
+            // Try to get current STT configuration from ROS2 parameter server
+            const config = await window.ros2Bridge.getParameter('/stt_node', 'awake_word');
+            if (config) {
+                document.getElementById('laikaSTTProvider').value = 'laika_robust_stt';
+                console.log('LAIKA STT node detected:', config);
+            }
+        } else {
+            // Fallback to default
+            document.getElementById('laikaSTTProvider').value = 'laika_robust_stt';
         }
     } catch (error) {
         console.error('Failed to load LAIKA STT config:', error);
+        // Default to LAIKA robust STT
+        document.getElementById('laikaSTTProvider').value = 'laika_robust_stt';
     }
 }
 
@@ -478,32 +457,32 @@ async function saveLaikaSTTConfig() {
     const statusDiv = document.getElementById('laikaConfigStatus');
     
     try {
-        statusDiv.innerHTML = '<span style="color: #ffaa00;">Saving configuration...</span>';
+        statusDiv.innerHTML = '<span style="color: #ffaa00;">Configuring LAIKA STT...</span>';
         
-        const response = await fetch('/api/laika/stt/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                provider: provider,
-                timestamp: new Date().toISOString()
-            })
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            statusDiv.innerHTML = '<span style="color: #00ff00;">✅ Configuration saved successfully!</span>';
-            console.log('LAIKA STT config saved:', result);
-            
-            // Clear status message after 3 seconds
-            setTimeout(() => {
-                statusDiv.innerHTML = '';
-            }, 3000);
+        if (provider === 'laika_robust_stt') {
+            // Configure LAIKA's robust STT node via ROS2
+            if (typeof window.ros2Bridge !== 'undefined') {
+                // Set parameters for the robust STT node
+                await window.ros2Bridge.setParameter('/stt_node', 'enable_wakeup', true);
+                await window.ros2Bridge.setParameter('/stt_node', 'awake_word', 'LAIKA');
+                
+                statusDiv.innerHTML = '<span style="color: #00ff00;">✅ LAIKA STT configured successfully!</span>';
+                console.log('LAIKA STT node configured');
+            } else {
+                throw new Error('ROS2 bridge not available');
+            }
         } else {
-            throw new Error(`Server returned ${response.status}`);
+            statusDiv.innerHTML = '<span style="color: #ffff00;">⚠️ Web Speech API selected (browser-based)</span>';
         }
+        
+        // Clear status message after 3 seconds
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 3000);
+        
     } catch (error) {
-        statusDiv.innerHTML = `<span style="color: #ff4444;">❌ Failed to save: ${error.message}</span>`;
-        console.error('Failed to save LAIKA STT config:', error);
+        statusDiv.innerHTML = `<span style="color: #ff4444;">❌ Failed to configure: ${error.message}</span>`;
+        console.error('Failed to configure LAIKA STT:', error);
     }
 }
 

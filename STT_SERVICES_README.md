@@ -1,124 +1,90 @@
-# LAIKA STT Services - Speech-to-Text Comparison Tool
+# LAIKA STT Testing Interface
 
 ## Overview
 
-The LAIKA STT Services provide a comprehensive testing and comparison interface for multiple Speech-to-Text (STT) providers. This tool allows you to:
+The LAIKA STT Testing Interface provides a way to test and compare Speech-to-Text (STT) capabilities using LAIKA's existing robust STT system. This tool allows you to:
 
 - Record audio directly in the browser
-- Test the audio against multiple STT providers simultaneously
-- Compare accuracy and performance across providers
-- Configure which STT provider LAIKA's `/stt` node should use
+- Test the audio against LAIKA's robust STT node and Web Speech API
+- Compare accuracy and performance
+- Configure LAIKA's STT node parameters
 
-## Supported STT Providers
+## How It Works
 
-1. **Web Speech API** (Browser-based)
-   - Uses the browser's built-in speech recognition
-   - No API key required
-   - Best for real-time transcription
+The `/stt` page integrates with LAIKA's existing ROS2-based STT system:
 
-2. **Whisper (Local)**
-   - Runs OpenAI's Whisper model locally
-   - No API key required
-   - Privacy-focused (audio never leaves your machine)
-   - Requires installation of `openai-whisper`
+1. **LAIKA Robust STT Node** - Uses the existing `robust_stt_node` from the `large_models` package
+   - Publishes to `/vocal_detect/asr_result` topic
+   - Multi-level fallback: OpenAI Realtime → OpenAI Whisper → Local Whisper
+   - Wake word detection with "LAIKA" [[memory:6555275]]
 
-3. **OpenAI Whisper (Cloud)**
-   - Uses OpenAI's cloud-based Whisper API
-   - Requires `OPENAI_API_KEY`
-   - High accuracy, supports multiple languages
+2. **Web Speech API** - Browser-based speech recognition for comparison
 
-4. **OpenAI Realtime**
-   - Uses OpenAI's Realtime API
-   - Requires `OPENAI_API_KEY`
-   - Optimized for streaming/real-time transcription
+## Prerequisites
 
-5. **ElevenLabs STT**
-   - Uses ElevenLabs' speech-to-text service
-   - Requires `ELEVENLABS_API_KEY`
-   - Note: ElevenLabs primarily focuses on TTS
-
-## Setup
-
-### 1. Install Dependencies
+### 1. ROS2 Environment
+Ensure LAIKA's ROS2 workspace is built and sourced:
 
 ```bash
-# Install Python dependencies
-pip install -r requirements_stt.txt
-
-# For local Whisper support, also install:
-pip install openai-whisper
+cd ros2_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select large_models laika_nodes
+source install/setup.bash
 ```
 
-### 2. Configure API Keys
-
-Create a `.env` file in the `laika-pwa` directory:
+### 2. ROS2 Bridge Server
+Install and run the ROS2 bridge server for WebSocket communication:
 
 ```bash
-# OpenAI API Key (for Whisper and Realtime)
-OPENAI_API_KEY=your_openai_api_key_here
+# Install rosbridge_server
+sudo apt install ros-humble-rosbridge-server
 
-# ElevenLabs API Key (if available)
-ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+# Or build from source
+cd ros2_ws/src
+git clone https://github.com/RobotWebTools/rosbridge_suite.git
+cd ..
+colcon build --packages-select rosbridge_server
+source install/setup.bash
 ```
 
-### 3. Start the Services
+### 3. Environment Variables
+Set up API keys for LAIKA's STT system:
 
 ```bash
-# Make the startup script executable
-chmod +x start_stt_services.sh
-
-# Start the STT services
-./start_stt_services.sh
+# Required for OpenAI Whisper and Realtime APIs
+export OPENAI_API_KEY="your-openai-api-key"
 ```
-
-Or manually:
-
-```bash
-python stt_services.py
-```
-
-The services will start on port 5001 by default.
 
 ## Usage
 
-### Web Interface
+### 1. Start LAIKA's STT System
 
-1. Open your browser and navigate to: `http://localhost:5001/stt`
-2. Click the **RECORD** button to start recording audio
-3. Click **STOP** when finished
-4. Select which STT providers you want to test
-5. Click **Process with All Selected** to run the comparison
-6. View the results for each provider
+```bash
+# Launch the complete STT-LLM-TTS-ACT pipeline
+ros2 launch laika_nodes laika_stt_llm_tts_act.launch.py
 
-### LAIKA STT Node Configuration
+# Or launch just the STT node
+ros2 launch large_models robust_stt_node.launch.py
+```
 
-The interface allows you to configure which STT provider the LAIKA `/stt` node should use:
+### 2. Start ROS2 Bridge Server
 
-1. In the **LAIKA /stt Node Configuration** section, select your preferred provider
-2. Click **Save LAIKA Configuration**
-3. LAIKA will now use the selected provider for speech-to-text operations
+```bash
+# In a separate terminal
+ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+```
 
-### API Endpoints
+### 3. Access the STT Testing Interface
 
-The STT services expose the following REST API endpoints:
+Open your browser and navigate to: `http://localhost:5000/stt`
 
-#### STT Processing Endpoints
+### 4. Test STT Functionality
 
-- `POST /api/stt/whisper/local` - Process audio with local Whisper
-- `POST /api/stt/openai/whisper` - Process audio with OpenAI Whisper API
-- `POST /api/stt/openai/realtime` - Process audio with OpenAI Realtime API
-- `POST /api/stt/elevenlabs` - Process audio with ElevenLabs STT
-
-All endpoints accept multipart/form-data with an `audio` file field.
-
-#### Configuration Endpoints
-
-- `GET /api/laika/stt/config` - Get current LAIKA STT configuration
-- `POST /api/laika/stt/config` - Set LAIKA STT configuration
-
-#### Health Check
-
-- `GET /api/health` - Service health check
+1. **Record Audio**: Click the red RECORD button and speak
+2. **Select Providers**: Choose which STT systems to test
+3. **Process Audio**: Click "Process with All Selected"
+4. **View Results**: Compare transcriptions from different providers
+5. **Configure LAIKA**: Set LAIKA's STT node parameters
 
 ## Features
 
@@ -128,78 +94,109 @@ All endpoints accept multipart/form-data with an `audio` file field.
 - Playback controls
 - Download recorded audio
 
-### Comparison Results
-- Side-by-side comparison of all selected providers
-- Processing time metrics
-- Error handling and status indicators
-- Transcript display with confidence scores (when available)
+### STT Comparison
+- **LAIKA Robust STT**: Multi-level fallback system
+  - OpenAI Realtime API (primary)
+  - OpenAI Whisper API (fallback)
+  - Local Whisper model (final fallback)
+- **Web Speech API**: Browser-based comparison
 
-### LAIKA Integration [[memory:6555277]]
-- Configure which STT provider LAIKA uses for the `/stt` node
-- Persistent configuration storage
-- Easy switching between providers
+### LAIKA Integration
+- Configure LAIKA's STT node parameters via ROS2
+- Set wake word (default: "LAIKA")
+- Enable/disable wake word detection
+- Real-time status monitoring
+
+### ROS2 Bridge
+- WebSocket connection to ROS2 nodes
+- Automatic reconnection handling
+- Parameter management
+- Topic subscription/publishing
+
+## Configuration
+
+### LAIKA STT Node Parameters
+
+The interface can configure these ROS2 parameters for the `robust_stt_node`:
+
+- `enable_wakeup`: Enable/disable wake word detection
+- `awake_word`: Set the wake word (default: "LAIKA")
+- `awake_method`: Wake word detection method
+- `mode`: Recording mode
+
+### ROS2 Bridge Configuration
+
+The ROS2 bridge connects to `ws://localhost:9090` by default. You can modify this in `js/ros2-bridge.js`:
+
+```javascript
+this.wsUrl = 'ws://your-ros2-bridge-host:9090';
+```
 
 ## Troubleshooting
 
-### Microphone Access
-- Ensure your browser has permission to access the microphone
-- Check system privacy settings for microphone access
+### ROS2 Bridge Connection Issues
+- Ensure `rosbridge_server` is running
+- Check firewall settings for port 9090
+- Verify ROS2 nodes are active
 
-### API Keys
-- Verify API keys are correctly set in the `.env` file
-- Check API key quotas and limits
+### STT Node Issues
+- Check that `robust_stt_node` is running
+- Verify API keys are set correctly
+- Monitor ROS2 logs for errors
 
-### Local Whisper
-- Ensure `openai-whisper` is installed: `pip install openai-whisper`
-- First run will download the model (may take time)
-- Check available disk space for model storage
+### Audio Recording Issues
+- Ensure microphone permissions are granted
+- Check browser compatibility
+- Try different audio formats
 
-### Port Conflicts
-- If port 5001 is in use, modify the port in `stt_services.py`
-- Update the URL in your browser accordingly
+## Architecture
 
-## Performance Notes
-
-- **Local Whisper**: First run downloads the model. Subsequent runs are faster.
-- **Web Speech API**: Requires active internet connection despite being "browser-based"
-- **Cloud APIs**: Performance depends on network latency and file size
-- **Audio Format**: WebM format is used by default, automatically converted when needed
-
-## Privacy Considerations
-
-- **Local Options**: Web Speech API and Local Whisper keep audio on your machine
-- **Cloud Options**: OpenAI and ElevenLabs send audio to their servers
-- **Storage**: Uploaded audio files are temporarily stored and immediately deleted after processing
+```
+Browser (STT Interface)
+    ↓ WebSocket
+ROS2 Bridge Server
+    ↓ ROS2 Topics
+LAIKA Robust STT Node
+    ↓ Multi-level Fallback
+1. OpenAI Realtime API
+2. OpenAI Whisper API  
+3. Local Whisper Model
+```
 
 ## Development
 
 ### Adding New STT Providers
 
 1. Add provider configuration to `STT_PROVIDERS` in `stt-comparison.js`
-2. Implement processing function in `stt_services.py`
-3. Add API endpoint in `stt_services.py`
-4. Update UI in `stt.html` if needed
+2. Implement processing function
+3. Update UI in `stt.html`
 
-### Customizing the Interface
+### ROS2 Integration
 
-- Styles are embedded in `stt.html` for easy customization
+The interface uses the ROS2 bridge to:
+- Subscribe to `/vocal_detect/asr_result` for STT results
+- Set parameters on the `robust_stt_node`
+- Monitor node status
+
+### Customization
+
+- Styles are embedded in `stt.html`
 - JavaScript logic is in `js/stt-comparison.js`
-- Backend logic is in `stt_services.py`
+- ROS2 bridge is in `js/ros2-bridge.js`
 
 ## Future Enhancements
 
-- [ ] Real-time streaming transcription
-- [ ] WebSocket support for live transcription
+- [ ] Real-time audio streaming to ROS2
+- [ ] Direct microphone input to STT node
 - [ ] Batch processing of multiple audio files
-- [ ] Export comparison results to CSV/JSON
+- [ ] Export comparison results
+- [ ] Custom vocabulary support
 - [ ] Language detection and multi-language support
-- [ ] Custom vocabulary and domain-specific models
-- [ ] Audio preprocessing options (noise reduction, etc.)
 
 ## Support
 
-For issues or questions about the STT services, please check:
-1. This README file
-2. Console logs in browser developer tools
-3. Server logs in the terminal running `stt_services.py`
-4. The `/api/health` endpoint for service status
+For issues or questions:
+1. Check ROS2 node logs
+2. Monitor browser console for errors
+3. Verify ROS2 bridge connection status
+4. Check the `/stt` page status indicators

@@ -247,13 +247,53 @@
             </div>
         </div>
 
-        <div class="llm-panel" style="margin-bottom: 20px;">
-            <h3 class="panel-title">System Prompt</h3>
-            <textarea id="system-prompt" style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); color: var(--text-cyan); border: 1px solid var(--atomic-cyan); padding: 10px; font-family: 'Exo 2', monospace; font-size: 12px; resize: vertical;" placeholder="Enter system prompt for LAIKA..."></textarea>
-            <div style="margin-top: 10px;">
-                <button class="cmd-btn" onclick="loadCurrentPrompt()">Load Current</button>
-                <button class="cmd-btn" onclick="updatePrompt()">Update Prompt</button>
-                <button class="cmd-btn" onclick="resetPrompt()">Reset Default</button>
+        <div class="llm-grid">
+            <div class="llm-panel">
+                <h3 class="panel-title">System Prompt</h3>
+                <textarea id="system-prompt" style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); color: var(--text-cyan); border: 1px solid var(--atomic-cyan); padding: 10px; font-family: 'Exo 2', monospace; font-size: 12px; resize: vertical;" placeholder="Enter system prompt for LAIKA..."></textarea>
+                <div style="margin-top: 10px;">
+                    <button class="cmd-btn" onclick="loadCurrentPrompt()">Load Current</button>
+                    <button class="cmd-btn" onclick="updatePrompt()">Update Prompt</button>
+                    <button class="cmd-btn" onclick="resetPrompt()">Reset Default</button>
+                </div>
+            </div>
+
+            <div class="llm-panel">
+                <h3 class="panel-title">Context & Sensors</h3>
+                <div style="margin-bottom: 15px;">
+                    <button class="cmd-btn" onclick="refreshContext()">Refresh Context</button>
+                    <button class="cmd-btn" onclick="captureContext()">Capture Context</button>
+                </div>
+                <div id="context-status" style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">
+                    Context: Loading...
+                </div>
+                <div id="sensors-status" style="font-size: 12px; color: var(--text-dim);">
+                    Sensors: Loading...
+                </div>
+            </div>
+        </div>
+
+        <div class="llm-grid">
+            <div class="llm-panel">
+                <h3 class="panel-title">Current Context Image</h3>
+                <div id="context-image-container" style="text-align: center; min-height: 200px; border: 1px solid var(--atomic-cyan); background: rgba(0,0,0,0.3); padding: 10px;">
+                    <div style="color: var(--text-dim);">Loading context image...</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="cmd-btn" onclick="viewContextImage()">View Full Size</button>
+                    <button class="cmd-btn" onclick="downloadContextImage()">Download</button>
+                </div>
+            </div>
+
+            <div class="llm-panel">
+                <h3 class="panel-title">Current Sensors Data</h3>
+                <div id="sensors-data-container" style="height: 200px; overflow-y: auto; border: 1px solid var(--atomic-cyan); background: rgba(0,0,0,0.3); padding: 10px; font-family: 'Exo 2', monospace; font-size: 11px;">
+                    <div style="color: var(--text-dim);">Loading sensors data...</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="cmd-btn" onclick="refreshSensors()">Refresh</button>
+                    <button class="cmd-btn" onclick="downloadSensors()">Download JSON</button>
+                </div>
             </div>
         </div>
 
@@ -608,11 +648,193 @@
             updateStatus('History cleared', 'success');
         }
 
+        // Context and Sensors Functions
+        async function refreshContext() {
+            try {
+                updateStatus('Refreshing context...', 'pending');
+                const response = await fetch('/api/llm/context/refresh', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateStatus('Context refreshed', 'success');
+                    loadContextImage();
+                    updateContextStatus(result.data);
+                } else {
+                    updateStatus('Failed to refresh context', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh context error:', error);
+                updateStatus('Context refresh error', 'error');
+            }
+        }
+
+        async function captureContext() {
+            try {
+                updateStatus('Capturing context...', 'pending');
+                const response = await fetch('/api/llm/context/capture', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateStatus('Context captured', 'success');
+                    loadContextImage();
+                    updateContextStatus(result.data);
+                } else {
+                    updateStatus('Failed to capture context', 'error');
+                }
+            } catch (error) {
+                console.error('Capture context error:', error);
+                updateStatus('Context capture error', 'error');
+            }
+        }
+
+        async function loadContextImage() {
+            try {
+                const response = await fetch('/api/llm/context/image');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    const container = document.getElementById('context-image-container');
+                    container.innerHTML = `<img src="${imageUrl}" style="max-width: 100%; max-height: 180px; border: 1px solid var(--atomic-cyan);" alt="Context Image">`;
+                } else {
+                    document.getElementById('context-image-container').innerHTML = 
+                        '<div style="color: var(--atomic-orange);">No context image available</div>';
+                }
+            } catch (error) {
+                console.error('Load context image error:', error);
+                document.getElementById('context-image-container').innerHTML = 
+                    '<div style="color: var(--atomic-orange);">Error loading context image</div>';
+            }
+        }
+
+        async function loadSensorsData() {
+            try {
+                const response = await fetch('/api/llm/sensors');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    const container = document.getElementById('sensors-data-container');
+                    container.innerHTML = `<pre style="color: var(--text-cyan); margin: 0;">${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                    updateSensorsStatus(data);
+                } else {
+                    document.getElementById('sensors-data-container').innerHTML = 
+                        '<div style="color: var(--atomic-orange);">No sensors data available</div>';
+                }
+            } catch (error) {
+                console.error('Load sensors error:', error);
+                document.getElementById('sensors-data-container').innerHTML = 
+                    '<div style="color: var(--atomic-orange);">Error loading sensors data</div>';
+            }
+        }
+
+        async function refreshSensors() {
+            try {
+                updateStatus('Refreshing sensors...', 'pending');
+                const response = await fetch('/api/llm/sensors/refresh', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateStatus('Sensors refreshed', 'success');
+                    loadSensorsData();
+                } else {
+                    updateStatus('Failed to refresh sensors', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh sensors error:', error);
+                updateStatus('Sensors refresh error', 'error');
+            }
+        }
+
+        function updateContextStatus(data) {
+            const statusElement = document.getElementById('context-status');
+            if (data && data.timestamp) {
+                const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                statusElement.innerHTML = `Context: ${data.capture_method || 'unknown'} - ${timestamp}`;
+            } else {
+                statusElement.innerHTML = 'Context: No data available';
+            }
+        }
+
+        function updateSensorsStatus(data) {
+            const statusElement = document.getElementById('sensors-status');
+            if (data && data.timestamp) {
+                const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                const robotStatus = data.robot ? data.robot.status || 'unknown' : 'unknown';
+                statusElement.innerHTML = `Sensors: ${robotStatus} - ${timestamp}`;
+            } else {
+                statusElement.innerHTML = 'Sensors: No data available';
+            }
+        }
+
+        function viewContextImage() {
+            const container = document.getElementById('context-image-container');
+            const img = container.querySelector('img');
+            if (img) {
+                window.open(img.src, '_blank');
+            } else {
+                alert('No context image available');
+            }
+        }
+
+        async function downloadContextImage() {
+            try {
+                const response = await fetch('/api/llm/context/image');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `context_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('No context image available for download');
+                }
+            } catch (error) {
+                console.error('Download context image error:', error);
+                alert('Error downloading context image');
+            }
+        }
+
+        async function downloadSensors() {
+            try {
+                const response = await fetch('/api/llm/sensors');
+                if (response.ok) {
+                    const data = await response.json();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `sensors_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('No sensors data available for download');
+                }
+            } catch (error) {
+                console.error('Download sensors error:', error);
+                alert('Error downloading sensors data');
+            }
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initWebSocket();
             updateStatus('Initializing...', 'pending');
             loadCurrentPrompt(); // Load current prompt on page load
+            loadContextImage(); // Load context image
+            loadSensorsData(); // Load sensors data
         });
     </script>
 </body>
