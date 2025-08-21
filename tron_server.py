@@ -17,8 +17,16 @@ import base64
 import psutil
 import subprocess
 
-# Add LAIKA system to path
-sys.path.append('/home/pi/LAIKA')
+# Add LAIKA system to path and configure base directory
+import platform
+if platform.system() == 'Darwin':  # macOS
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    LAIKA_BASE = os.path.dirname(BASE_DIR)
+else:  # Raspberry Pi
+    BASE_DIR = '/home/pi/LAIKA/laika-pwa'
+    LAIKA_BASE = '/home/pi/LAIKA'
+    
+sys.path.append(LAIKA_BASE)
 
 # Try to import OpenAI and other LLM components
 try:
@@ -476,9 +484,9 @@ def safe_camera_init():
 def index():
     """Serve the beautiful TRON-styled index page"""
     try:
-        return send_file('/home/pi/LAIKA/laika-pwa/index.html')
+        return send_file(os.path.join(BASE_DIR, 'index.html'))
     except FileNotFoundError:
-        return send_file('/home/pi/LAIKA/index.html')
+        return send_file(os.path.join(LAIKA_BASE, 'index.html'))
 
 @app.route('/index.html')
 def index_html():
@@ -489,7 +497,7 @@ def index_html():
 def llm_page():
     """Serve the LLM commands and history page"""
     try:
-        return send_file('/home/pi/LAIKA/laika-pwa/llm.html')
+        return send_file(os.path.join(BASE_DIR, 'llm.html'))
     except FileNotFoundError:
         return "LLM page not found", 404
 
@@ -497,7 +505,7 @@ def llm_page():
 def gamepad_page():
     """Serve the gamepad visualization and debugging interface"""
     try:
-        return send_file('/home/pi/LAIKA/laika-pwa/gamepad.html')
+        return send_file(os.path.join(BASE_DIR, 'gamepad.html'))
     except FileNotFoundError:
         return "Gamepad interface not found", 404
 
@@ -505,7 +513,7 @@ def gamepad_page():
 def camera_page():
     """Serve the TRON-styled camera page"""
     try:
-        return send_file('/home/pi/LAIKA/laika-pwa/camera.html')
+        return send_file(os.path.join(BASE_DIR, 'camera.html'))
     except FileNotFoundError:
         # Redirect to the actual camera page if the file doesn't exist
         return redirect('/camera')
@@ -514,7 +522,7 @@ def camera_page():
 def control_page():
     """Serve the TRON-styled control page"""
     try:
-        return send_file('/home/pi/LAIKA/laika-pwa/control.html')
+        return send_file(os.path.join(BASE_DIR, 'control.html'))
     except Exception as e:
         print(f"Error serving control.html: {e}")
         return f"Error: {e}", 500
@@ -522,83 +530,85 @@ def control_page():
 @app.route('/dashboard')
 def dashboard_page():
     """Serve the TRON-styled dashboard page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/dashboard.html')
+    return send_file(os.path.join(BASE_DIR, 'dashboard.html'))
 
 @app.route('/slam')
 def slam_page():
     """Serve the TRON-styled SLAM page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/slam.html')
+    return send_file(os.path.join(BASE_DIR, 'slam.html'))
 
 @app.route('/chat')
 def chat_page():
     """Serve the TRON-styled chat page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/chat.html')
+    return send_file(os.path.join(BASE_DIR, 'chat.html'))
 
 @app.route('/conversation')
 def conversation_page():
     """Serve the TRON-styled conversation page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/conversation.html')
+    return send_file(os.path.join(BASE_DIR, 'conversation.html'))
 
 @app.route('/music')
 def music_page():
     """Serve the TRON-styled music page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/music.html')
+    return send_file(os.path.join(BASE_DIR, 'music.html'))
 
 @app.route('/processes')
 def processes_page():
     """Serve the TRON-styled processes page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/processes.html')
+    return send_file(os.path.join(BASE_DIR, 'processes.html'))
 
 @app.route('/logs')
 def logs_page():
     """Serve the TRON-styled logs page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/logs.html')
+    return send_file(os.path.join(BASE_DIR, 'logs.html'))
 
 @app.route('/cursor')
 def cursor_page():
     """Serve the TRON-styled cursor page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/cursor.html')
+    return send_file(os.path.join(BASE_DIR, 'cursor.html'))
 
 @app.route('/github')
 def github_page():
     """Serve the TRON-styled GitHub manager page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/github.html')
+    return send_file(os.path.join(BASE_DIR, 'github.html'))
 
 @app.route('/shell')
 def shell_page():
     """Serve the TRON-styled shell terminal page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/shell.html')
+    return send_file(os.path.join(BASE_DIR, 'shell.html'))
 
-@app.route('/tts-settings')
+@app.route('/tts')
 def tts_settings_page():
     """Serve the TRON-styled TTS settings page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/tts-settings.html')
+    import os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    return send_file(os.path.join(base_path, 'tts-settings.html'))
 
 # Static file serving
 @app.route('/css/<path:filename>')
 def css_files(filename):
-    return send_file(f'/home/pi/LAIKA/laika-pwa/css/{filename}')
+    return send_file(os.path.join(BASE_DIR, f'css/{filename}'))
 
 @app.route('/js/<path:filename>')
 def js_files(filename):
-    return send_file(f'/home/pi/LAIKA/laika-pwa/js/{filename}')
+    return send_file(os.path.join(BASE_DIR, f'js/{filename}'))
 
 @app.route('/icons/<path:filename>')
 def icon_files(filename):
-    return send_file(f'/home/pi/LAIKA/laika-pwa/icons/{filename}')
+    return send_file(os.path.join(BASE_DIR, f'icons/{filename}'))
 
 @app.route('/manifest.json')
 def manifest():
-    return send_file('/home/pi/LAIKA/laika-pwa/manifest.json')
+    return send_file(os.path.join(BASE_DIR, 'manifest.json'))
 
 @app.route('/sw.js')
 def service_worker():
-    return send_file('/home/pi/LAIKA/laika-pwa/sw.js')
+    return send_file(os.path.join(BASE_DIR, 'sw.js'))
 
 @app.route('/stt-llm-tts')
 def stt_llm_tts_page():
     """Serve the STT-LLM-TTS pipeline monitoring page"""
-    return send_file('/home/pi/LAIKA/laika-pwa/internal.html')
+    return send_file(os.path.join(BASE_DIR, 'internal.html'))
 
 @app.route('/internal')
 def internal_page():
@@ -4644,7 +4654,7 @@ if __name__ == '__main__':
         socketio_app.run(
             app,
             host='0.0.0.0',
-            port=5000,
+            port=8081,
             debug=False,
             allow_unsafe_werkzeug=True
         )
@@ -4652,7 +4662,7 @@ if __name__ == '__main__':
         # Fallback to regular Flask server if SocketIO failed
         app.run(
             host='0.0.0.0',
-            port=5000,
+            port=8081,
             debug=False
         )
 

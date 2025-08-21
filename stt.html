@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAIKA STT Testing - Speech-to-Text Interface</title>
+    <title>LAIKA STT Comparison - Speech-to-Text Testing</title>
     
     <!-- PWA Meta -->
     <meta name="theme-color" content="#00ffff">
@@ -28,7 +28,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -54,54 +54,62 @@
             opacity: 0.8;
         }
         
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .card {
+        .recording-section {
             background: rgba(0, 255, 255, 0.05);
-            border: 1px solid #00ffff;
+            border: 2px solid #00ffff;
             border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
-            transition: all 0.3s ease;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
         }
         
-        .card:hover {
-            background: rgba(0, 255, 255, 0.1);
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
-            transform: translateY(-5px);
-        }
-        
-        .card h2 {
-            color: #00ffff;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            text-shadow: 0 0 5px #00ffff;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
+        .record-button {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            border: 3px solid #ff0000;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
         }
         
-        .status-ready { background-color: #00ff00; }
-        .status-listening { background-color: #ffff00; }
-        .status-processing { background-color: #ff8800; }
-        .status-error { background-color: #ff0000; }
-        .status-inactive { background-color: #666; }
+        .record-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+        }
         
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        .record-button.recording {
+            animation: pulse-red 1.5s infinite;
+            background: linear-gradient(45deg, #ff4444, #ff0000);
+        }
+        
+        .record-button.processing {
+            background: linear-gradient(45deg, #ffaa00, #ff8800);
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+            cursor: not-allowed;
+        }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
+        }
+        
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -131,109 +139,189 @@
             box-shadow: none;
         }
         
-        .btn-danger {
-            background: linear-gradient(45deg, #ff4444, #cc0000);
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: linear-gradient(45deg, #ff6666, #ee0000);
-        }
-        
-        .transcript-area {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #00ffff;
-            border-radius: 5px;
-            padding: 15px;
-            min-height: 120px;
-            font-family: inherit;
+        .btn-secondary {
+            background: linear-gradient(45deg, #666, #444);
             color: #00ffff;
-            margin: 10px 0;
-            overflow-y: auto;
         }
         
-        .transcript-entry {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-left: 3px solid #00ffff;
-            padding-left: 10px;
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #777, #555);
         }
         
-        .transcript-interim {
-            opacity: 0.6;
-            font-style: italic;
+        .btn-success {
+            background: linear-gradient(45deg, #00ff00, #00cc00);
+            color: #000;
         }
         
-        .transcript-final {
-            opacity: 1;
-            font-weight: bold;
+        .btn-success:hover {
+            background: linear-gradient(45deg, #00ff00, #00aa00);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
         }
         
         .config-section {
-            margin-top: 20px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
         }
         
-        .config-row {
+        .config-section h2 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px #00ffff;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .config-item {
             display: flex;
             align-items: center;
-            margin: 10px 0;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .config-row label {
-            min-width: 120px;
-            color: #00ffff;
-        }
-        
-        .config-row select,
-        .config-row input {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #00ffff;
-            color: #00ffff;
-            padding: 8px;
-            border-radius: 3px;
-            font-family: inherit;
-        }
-        
-        .log-area {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #666;
-            border-radius: 5px;
             padding: 10px;
-            height: 200px;
-            overflow-y: auto;
-            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .config-item label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .config-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .config-item.selected {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+        }
+        
+        .provider-tag {
+            margin-left: auto;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        .results-section {
+            margin-top: 30px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .result-card {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+        }
+        
+        .result-card h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-pending { background: #666; color: #fff; }
+        .status-processing { background: #ffaa00; color: #000; }
+        .status-success { background: #00ff00; color: #000; }
+        .status-error { background: #ff0000; color: #fff; }
+        
+        .result-content {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            min-height: 80px;
             font-family: 'Courier New', monospace;
         }
         
-        .log-entry {
-            margin-bottom: 5px;
-            padding: 2px 0;
+        .result-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.8;
         }
-        
-        .log-info { color: #00ffff; }
-        .log-success { color: #00ff00; }
-        .log-warning { color: #ffff00; }
-        .log-error { color: #ff4444; }
         
         .audio-visualizer {
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid #00ffff;
             border-radius: 5px;
-            height: 60px;
-            margin: 10px 0;
+            height: 100px;
+            margin: 20px 0;
             position: relative;
             overflow: hidden;
         }
         
-        .visualizer-bar {
-            position: absolute;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(to top, #00ffff, #0080ff);
-            margin: 0 1px;
-            transition: height 0.1s ease;
+        .waveform {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .laika-config {
+            background: rgba(255, 170, 0, 0.1);
+            border: 2px solid #ffaa00;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .laika-config h2 {
+            color: #ffaa00;
+            margin-bottom: 15px;
+        }
+        
+        .config-select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            width: 100%;
+            max-width: 400px;
+            margin: 10px 0;
+        }
+        
+        .timer {
+            font-size: 2em;
+            color: #ff0000;
+            margin: 10px 0;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
         }
         
         @media (max-width: 768px) {
@@ -245,13 +333,14 @@
                 font-size: 2em;
             }
             
-            .grid {
+            .results-grid {
                 grid-template-columns: 1fr;
             }
             
-            .config-row {
-                flex-direction: column;
-                align-items: flex-start;
+            .record-button {
+                width: 100px;
+                height: 100px;
+                font-size: 1em;
             }
         }
     </style>
@@ -260,492 +349,105 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🎤 LAIKA STT Testing</h1>
-            <p>Speech-to-Text Interface with OpenAI Realtime API & Web Speech API</p>
+            <h1>🎤 LAIKA STT Comparison</h1>
+            <p>Test and compare multiple Speech-to-Text services</p>
         </div>
         
-        <!-- Main Interface Grid -->
-        <div class="grid">
-            <!-- STT Control Panel -->
-            <div class="card">
-                <h2>🎙️ Speech Recognition Control</h2>
-                <div style="margin-bottom: 15px;">
-                    <span class="status-indicator status-inactive" id="sttStatus"></span>
-                    <span id="sttStatusText">Ready</span>
-                </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <button class="btn" id="startBtn" onclick="startListening()">Start Listening</button>
-                    <button class="btn btn-danger" id="stopBtn" onclick="stopListening()" disabled>Stop</button>
-                </div>
-                
-                <div class="config-section">
-                    <h3>STT Provider:</h3>
-                    <div class="config-row">
-                        <label>
-                            <input type="radio" name="sttProvider" value="web_speech" checked onchange="switchProvider(this.value)">
-                            Web Speech API
-                        </label>
-                    </div>
-                    <div class="config-row">
-                        <label>
-                            <input type="radio" name="sttProvider" value="openai_realtime" onchange="switchProvider(this.value)">
-                            OpenAI Realtime API
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="config-section">
-                    <h3>Settings:</h3>
-                    <div class="config-row">
-                        <label>Language:</label>
-                        <select id="languageSelect" onchange="updateConfig()">
-                            <option value="en-US">English (US)</option>
-                            <option value="en-GB">English (UK)</option>
-                            <option value="ru-RU">Russian</option>
-                            <option value="es-ES">Spanish</option>
-                            <option value="fr-FR">French</option>
-                            <option value="de-DE">German</option>
-                        </select>
-                    </div>
-                    <div class="config-row">
-                        <label>
-                            <input type="checkbox" id="continuousMode" onchange="updateConfig()">
-                            Continuous Mode
-                        </label>
-                    </div>
-                    <div class="config-row">
-                        <label>
-                            <input type="checkbox" id="interimResults" checked onchange="updateConfig()">
-                            Show Interim Results
-                        </label>
-                    </div>
-                </div>
+        <!-- Recording Section -->
+        <div class="recording-section">
+            <h2>🔴 Audio Recording</h2>
+            <button class="record-button" id="recordBtn" onclick="toggleRecording()">
+                <span id="recordBtnText">RECORD</span>
+            </button>
+            <div class="timer" id="timer" style="display: none;">00:00</div>
+            
+            <div class="audio-controls" id="audioControls" style="display: none;">
+                <button class="btn btn-secondary" onclick="playRecording()">
+                    <span id="playBtnText">▶️ Play</span>
+                </button>
+                <button class="btn btn-secondary" onclick="downloadRecording()">
+                    💾 Download
+                </button>
+                <button class="btn btn-secondary" onclick="clearRecording()">
+                    🗑️ Clear
+                </button>
+                <button class="btn btn-success" onclick="processWithAllSTT()">
+                    ⚡ Process with All Selected
+                </button>
             </div>
             
-            <!-- Live Transcript -->
-            <div class="card">
-                <h2>📝 Live Transcript</h2>
-                <div class="transcript-area" id="transcriptArea">
-                    <div style="opacity: 0.5; text-align: center; padding: 20px;">
-                        Transcript will appear here...
-                    </div>
+            <canvas class="audio-visualizer" id="visualizer" width="800" height="100"></canvas>
+            <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px; display: none;"></audio>
+        </div>
+        
+        <!-- STT Provider Selection -->
+        <div class="config-section">
+            <h2>🎯 Select STT Providers to Test</h2>
+            <div class="config-grid">
+                <div class="config-item" data-provider="web_speech">
+                    <label>
+                        <input type="checkbox" id="provider_web_speech" checked>
+                        <span>Web Speech API</span>
+                        <span class="provider-tag">Browser</span>
+                    </label>
                 </div>
-                <div style="margin-top: 10px;">
-                    <button class="btn" onclick="clearTranscript()">Clear</button>
-                    <button class="btn" onclick="copyTranscript()">Copy</button>
-                    <button class="btn" onclick="sendToLAIKA()">Send to LAIKA</button>
+                <div class="config-item" data-provider="whisper_local">
+                    <label>
+                        <input type="checkbox" id="provider_whisper_local" checked>
+                        <span>Whisper (Local)</span>
+                        <span class="provider-tag">Local</span>
+                    </label>
                 </div>
-            </div>
-            
-            <!-- Audio Visualizer -->
-            <div class="card">
-                <h2>🔊 Audio Input Visualization</h2>
-                <div class="audio-visualizer" id="audioVisualizer">
-                    <!-- Visualizer bars will be generated by JavaScript -->
+                <div class="config-item" data-provider="openai_whisper">
+                    <label>
+                        <input type="checkbox" id="provider_openai_whisper" checked>
+                        <span>OpenAI Whisper</span>
+                        <span class="provider-tag">Cloud</span>
+                    </label>
                 </div>
-                <div style="margin-top: 10px;">
-                    <span>Input Level: </span>
-                    <span id="audioLevel">0%</span>
+                <div class="config-item" data-provider="openai_realtime">
+                    <label>
+                        <input type="checkbox" id="provider_openai_realtime" checked>
+                        <span>OpenAI Realtime</span>
+                        <span class="provider-tag">Cloud</span>
+                    </label>
                 </div>
-            </div>
-            
-            <!-- System Status -->
-            <div class="card">
-                <h2>⚙️ System Status</h2>
-                <div id="systemStatus">
-                    <div>🌐 Web Speech API: <span id="webSpeechStatus">Checking...</span></div>
-                    <div>🤖 OpenAI Realtime: <span id="openaiStatus">Checking...</span></div>
-                    <div>🎤 Microphone: <span id="microphoneStatus">Checking...</span></div>
-                    <div>🔊 Audio Context: <span id="audioContextStatus">Checking...</span></div>
-                    <div>📡 Server Connection: <span id="serverStatus">Checking...</span></div>
-                </div>
-                
-                <div style="margin-top: 15px;">
-                    <button class="btn" onclick="testMicrophone()">Test Microphone</button>
-                    <button class="btn" onclick="checkSystemStatus()">Refresh Status</button>
+                <div class="config-item" data-provider="elevenlabs">
+                    <label>
+                        <input type="checkbox" id="provider_elevenlabs" checked>
+                        <span>ElevenLabs STT</span>
+                        <span class="provider-tag">Cloud</span>
+                    </label>
                 </div>
             </div>
         </div>
         
-        <!-- Debug Log -->
-        <div class="card">
-            <h2>🔍 Debug Log</h2>
-            <div class="log-area" id="debugLog"></div>
-            <div style="margin-top: 10px;">
-                <button class="btn" onclick="clearLog()">Clear Log</button>
-                <button class="btn" onclick="exportLog()">Export Log</button>
+        <!-- LAIKA STT Node Configuration -->
+        <div class="laika-config">
+            <h2>⚙️ LAIKA /stt Node Configuration</h2>
+            <p>Select which STT provider LAIKA should use for the /stt node:</p>
+            <select class="config-select" id="laikaSTTProvider" onchange="updateLaikaSTTProvider()">
+                <option value="web_speech">Web Speech API (Browser)</option>
+                <option value="whisper_local">Whisper (Local)</option>
+                <option value="openai_whisper">OpenAI Whisper (Cloud)</option>
+                <option value="openai_realtime">OpenAI Realtime (Cloud)</option>
+                <option value="elevenlabs">ElevenLabs STT (Cloud)</option>
+            </select>
+            <button class="btn" onclick="saveLaikaSTTConfig()">
+                💾 Save LAIKA Configuration
+            </button>
+            <div id="laikaConfigStatus" style="margin-top: 10px;"></div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h2 style="color: #00ffff; margin-bottom: 20px;">📊 STT Comparison Results</h2>
+            <div class="results-grid" id="resultsGrid">
+                <!-- Results will be dynamically added here -->
             </div>
         </div>
     </div>
-
-    <!-- Include Voice System -->
-    <script src="js/voice-system.js"></script>
     
-    <script>
-        // Global variables
-        let voiceSystem = null;
-        let currentProvider = 'web_speech';
-        let isInitialized = false;
-        let audioContext = null;
-        let microphone = null;
-        let analyser = null;
-        let visualizerBars = [];
-        let animationFrame = null;
-        
-        // Initialize the STT testing interface
-        document.addEventListener('DOMContentLoaded', function() {
-            log('🚀 Initializing LAIKA STT Testing Interface...', 'info');
-            initializeInterface();
-        });
-        
-        async function initializeInterface() {
-            try {
-                // Check system capabilities
-                await checkSystemStatus();
-                
-                // Initialize voice system
-                voiceSystem = new LAIKAVoiceSystem();
-                
-                // Set up event handlers
-                setupVoiceSystemHandlers();
-                
-                // Initialize audio visualizer
-                initializeAudioVisualizer();
-                
-                isInitialized = true;
-                log('✅ STT Testing Interface initialized successfully', 'success');
-                updateStatus('ready', 'Ready');
-                
-            } catch (error) {
-                log(`❌ Failed to initialize interface: ${error.message}`, 'error');
-                updateStatus('error', 'Initialization Failed');
-            }
-        }
-        
-        function setupVoiceSystemHandlers() {
-            if (!voiceSystem) return;
-            
-            voiceSystem.onSpeechStart = () => {
-                log('🎤 Speech recognition started', 'info');
-                updateStatus('listening', 'Listening...');
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('stopBtn').disabled = false;
-            };
-            
-            voiceSystem.onSpeechEnd = () => {
-                log('🎤 Speech recognition ended', 'info');
-                updateStatus('ready', 'Ready');
-                document.getElementById('startBtn').disabled = false;
-                document.getElementById('stopBtn').disabled = true;
-            };
-            
-            voiceSystem.onSpeechRecognized = (result) => {
-                log(`🎤 Speech recognized: "${result.transcript}" (confidence: ${result.confidence?.toFixed(2) || 'N/A'})`, 'success');
-                addTranscriptEntry(result.transcript, result.isFinal);
-            };
-            
-            voiceSystem.onError = (error) => {
-                log(`❌ Speech recognition error: ${error}`, 'error');
-                updateStatus('error', `Error: ${error}`);
-                document.getElementById('startBtn').disabled = false;
-                document.getElementById('stopBtn').disabled = true;
-            };
-        }
-        
-        async function startListening() {
-            if (!voiceSystem) {
-                log('❌ Voice system not initialized', 'error');
-                return;
-            }
-            
-            try {
-                log('🎤 Starting speech recognition...', 'info');
-                updateStatus('processing', 'Starting...');
-                await voiceSystem.startListening();
-            } catch (error) {
-                log(`❌ Failed to start listening: ${error.message}`, 'error');
-                updateStatus('error', 'Failed to start');
-            }
-        }
-        
-        function stopListening() {
-            if (!voiceSystem) return;
-            
-            try {
-                log('🛑 Stopping speech recognition...', 'info');
-                voiceSystem.stopListening();
-            } catch (error) {
-                log(`❌ Failed to stop listening: ${error.message}`, 'error');
-            }
-        }
-        
-        function switchProvider(provider) {
-            currentProvider = provider;
-            log(`🔄 Switching to ${provider} provider`, 'info');
-            
-            if (provider === 'openai_realtime') {
-                log('⚠️ OpenAI Realtime API not yet implemented in this interface', 'warning');
-                // TODO: Implement OpenAI Realtime API integration
-            }
-            
-            updateConfig();
-        }
-        
-        function updateConfig() {
-            if (!voiceSystem) return;
-            
-            const language = document.getElementById('languageSelect').value;
-            const continuous = document.getElementById('continuousMode').checked;
-            const interim = document.getElementById('interimResults').checked;
-            
-            // Update voice system configuration
-            if (voiceSystem.recognition) {
-                voiceSystem.recognition.lang = language;
-                voiceSystem.recognition.continuous = continuous;
-                voiceSystem.recognition.interimResults = interim;
-            }
-            
-            log(`⚙️ Updated config: lang=${language}, continuous=${continuous}, interim=${interim}`, 'info');
-        }
-        
-        function addTranscriptEntry(text, isFinal) {
-            const transcriptArea = document.getElementById('transcriptArea');
-            
-            // Remove interim results placeholder
-            const placeholder = transcriptArea.querySelector('[style*="opacity: 0.5"]');
-            if (placeholder) placeholder.remove();
-            
-            // Find existing interim entry or create new one
-            let entry = transcriptArea.querySelector('.transcript-interim:last-child');
-            
-            if (isFinal) {
-                // Create new final entry
-                entry = document.createElement('div');
-                entry.className = 'transcript-entry transcript-final';
-                entry.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${text}`;
-                transcriptArea.appendChild(entry);
-                
-                // Remove any remaining interim entries
-                const interimEntries = transcriptArea.querySelectorAll('.transcript-interim');
-                interimEntries.forEach(e => e.remove());
-            } else {
-                // Update or create interim entry
-                if (!entry) {
-                    entry = document.createElement('div');
-                    entry.className = 'transcript-entry transcript-interim';
-                    transcriptArea.appendChild(entry);
-                }
-                entry.innerHTML = `<em>[interim]</em> ${text}`;
-            }
-            
-            // Auto-scroll to bottom
-            transcriptArea.scrollTop = transcriptArea.scrollHeight;
-        }
-        
-        function clearTranscript() {
-            const transcriptArea = document.getElementById('transcriptArea');
-            transcriptArea.innerHTML = '<div style="opacity: 0.5; text-align: center; padding: 20px;">Transcript cleared...</div>';
-            log('🗑️ Transcript cleared', 'info');
-        }
-        
-        function copyTranscript() {
-            const transcriptArea = document.getElementById('transcriptArea');
-            const finalEntries = transcriptArea.querySelectorAll('.transcript-final');
-            const text = Array.from(finalEntries).map(entry => entry.textContent.replace(/^\[.*?\]\s*/, '')).join('\n');
-            
-            if (text) {
-                navigator.clipboard.writeText(text).then(() => {
-                    log('📋 Transcript copied to clipboard', 'success');
-                }).catch(err => {
-                    log(`❌ Failed to copy transcript: ${err}`, 'error');
-                });
-            } else {
-                log('⚠️ No transcript to copy', 'warning');
-            }
-        }
-        
-        async function sendToLAIKA() {
-            const transcriptArea = document.getElementById('transcriptArea');
-            const finalEntries = transcriptArea.querySelectorAll('.transcript-final');
-            const text = Array.from(finalEntries).map(entry => entry.textContent.replace(/^\[.*?\]\s*/, '')).join(' ');
-            
-            if (!text.trim()) {
-                log('⚠️ No transcript to send to LAIKA', 'warning');
-                return;
-            }
-            
-            try {
-                log(`💬 Sending to LAIKA: "${text}"`, 'info');
-                
-                // Try to use voice system's sendVoiceMessage if available
-                if (voiceSystem && voiceSystem.sendVoiceMessage) {
-                    const response = await voiceSystem.sendVoiceMessage(text);
-                    log(`🤖 LAIKA responded: ${response.laika_response}`, 'success');
-                } else {
-                    // Fallback: try direct API call
-                    const response = await fetch('/api/chat/message', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text, use_voice: true })
-                    });
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        log(`🤖 LAIKA responded: ${result.laika_response}`, 'success');
-                    } else {
-                        throw new Error(`Server responded with ${response.status}`);
-                    }
-                }
-            } catch (error) {
-                log(`❌ Failed to send to LAIKA: ${error.message}`, 'error');
-                log('💡 This is expected if the server API endpoints are not implemented yet', 'warning');
-            }
-        }
-        
-        async function checkSystemStatus() {
-            log('🔍 Checking system status...', 'info');
-            
-            // Check Web Speech API
-            const webSpeechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-            document.getElementById('webSpeechStatus').textContent = webSpeechSupported ? '✅ Available' : '❌ Not Supported';
-            document.getElementById('webSpeechStatus').style.color = webSpeechSupported ? '#00ff00' : '#ff4444';
-            
-            // Check microphone access
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                document.getElementById('microphoneStatus').textContent = '✅ Available';
-                document.getElementById('microphoneStatus').style.color = '#00ff00';
-                stream.getTracks().forEach(track => track.stop()); // Clean up
-            } catch (error) {
-                document.getElementById('microphoneStatus').textContent = '❌ Access Denied';
-                document.getElementById('microphoneStatus').style.color = '#ff4444';
-                log(`❌ Microphone access denied: ${error.message}`, 'error');
-            }
-            
-            // Check Audio Context
-            try {
-                const testContext = new (window.AudioContext || window.webkitAudioContext)();
-                document.getElementById('audioContextStatus').textContent = '✅ Available';
-                document.getElementById('audioContextStatus').style.color = '#00ff00';
-                testContext.close();
-            } catch (error) {
-                document.getElementById('audioContextStatus').textContent = '❌ Not Supported';
-                document.getElementById('audioContextStatus').style.color = '#ff4444';
-            }
-            
-            // Check OpenAI Realtime (placeholder)
-            document.getElementById('openaiStatus').textContent = '⚠️ Not Implemented';
-            document.getElementById('openaiStatus').style.color = '#ffff00';
-            
-            // Check server connection
-            try {
-                const response = await fetch('/');
-                document.getElementById('serverStatus').textContent = response.ok ? '✅ Connected' : '⚠️ Issues Detected';
-                document.getElementById('serverStatus').style.color = response.ok ? '#00ff00' : '#ffff00';
-            } catch (error) {
-                document.getElementById('serverStatus').textContent = '❌ Disconnected';
-                document.getElementById('serverStatus').style.color = '#ff4444';
-            }
-            
-            log('✅ System status check completed', 'success');
-        }
-        
-        async function testMicrophone() {
-            try {
-                log('🎤 Testing microphone...', 'info');
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                // Create a simple audio level monitor
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContext.createMediaStreamSource(stream);
-                const analyser = audioContext.createAnalyser();
-                source.connect(analyser);
-                
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                let testDuration = 3000; // 3 seconds
-                const startTime = Date.now();
-                
-                const checkLevel = () => {
-                    analyser.getByteFrequencyData(dataArray);
-                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                    const percentage = Math.round((average / 255) * 100);
-                    
-                    document.getElementById('audioLevel').textContent = `${percentage}%`;
-                    
-                    if (Date.now() - startTime < testDuration) {
-                        requestAnimationFrame(checkLevel);
-                    } else {
-                        // Clean up
-                        stream.getTracks().forEach(track => track.stop());
-                        audioContext.close();
-                        log('✅ Microphone test completed', 'success');
-                    }
-                };
-                
-                checkLevel();
-                
-            } catch (error) {
-                log(`❌ Microphone test failed: ${error.message}`, 'error');
-            }
-        }
-        
-        function initializeAudioVisualizer() {
-            const visualizer = document.getElementById('audioVisualizer');
-            
-            // Create visualizer bars
-            for (let i = 0; i < 50; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'visualizer-bar';
-                bar.style.left = `${i * 6}px`;
-                bar.style.height = '2px';
-                visualizer.appendChild(bar);
-                visualizerBars.push(bar);
-            }
-        }
-        
-        function updateStatus(status, text) {
-            const indicator = document.getElementById('sttStatus');
-            const statusText = document.getElementById('sttStatusText');
-            
-            // Remove all status classes
-            indicator.className = 'status-indicator';
-            indicator.classList.add(`status-${status}`);
-            statusText.textContent = text;
-        }
-        
-        function log(message, type = 'info') {
-            const logArea = document.getElementById('debugLog');
-            const entry = document.createElement('div');
-            entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            
-            logArea.appendChild(entry);
-            logArea.scrollTop = logArea.scrollHeight;
-            
-            // Also log to console
-            console.log(`[STT] ${message}`);
-        }
-        
-        function clearLog() {
-            document.getElementById('debugLog').innerHTML = '';
-            log('🗑️ Debug log cleared', 'info');
-        }
-        
-        function exportLog() {
-            const logArea = document.getElementById('debugLog');
-            const logText = Array.from(logArea.children).map(entry => entry.textContent).join('\n');
-            
-            const blob = new Blob([logText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `laika-stt-log-${new Date().toISOString().split('T')[0]}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            log('📄 Debug log exported', 'success');
-        }
-    </script>
+    <script src="js/stt-comparison.js"></script>
 </body>
 </html>
