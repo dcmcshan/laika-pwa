@@ -1549,6 +1549,9 @@ def handle_llm_request():
                     'estimated_cost': f"{estimated_cost:.6f}",
                     'model_used': model,
                     'action_executed': action_executed,
+                    'context_used': context_data is not None,
+                    'sensors_used': sensors_data is not None,
+                    'visual_query': is_visual_query,
                     'message': 'LLM request processed successfully'
                 }
                 

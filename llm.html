@@ -239,6 +239,7 @@
                 <div style="margin-top: 15px;">
                     <label style="font-size: 12px; color: var(--text-dim);">Model:</label>
                     <select id="model-select" style="width: 100%; margin-top: 5px; background: var(--panel-bg); color: var(--text-cyan); border: 1px solid var(--atomic-cyan); padding: 5px;">
+                        <option value="gpt-5">GPT-5</option>
                         <option value="gpt-4o-mini">GPT-4o Mini</option>
                         <option value="gpt-4o">GPT-4o</option>
                         <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
@@ -319,6 +320,18 @@
                 <div class="history-item">
                     <div class="history-timestamp">Waiting for LLM inputs...</div>
                 </div>
+            </div>
+        </div>
+
+        <div class="llm-panel">
+            <h3 class="panel-title">📋 System Logs</h3>
+            <div style="margin-bottom: 10px;">
+                <button class="cmd-btn" onclick="clearLogs()">Clear Logs</button>
+                <button class="cmd-btn" onclick="downloadLogs()">Download Logs</button>
+                <button class="cmd-btn" onclick="refreshLogs()">Refresh</button>
+            </div>
+            <div id="logs-container" style="height: 300px; overflow-y: auto; border: 1px solid var(--atomic-cyan); background: rgba(0,0,0,0.3); padding: 10px; font-family: 'Exo 2', monospace; font-size: 11px; line-height: 1.4;">
+                <div style="color: var(--text-dim);">Loading system logs...</div>
             </div>
         </div>
     </div>
@@ -828,6 +841,89 @@
             }
         }
 
+        // Logs functions
+        async function refreshLogs() {
+            try {
+                const response = await fetch('/api/llm/logs');
+                if (response.ok) {
+                    const logs = await response.json();
+                    displayLogs(logs);
+                    updateStatus('Logs refreshed', 'success');
+                } else {
+                    updateStatus('Failed to fetch logs', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh logs error:', error);
+                updateStatus('Logs refresh error', 'error');
+            }
+        }
+
+        function displayLogs(logs) {
+            const container = document.getElementById('logs-container');
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-dim);">No logs available</div>';
+                return;
+            }
+
+            let html = '';
+            logs.forEach(log => {
+                const timestamp = new Date(log.timestamp).toLocaleString();
+                const level = log.level || 'INFO';
+                const levelColor = getLogLevelColor(level);
+                html += `
+                    <div style="margin-bottom: 8px; border-bottom: 1px solid rgba(0, 255, 255, 0.1); padding-bottom: 4px;">
+                        <span style="color: var(--text-dim); font-size: 10px;">${timestamp}</span>
+                        <span style="color: ${levelColor}; font-weight: bold; margin-left: 8px;">[${level}]</span>
+                        <span style="color: var(--text-cyan); margin-left: 8px;">${log.message}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight; // Auto-scroll to bottom
+        }
+
+        function getLogLevelColor(level) {
+            switch (level.toUpperCase()) {
+                case 'ERROR': return '#FF6B6B';
+                case 'WARNING': return '#FFD93D';
+                case 'INFO': return '#6BCF7F';
+                case 'DEBUG': return '#4ECDC4';
+                default: return '#E0FFFF';
+            }
+        }
+
+        function clearLogs() {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = '<div style="color: var(--text-dim);">Logs cleared</div>';
+        }
+
+        async function downloadLogs() {
+            try {
+                const response = await fetch('/api/llm/logs');
+                if (response.ok) {
+                    const logs = await response.json();
+                    const logText = logs.map(log => 
+                        `${new Date(log.timestamp).toISOString()} [${log.level || 'INFO'}] ${log.message}`
+                    ).join('\n');
+                    
+                    const blob = new Blob([logText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `laika_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('No logs available for download');
+                }
+            } catch (error) {
+                console.error('Download logs error:', error);
+                alert('Error downloading logs');
+            }
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initWebSocket();
@@ -835,6 +931,7 @@
             loadCurrentPrompt(); // Load current prompt on page load
             loadContextImage(); // Load context image
             loadSensorsData(); // Load sensors data
+            refreshLogs(); // Load system logs
         });
     </script>
 </body>
