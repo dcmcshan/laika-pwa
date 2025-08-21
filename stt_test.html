@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA STT Test - Interactive Speech Recognition</title>
+    
+    <!-- PWA Meta -->
+    <meta name="theme-color" content="#00ffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- TRON Styling -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        .status-panel {
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.listening {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        
+        .status-indicator.processing {
+            background: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+        }
+        
+        .status-indicator.idle {
+            background: #666;
+            box-shadow: none;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .control-section {
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            color: #000;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn.recording {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            animation: pulse-red 1.5s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); }
+            100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .results-panel {
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .results-panel h3 {
+            margin-bottom: 15px;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .result-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .result-item.wake-word {
+            border-color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .result-text {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .result-meta {
+            font-size: 0.9em;
+            color: #80c0c0;
+        }
+        
+        .log-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-entry.info { color: #00ffff; }
+        .log-entry.success { color: #00ff00; }
+        .log-entry.warning { color: #ffaa00; }
+        .log-entry.error { color: #ff4444; }
+        
+        .audio-visualizer {
+            width: 100%;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎤 LAIKA STT Test</h1>
+            <p>Interactive Speech Recognition with Wake Word Detection</p>
+        </div>
+        
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <div class="status-indicator idle" id="statusIndicator"></div>
+            <span id="statusText">Ready to listen</span>
+            <div style="margin-top: 10px;">
+                <span id="wakeWordDisplay">Wake Word: LAIKA</span> | 
+                <span id="timeoutDisplay">Timeout: 5s</span>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Recording Controls -->
+            <div class="control-section">
+                <h3>🎤 Recording Controls</h3>
+                <button class="btn" id="startBtn" onclick="startListening()">
+                    🎤 Start Listening
+                </button>
+                <button class="btn" id="stopBtn" onclick="stopListening()" disabled>
+                    ⏹️ Stop Listening
+                </button>
+                <button class="btn" onclick="clearResults()">
+                    🗑️ Clear Results
+                </button>
+                
+                <div class="input-group">
+                    <label>Wake Word:</label>
+                    <input type="text" id="wakeWordInput" value="LAIKA" onchange="updateWakeWord()">
+                </div>
+                
+                <div class="input-group">
+                    <label>Timeout (seconds):</label>
+                    <input type="number" id="timeoutInput" value="5" min="1" max="30" onchange="updateTimeout()">
+                </div>
+            </div>
+            
+            <!-- Configuration -->
+            <div class="control-section">
+                <h3>⚙️ Configuration</h3>
+                <div class="input-group">
+                    <label>STT Provider:</label>
+                    <select id="sttProvider" onchange="updateSTTProvider()">
+                        <option value="web_speech">Web Speech API (Browser)</option>
+                        <option value="whisper_local">Whisper (Local)</option>
+                        <option value="openai_whisper">OpenAI Whisper</option>
+                        <option value="openai_realtime">OpenAI Realtime</option>
+                        <option value="elevenlabs">ElevenLabs STT</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Mode:</label>
+                    <select id="listeningMode" onchange="updateListeningMode()">
+                        <option value="continuous">Continuous Listening</option>
+                        <option value="single">Single Recognition</option>
+                        <option value="wake_word">Wake Word Only</option>
+                    </select>
+                </div>
+                
+                <button class="btn" onclick="testMicrophone()">
+                    🎤 Test Microphone
+                </button>
+            </div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="results-panel">
+            <h3>📊 Recognition Results</h3>
+            <div id="resultsContainer">
+                <div class="result-item">
+                    <div class="result-text">No results yet. Start listening to see speech recognition results.</div>
+                    <div class="result-meta">Ready to test</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Audio Visualizer -->
+        <canvas class="audio-visualizer" id="visualizer" width="800" height="100"></canvas>
+        
+        <!-- Log Panel -->
+        <div class="results-panel">
+            <h3>📋 Activity Log</h3>
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry info">STT Test initialized</div>
+                <div class="log-entry info">Ready to start listening</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let recognition = null;
+        let isListening = false;
+        let wakeWord = 'LAIKA';
+        let timeout = 5000;
+        let sttProvider = 'web_speech';
+        let listeningMode = 'continuous';
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let animationId = null;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSpeechRecognition();
+            initializeAudioVisualizer();
+            log('info', 'STT Test page loaded');
+        });
+        
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = function() {
+                    log('success', 'Speech recognition started');
+                    updateStatus('listening', 'Listening for speech...');
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript) {
+                        processSpeech(finalTranscript);
+                    }
+                    
+                    if (interimTranscript) {
+                        updateInterimResult(interimTranscript);
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    log('error', `Speech recognition error: ${event.error}`);
+                    updateStatus('idle', 'Error occurred');
+                };
+                
+                recognition.onend = function() {
+                    log('info', 'Speech recognition ended');
+                    updateStatus('idle', 'Ready to listen');
+                    isListening = false;
+                    updateButtons();
+                };
+                
+                log('success', 'Speech recognition initialized');
+            } else {
+                log('error', 'Speech recognition not supported in this browser');
+            }
+        }
+        
+        // Initialize audio visualizer
+        async function initializeAudioVisualizer() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const canvas = document.getElementById('visualizer');
+                const canvasContext = canvas.getContext('2d');
+                
+                canvasContext.strokeStyle = '#00ffff';
+                canvasContext.lineWidth = 2;
+                
+                log('success', 'Audio visualizer initialized');
+            } catch (error) {
+                log('warning', 'Audio visualizer not available');
+            }
+        }
+        
+        // Start listening
+        function startListening() {
+            if (!recognition) {
+                log('error', 'Speech recognition not available');
+                return;
+            }
+            
+            try {
+                recognition.start();
+                isListening = true;
+                updateButtons();
+                log('info', `Started listening for wake word: "${wakeWord}"`);
+            } catch (error) {
+                log('error', `Failed to start listening: ${error}`);
+            }
+        }
+        
+        // Stop listening
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+                isListening = false;
+                updateButtons();
+                log('info', 'Stopped listening');
+            }
+        }
+        
+        // Process speech
+        function processSpeech(text) {
+            log('success', `Recognized: "${text}"`);
+            
+            const textLower = text.toLowerCase();
+            const wakeWordLower = wakeWord.toLowerCase();
+            
+            if (textLower.includes(wakeWordLower)) {
+                // Wake word detected
+                const cleanText = textLower.replace(wakeWordLower, '').trim();
+                addResult(text, cleanText, true);
+                log('success', `Wake word detected! Clean text: "${cleanText}"`);
+                
+                if (listeningMode === 'wake_word') {
+                    // Stop listening after wake word in wake_word mode
+                    setTimeout(() => stopListening(), 1000);
+                }
+            } else {
+                // No wake word
+                addResult(text, text, false);
+                log('info', 'No wake word detected');
+            }
+        }
+        
+        // Add result to display
+        function addResult(originalText, cleanText, isWakeWord) {
+            const container = document.getElementById('resultsContainer');
+            const resultItem = document.createElement('div');
+            resultItem.className = `result-item ${isWakeWord ? 'wake-word' : ''}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            resultItem.innerHTML = `
+                <div class="result-text">${isWakeWord ? '🎯 ' : '📝 '}${originalText}</div>
+                ${isWakeWord ? `<div class="result-text">🧹 Clean: "${cleanText}"</div>` : ''}
+                <div class="result-meta">${timestamp} | Provider: ${sttProvider}</div>
+            `;
+            
+            container.insertBefore(resultItem, container.firstChild);
+            
+            // Keep only last 10 results
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Update interim result
+        function updateInterimResult(text) {
+            // Could be used to show real-time recognition
+        }
+        
+        // Update status
+        function updateStatus(status, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.className = `status-indicator ${status}`;
+            statusText.textContent = text;
+        }
+        
+        // Update buttons
+        function updateButtons() {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            startBtn.disabled = isListening;
+            stopBtn.disabled = !isListening;
+        }
+        
+        // Update wake word
+        function updateWakeWord() {
+            wakeWord = document.getElementById('wakeWordInput').value;
+            document.getElementById('wakeWordDisplay').textContent = `Wake Word: ${wakeWord}`;
+            log('info', `Wake word updated to: "${wakeWord}"`);
+        }
+        
+        // Update timeout
+        function updateTimeout() {
+            timeout = parseInt(document.getElementById('timeoutInput').value) * 1000;
+            document.getElementById('timeoutDisplay').textContent = `Timeout: ${timeout/1000}s`;
+            log('info', `Timeout updated to: ${timeout/1000} seconds`);
+        }
+        
+        // Update STT provider
+        function updateSTTProvider() {
+            sttProvider = document.getElementById('sttProvider').value;
+            log('info', `STT provider updated to: ${sttProvider}`);
+        }
+        
+        // Update listening mode
+        function updateListeningMode() {
+            listeningMode = document.getElementById('listeningMode').value;
+            log('info', `Listening mode updated to: ${listeningMode}`);
+        }
+        
+        // Test microphone
+        async function testMicrophone() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('success', 'Microphone test successful');
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                log('error', `Microphone test failed: ${error}`);
+            }
+        }
+        
+        // Clear results
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="result-item">
+                    <div class="result-text">No results yet. Start listening to see speech recognition results.</div>
+                    <div class="result-meta">Ready to test</div>
+                </div>
+            `;
+            log('info', 'Results cleared');
+        }
+        
+        // Log function
+        function log(level, message) {
+            const logPanel = document.getElementById('logPanel');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${level}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            
+            // Keep only last 50 log entries
+            while (logPanel.children.length > 50) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>
