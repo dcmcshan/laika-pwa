@@ -40,21 +40,24 @@ class TTSSettings {
             testOpenAIBtn.addEventListener('click', () => this.testOpenAIAPI());
         }
 
-        // Voice selection dropdowns
-        document.querySelectorAll('.voice-dropdown').forEach(dropdown => {
-            dropdown.addEventListener('change', (e) => {
-                this.currentVoice = e.target.value;
-                this.updatePlayButton(e.target.id);
-                this.saveSettings();
-            });
-        });
+        // Load voices buttons
+        const loadElevenLabsBtn = document.getElementById('load-elevenlabs-voices');
+        if (loadElevenLabsBtn) {
+            loadElevenLabsBtn.addEventListener('click', () => this.loadElevenLabsVoices());
+        }
 
-        // Play buttons
-        document.querySelectorAll('.play-button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const provider = e.target.id.replace('-play-btn', '');
-                this.testVoiceWithProvider(provider);
-            });
+        const loadOpenAIBtn = document.getElementById('load-openai-voices');
+        if (loadOpenAIBtn) {
+            loadOpenAIBtn.addEventListener('click', () => this.loadOpenAIVoices());
+        }
+
+        // Voice play buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('play-voice-btn')) {
+                const voice = e.target.dataset.voice;
+                const provider = e.target.dataset.provider;
+                this.testVoiceWithProvider(provider, voice);
+            }
         });
 
         // Auto-translate button
@@ -173,27 +176,8 @@ class TTSSettings {
     }
 
     updateVoiceSelection() {
-        // Enable/disable play buttons based on voice selection
-        const providers = ['elevenlabs', 'openai', 'piper', 'system'];
-        providers.forEach(provider => {
-            const dropdown = document.getElementById(`${provider}-voice-dropdown`);
-            const playBtn = document.getElementById(`${provider}-play-btn`);
-            
-            if (dropdown && playBtn) {
-                const hasVoice = dropdown.value && dropdown.value !== '';
-                playBtn.disabled = !hasVoice;
-            }
-        });
-    }
-
-    updatePlayButton(dropdownId) {
-        const provider = dropdownId.replace('-voice-dropdown', '');
-        const playBtn = document.getElementById(`${provider}-play-btn`);
-        const dropdown = document.getElementById(dropdownId);
-        
-        if (playBtn && dropdown) {
-            playBtn.disabled = !dropdown.value || dropdown.value === '';
-        }
+        // Voice selection is now handled by individual play buttons
+        // No need for dropdown-based logic
     }
 
     async testElevenLabsAPI() {
@@ -284,22 +268,75 @@ class TTSSettings {
     }
 
     renderElevenLabsVoices() {
-        const dropdown = document.getElementById('elevenlabs-voice-dropdown');
-        if (!dropdown) return;
+        const voiceList = document.getElementById('elevenlabs-voice-list');
+        if (!voiceList) return;
 
-        dropdown.innerHTML = '<option value="">Select a voice...</option>';
+        voiceList.innerHTML = '';
         
-        if (this.voices.elevenlabs) {
+        if (this.voices.elevenlabs && this.voices.elevenlabs.length > 0) {
             this.voices.elevenlabs.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.voice_id;
-                option.textContent = `${voice.name} (${voice.labels?.accent || 'Unknown'})`;
-                dropdown.appendChild(option);
+                const voiceItem = document.createElement('div');
+                voiceItem.className = 'voice-item';
+                voiceItem.innerHTML = `
+                    <span class="voice-name">${voice.name} (${voice.labels?.accent || 'Unknown'})</span>
+                    <button class="play-voice-btn" data-voice="${voice.voice_id}" data-provider="elevenlabs">▶️</button>
+                `;
+                voiceList.appendChild(voiceItem);
             });
+        } else {
+            voiceList.innerHTML = '<div class="voice-item"><span class="voice-name">No voices loaded</span></div>';
         }
     }
 
-    async testVoiceWithProvider(provider) {
+    async loadOpenAIVoices() {
+        if (!this.openaiApiKey) {
+            this.showStatus('Please configure OpenAI API key first', 'error');
+            return;
+        }
+
+        this.showStatus('Loading OpenAI voices...', 'info');
+
+        try {
+            // OpenAI TTS has predefined voices
+            const openaiVoices = [
+                { id: 'alloy', name: 'Alloy', description: 'Balanced and versatile' },
+                { id: 'echo', name: 'Echo', description: 'Clear and articulate' },
+                { id: 'fable', name: 'Fable', description: 'Narrative and engaging' },
+                { id: 'onyx', name: 'Onyx', description: 'Deep and resonant' },
+                { id: 'nova', name: 'Nova', description: 'Bright and energetic' },
+                { id: 'shimmer', name: 'Shimmer', description: 'Smooth and melodic' }
+            ];
+
+            this.voices.openai = openaiVoices;
+            this.renderOpenAIVoices();
+            this.showStatus(`Loaded ${openaiVoices.length} OpenAI voices`, 'success');
+        } catch (error) {
+            this.showStatus('Failed to load OpenAI voices: ' + error.message, 'error');
+        }
+    }
+
+    renderOpenAIVoices() {
+        const voiceList = document.getElementById('openai-voice-list');
+        if (!voiceList) return;
+
+        voiceList.innerHTML = '';
+        
+        if (this.voices.openai && this.voices.openai.length > 0) {
+            this.voices.openai.forEach(voice => {
+                const voiceItem = document.createElement('div');
+                voiceItem.className = 'voice-item';
+                voiceItem.innerHTML = `
+                    <span class="voice-name">${voice.name} - ${voice.description}</span>
+                    <button class="play-voice-btn" data-voice="${voice.id}" data-provider="openai">▶️</button>
+                `;
+                voiceList.appendChild(voiceItem);
+            });
+        } else {
+            voiceList.innerHTML = '<div class="voice-item"><span class="voice-name">No voices loaded</span></div>';
+        }
+    }
+
+    async testVoiceWithProvider(provider, voice = null) {
         const textarea = document.getElementById('english-textarea');
         const text = textarea ? textarea.value.trim() : 'Hello, I am LAIKA';
         
@@ -308,11 +345,12 @@ class TTSSettings {
             return;
         }
 
-        this.testVoiceWithText(text, provider);
+        this.testVoiceWithText(text, provider, voice);
     }
 
-    async testVoiceWithText(text, provider = null) {
+    async testVoiceWithText(text, provider = null, voice = null) {
         const selectedProvider = provider || this.currentProvider;
+        const selectedVoice = voice || this.currentVoice;
         
         this.showStatus(`Testing ${selectedProvider} TTS...`, 'info');
         
@@ -326,7 +364,7 @@ class TTSSettings {
                 body: JSON.stringify({
                     text: text,
                     provider: selectedProvider,
-                    voice: this.currentVoice,
+                    voice: selectedVoice,
                     volume: document.getElementById('volume-slider')?.value || 70,
                     rate: document.getElementById('rate-slider')?.value || 1.0
                 })
@@ -475,13 +513,8 @@ class TTSSettings {
                 openaiInput.value = this.openaiApiKey;
             }
 
-            // Set voice selections
-            if (this.currentVoice) {
-                const voiceDropdown = document.getElementById(`${this.currentProvider}-voice-dropdown`);
-                if (voiceDropdown) {
-                    voiceDropdown.value = this.currentVoice;
-                }
-            }
+            // Voice selections are now handled by individual play buttons
+            // No need to set dropdown values
 
             // Set slider values
             const volumeSlider = document.getElementById('volume-slider');
