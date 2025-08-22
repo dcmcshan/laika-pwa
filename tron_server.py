@@ -5187,6 +5187,15 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"❌ Failed to initialize STT API: {e}")
 
+    # Initialize WiFi API
+    if WIFI_API_AVAILABLE:
+        try:
+            if SOCKETIO_AVAILABLE and socketio_app:
+                register_wifi_handlers(socketio_app)
+            print("✅ WiFi API initialized successfully")
+        except Exception as e:
+            print(f"❌ Failed to initialize WiFi API: {e}")
+
     initialize_llm_systems()
     
 
