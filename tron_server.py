@@ -352,6 +352,61 @@ def parse_and_execute_actions(response_text):
             except Exception as e:
                 print(f"❌ Error with sound effect: {e}")
         
+        # Handle memory commands
+        elif base_action in ['remember', 'recall', 'memories', 'forget']:
+            try:
+                memory_params = ' '.join(parameters)
+                print(f"🧠 Memory command: {base_action} {memory_params}")
+                
+                if base_action == 'remember':
+                    # Save current camera image to memory database
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'MEM: remember {memory_params}',
+                        'status': 'success',
+                        'note': f'Saved image to memory with description: {memory_params}'
+                    })
+                    print(f"💾 Saved memory: {memory_params}")
+                    
+                elif base_action == 'recall':
+                    # Retrieve memory from database
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'MEM: recall {memory_params}',
+                        'status': 'success',
+                        'note': f'Retrieved memory: {memory_params}'
+                    })
+                    print(f"🔍 Recalled memory: {memory_params}")
+                    
+                elif base_action == 'memories':
+                    # List all saved memories
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': 'MEM: list all memories',
+                        'status': 'success',
+                        'note': 'Listed all saved memories'
+                    })
+                    print("📋 Listed all memories")
+                    
+                elif base_action == 'forget':
+                    # Delete memory from database
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'MEM: forget {memory_params}',
+                        'status': 'success',
+                        'note': f'Deleted memory: {memory_params}'
+                    })
+                    print(f"🗑️ Deleted memory: {memory_params}")
+                    
+            except Exception as e:
+                print(f"❌ Error with memory command: {e}")
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': f'MEM: {base_action}',
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
         else:
             print(f"⚠️ Unknown action: {action_text}")
             actions_executed.append({
