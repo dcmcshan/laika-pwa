@@ -323,8 +323,8 @@
                 </div>
                 
                 <div class="input-group">
-                    <label>WebSocket:</label>
-                    <input type="text" id="wsEndpoint" value="ws://localhost:8081" readonly>
+                    <label>SocketIO:</label>
+                    <input type="text" id="wsEndpoint" value="http://localhost:8081/socket.io/" readonly>
                 </div>
                 
                 <button class="btn" onclick="testConnection()">
@@ -442,7 +442,7 @@
         // Disconnect from STT service
         function disconnectFromSTT() {
             if (socket) {
-                socket.close();
+                socket.disconnect();
                 socket = null;
                 isConnected = false;
                 updateStatus('idle', 'Disconnected');
@@ -451,20 +451,18 @@
             }
         }
         
-        // Handle STT messages from WebSocket
+        // Handle STT messages from SocketIO
         function handleSTTMessage(data) {
-            if (data.type === 'stt_response') {
-                if (data.subtype === 'transcript') {
-                    // Handle realtime transcript
-                    addResult(data.text, data.text, false, data.provider || sttProvider);
-                    log('success', `Realtime transcript: "${data.text}"`);
-                } else if (data.subtype === 'status') {
-                    // Handle status updates
-                    log('info', `STT Status: ${data.message}`);
-                } else if (data.subtype === 'error') {
-                    // Handle errors
-                    log('error', `STT Error: ${data.message}`);
-                }
+            if (data.type === 'transcript') {
+                // Handle realtime transcript
+                addResult(data.text, data.text, false, data.provider || sttProvider);
+                log('success', `Realtime transcript: "${data.text}"`);
+            } else if (data.type === 'status') {
+                // Handle status updates
+                log('info', `STT Status: ${data.message}`);
+            } else if (data.type === 'error') {
+                // Handle errors
+                log('error', `STT Error: ${data.message}`);
             }
         }
         
@@ -591,10 +589,9 @@
             
             // Update provider in backend if connected
             if (isConnected && socket) {
-                socket.send(JSON.stringify({
-                    type: 'stt_config',
+                socket.emit('stt_config', {
                     provider: sttProvider
-                }));
+                });
             }
         }
         
@@ -630,7 +627,7 @@
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
             if (socket) {
-                socket.close();
+                socket.disconnect();
             }
         });
     </script>
