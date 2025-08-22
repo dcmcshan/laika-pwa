@@ -82,6 +82,15 @@ except ImportError:
     print("Warning: Memory API module not available")
     MEMORY_API_AVAILABLE = False
 
+# Try to import Architecture API
+try:
+    from arch_api import init_architecture_api
+    ARCHITECTURE_API_AVAILABLE = True
+    print("✅ Architecture API available")
+except ImportError:
+    print("Warning: Architecture API module not available")
+    ARCHITECTURE_API_AVAILABLE = False
+
 # Try to import 3D integration
 try:
     from three_d_integration import integrate_3d_routes, get_3d_available
@@ -385,6 +394,64 @@ def parse_and_execute_actions(response_text):
             except Exception as e:
                 print(f"❌ Error with LED action: {e}")
         
+        # Handle voice commands
+        elif base_action == 'voice':
+            try:
+                voice_params = ' '.join(parameters)
+                print(f"🎤 Voice command: {voice_params}")
+                
+                # Parse voice parameters
+                if ':' in voice_params:
+                    voice_name, voice_id = voice_params.split(':', 1)
+                    voice_name = voice_name.strip()
+                    voice_id = voice_id.strip()
+                    
+                    # Handle specific voice switching
+                    if voice_name.lower() == 'seer morgana':
+                        # Set Seer Morgana voice for fortune telling
+                        actions_executed.append({
+                            'action': f'*{action_text}*',
+                            'command': f'VOICE: Seer Morgana ({voice_id})',
+                            'status': 'success',
+                            'note': 'Switched to Seer Morgana voice for fortune telling'
+                        })
+                        print(f"🎭 Switched to Seer Morgana voice: {voice_id}")
+                    elif voice_name.lower() == 'default':
+                        # Return to default voice
+                        actions_executed.append({
+                            'action': f'*{action_text}*',
+                            'command': 'VOICE: default',
+                            'status': 'success',
+                            'note': 'Returned to default LAIKA voice'
+                        })
+                        print("🎤 Returned to default LAIKA voice")
+                    else:
+                        # Generic voice switching
+                        actions_executed.append({
+                            'action': f'*{action_text}*',
+                            'command': f'VOICE: {voice_name} ({voice_id})',
+                            'status': 'success',
+                            'note': f'Switched to {voice_name} voice'
+                        })
+                        print(f"🎤 Switched to {voice_name} voice: {voice_id}")
+                else:
+                    actions_executed.append({
+                        'action': f'*{action_text}*',
+                        'command': f'VOICE: {voice_params}',
+                        'status': 'success',
+                        'note': f'Voice command: {voice_params}'
+                    })
+                    print(f"🎤 Voice command: {voice_params}")
+                    
+            except Exception as e:
+                print(f"❌ Error with voice command: {e}")
+                actions_executed.append({
+                    'action': f'*{action_text}*',
+                    'command': 'voice',
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
         # Handle sound effects
         elif base_action in ['bark', 'whine', 'growl', 'pant', 'sniff', 'yip', 'howl', 'woof', 'arf', 'ruff', 'whimper']:
             try:
@@ -659,6 +726,54 @@ def three_d_page():
     except Exception as e:
         print(f"❌ Error serving 3d.html: {e}")
         return f"Error serving 3D page: {str(e)}", 500
+
+@app.route('/3d-bundle')
+def three_d_bundle_page():
+    """Serve the 3D bundle viewer page"""
+    try:
+        print(f"🔍 Serving 3d_bundle.html from BASE_DIR: {BASE_DIR}")
+        print(f"🔍 File exists: {os.path.exists(os.path.join(BASE_DIR, '3d_bundle.html'))}")
+        return send_from_directory(BASE_DIR, '3d_bundle.html')
+    except Exception as e:
+        print(f"❌ Error serving 3d_bundle.html: {e}")
+        return f"Error serving 3D bundle page: {str(e)}", 500
+
+@app.route('/urdf-demo')
+def urdf_demo_page():
+    """Serve the URDF demo page"""
+    try:
+        print(f"🔍 Serving urdf_demo.html from BASE_DIR: {BASE_DIR}")
+        print(f"🔍 File exists: {os.path.exists(os.path.join(BASE_DIR, 'urdf_demo.html'))}")
+        return send_from_directory(BASE_DIR, 'urdf_demo.html')
+    except Exception as e:
+        print(f"❌ Error serving urdf_demo.html: {e}")
+        return f"Error serving URDF demo page: {str(e)}", 500
+
+@app.route('/puppypi_description/<path:filename>')
+def serve_puppypi_description(filename):
+    """Serve puppypi_description files (URDF, STL, etc.)"""
+    try:
+        file_path = os.path.join(BASE_DIR, 'puppypi_description', filename)
+        print(f"🔍 Serving puppypi_description file: {filename}")
+        print(f"🔍 File path: {file_path}")
+        print(f"🔍 File exists: {os.path.exists(file_path)}")
+        
+        if not os.path.exists(file_path):
+            print(f"❌ File not found: {file_path}")
+            return f"File not found: {filename}", 404
+        
+        # Set appropriate content type based on file extension
+        content_type = 'text/plain'  # Default for URDF
+        if filename.lower().endswith('.stl'):
+            content_type = 'application/octet-stream'
+        elif filename.lower().endswith('.urdf'):
+            content_type = 'application/xml'
+        
+        return send_file(file_path, mimetype=content_type)
+        
+    except Exception as e:
+        print(f"❌ Error serving puppypi_description file {filename}: {e}")
+        return f"Error serving file: {str(e)}", 500
 
 @app.route('/architecture')
 def architecture_page():
@@ -5192,10 +5307,88 @@ def save_api_keys(api_keys):
         print(f"❌ Error saving API keys: {e}")
         return {'success': False, 'error': str(e)}
 
+@app.route('/puppy_pi_urdf/<path:filename>')
+def serve_puppy_pi_urdf(filename):
+    """Serve puppy_pi_urdf files (URDF, STL, etc.)"""
+    try:
+        file_path = os.path.join(BASE_DIR, 'puppy_pi_urdf', filename)
+        print(f"🔍 Serving puppy_pi_urdf file: {filename}")
+        print(f"📁 File path: {file_path}")
+        
+        if os.path.exists(file_path):
+            print(f"✅ File exists, serving: {file_path}")
+            return send_file(file_path)
+        else:
+            print(f"❌ File not found: {file_path}")
+            return f"File not found: {filename}", 404
+            
+    except Exception as e:
+        print(f"❌ Error serving puppy_pi_urdf file {filename}: {e}")
+        return f"Error serving file: {e}", 500
+
+@app.route('/urdf-loaders/<path:filename>')
+def serve_urdf_loaders(filename):
+    """Serve urdf-loaders files (UMD bundles, etc.)"""
+    try:
+        file_path = os.path.join(BASE_DIR, 'urdf-loaders', filename)
+        print(f"🔍 Serving urdf-loaders file: {filename}")
+        print(f"📁 File path: {file_path}")
+        
+        if os.path.exists(file_path):
+            print(f"✅ File exists, serving: {file_path}")
+            return send_file(file_path)
+        else:
+            print(f"❌ File not found: {file_path}")
+            return f"File not found: {filename}", 404
+            
+    except Exception as e:
+        print(f"❌ Error serving urdf-loaders file {filename}: {e}")
+        return f"Error serving file: {e}", 500
 
 if __name__ == '__main__':
+    print("=" * 80)
+    print("🚫 LAIKA TRON PWA Server - Service Only")
+    print("=" * 80)
+    print("❌ This server should NOT be run directly!")
+    print("")
+    print("🔧 To run as a service, use one of these methods:")
+    print("")
+    print("   1. Systemd service (recommended):")
+
+image.png    print("      sudo systemctl start laika-pwa.service")
+    print("      sudo systemctl enable laika-pwa.service")
+    print("")
+    print("   2. Using laika_services command:")
+    print("      laika_services start pwa")
+    print("      laika_services restart pwa")
+    print("")
+    print("   3. Manual service start:")
+    print("      sudo systemctl start laika-pwa")
+    print("")
+    print("📊 To check service status:")
+    print("      sudo systemctl status laika-pwa.service")
+    print("      laika_services status")
+    print("")
+    print("🔍 To view logs:")
+    print("      sudo journalctl -u laika-pwa.service -f")
+    print("      laika_services logs pwa")
+    print("")
+    print("🌐 Once running as a service, the server will be available at:")
+    print("      http://localhost:8081")
+    print("      https://laika.ngrok.app (via ngrok tunnel)")
+    print("")
+    print("=" * 80)
+    print("💡 For development/testing, use the Flask development server instead:")
+    print("   python3 -m flask --app tron_server:app run --host=0.0.0.0 --port=8081")
+    print("=" * 80)
+    
+    # Exit with error code to indicate this shouldn't be run directly
+    sys.exit(1)
+
+def start_server():
+    """Start the LAIKA TRON PWA Server - called by service system"""
     print("🚀 Starting LAIKA TRON PWA Server...")
-    print(f"📡 Server will be available at: http://localhost:5000")
+    print(f"📡 Server will be available at: http://localhost:8081")
     print(f"🌐 NGROK tunnel: https://laika.ngrok.app")
     print("💫 TRON Grid activated!")
     
@@ -5209,6 +5402,14 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"❌ Failed to initialize STT API: {e}")
 
+    # Initialize Architecture API
+    if ARCHITECTURE_API_AVAILABLE:
+        try:
+            init_architecture_api(app)
+            print("✅ Architecture API initialized successfully")
+        except Exception as e:
+            print(f"❌ Failed to initialize Architecture API: {e}")
+
     # Initialize WiFi API
     if WIFI_API_AVAILABLE:
         try:
@@ -5219,8 +5420,6 @@ if __name__ == '__main__':
             print(f"❌ Failed to initialize WiFi API: {e}")
 
     initialize_llm_systems()
-    
-
     
     # Initialize 3D integration
     if THREE_D_AVAILABLE:

@@ -1,0 +1,3 @@
+[submodule "urdf-loaders"]
+	path = urdf-loaders
+	url = https://github.com/gkjohnson/urdf-loaders.git
