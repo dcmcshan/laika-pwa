@@ -374,6 +374,176 @@
             box-shadow: none;
         }
 
+        /* STT Interface Styles */
+        .stt-recognition {
+            text-align: center;
+        }
+
+        .stt-status {
+            padding: 15px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+        }
+
+        .stt-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stt-btn {
+            background: var(--primary-cyan);
+            border: none;
+            color: var(--dark-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .stt-btn:hover {
+            background: #00b3cc;
+            box-shadow: 0 0 15px var(--primary-cyan);
+            transform: translateY(-2px);
+        }
+
+        .stt-btn.secondary {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-glow);
+        }
+
+        .stt-btn.secondary:hover {
+            background: var(--accent-orange);
+            color: white;
+            box-shadow: 0 0 15px var(--accent-orange);
+        }
+
+        .stt-btn.active {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 0 15px var(--success);
+        }
+
+        .stt-logs {
+            max-height: 150px;
+            overflow-y: auto;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+        }
+
+        .stt-log-entry {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        .stt-log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .stt-log-time {
+            color: var(--text-secondary);
+            min-width: 60px;
+        }
+
+        .stt-log-message {
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .stt-log-success {
+            color: var(--success);
+        }
+
+        .stt-log-error {
+            color: var(--error);
+        }
+
+        .stt-log-transcript {
+            color: var(--primary-cyan);
+            font-weight: 600;
+        }
+
+        .stt-history {
+            background: var(--card-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.2);
+        }
+
+        .transcripts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .transcript-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .transcript-item:hover {
+            border-color: var(--primary-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .transcript-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .transcript-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .transcript-confidence,
+        .transcript-provider {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .no-transcripts {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+        }
+
+        .no-transcripts i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
         .reactive-behaviors {
             display: flex;
             flex-direction: column;
@@ -722,6 +892,32 @@
                         </div>
                     </div>
 
+                    <!-- STT Speech Recognition -->
+                    <div class="control-card">
+                        <h3><i class="fas fa-microphone"></i> Speech Recognition (STT)</h3>
+                        <div class="stt-recognition">
+                            <div class="stt-status" id="sttStatus">
+                                STT service ready
+                            </div>
+                            <div class="stt-controls">
+                                <button class="stt-btn" id="startSttBtn">
+                                    <i class="fas fa-microphone"></i>
+                                    Start STT
+                                </button>
+                                <button class="stt-btn secondary" id="clearSttBtn">
+                                    <i class="fas fa-trash"></i>
+                                    Clear History
+                                </button>
+                            </div>
+                            <div class="stt-logs" id="sttLogs">
+                                <div class="stt-log-entry stt-log-info">
+                                    <span class="stt-log-time">--:--:--</span>
+                                    <span class="stt-log-message">STT service initialized</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Reactive Behaviors -->
                     <div class="control-card">
                         <h3><i class="fas fa-robot"></i> Music-Reactive Behaviors</h3>
@@ -851,6 +1047,19 @@
             </div>
         </div>
 
+        <!-- STT Transcript History -->
+        <div class="music-section" style="margin-top: 20px;">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary-cyan); margin: 0;"><i class="fas fa-microphone"></i> Speech Transcripts</h3>
+            </div>
+            <div id="sttHistory" class="stt-history">
+                <div class="loading-transcripts" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading speech transcripts...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Status Bar -->
         <div class="status-bar">
             <div class="status-item">
@@ -860,6 +1069,10 @@
             <div class="status-item">
                 <i class="fas fa-microphone"></i>
                 <span id="audioStatus">Audio Inactive</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-keyboard"></i>
+                <span>Space: Audio | R: Record | T: STT | I: Identify</span>
             </div>
             <div class="status-item">
                 <i class="fas fa-clock"></i>

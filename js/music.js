@@ -950,6 +950,7 @@ class LAIKAMusic {
     stopAll() {
         this.stopRecording();
         this.stopAudio();
+        this.stopSTT();
     }
 
     // Settings
@@ -1029,6 +1030,10 @@ class LAIKAMusic {
                 event.preventDefault();
                 this.recognizeMusic();
                 break;
+            case 't':
+                event.preventDefault();
+                this.toggleSTT();
+                break;
         }
     }
 
@@ -1037,6 +1042,8 @@ class LAIKAMusic {
         const startBtn = document.getElementById('startAudioBtn');
         const recordBtn = document.getElementById('recordBtn');
         const audioStatus = document.getElementById('audioStatus');
+        const sttBtn = document.getElementById('startSttBtn');
+        const sttStatus = document.getElementById('sttStatus');
         
         if (this.audioActive) {
             startBtn.classList.add('active');
@@ -1054,6 +1061,19 @@ class LAIKAMusic {
         } else {
             recordBtn.classList.remove('recording');
             recordBtn.innerHTML = '<i class="fas fa-record-vinyl"></i> Record';
+        }
+        
+        // Update STT button and status
+        if (sttBtn) {
+            if (this.sttActive) {
+                sttBtn.classList.add('active');
+                sttBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Stop STT';
+                sttStatus.textContent = 'STT service active - listening for speech';
+            } else {
+                sttBtn.classList.remove('active');
+                sttBtn.innerHTML = '<i class="fas fa-microphone"></i> Start STT';
+                sttStatus.textContent = this.audioActive ? 'STT service ready' : 'Start audio first';
+            }
         }
         
         // Update beat status
