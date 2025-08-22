@@ -250,13 +250,15 @@ class HybridSTTControl {
 
     async connectToServer() {
         try {
-            // No microphone access needed - LAIKA STT is always listening
             this.isRecording = true;
             this.updateStatus('Connecting to LAIKA STT service...');
             this.addLogMessage('🔗 Connecting to STT service...', 'info');
             
             // Start WebSocket connection to receive transcripts
             this.startRealtimeConnection();
+            
+            // Start audio capture for real-time STT
+            await this.startAudioCapture();
             
             // Load existing transcript history
             await this.loadTranscriptHistory();
@@ -435,6 +437,32 @@ class HybridSTTControl {
         }
     }
 
+    async startAudioCapture() {
+        try {
+            // Request microphone access
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    sampleRate: 16000,
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+            
+            this.addLogMessage('🎤 Microphone access granted', 'success');
+            this.updateStatus('Audio capture active - listening for speech...');
+            
+            // Start audio streaming to server
+            this.startAudioStreaming();
+            
+        } catch (error) {
+            console.error('Failed to start audio capture:', error);
+            this.addLogMessage('❌ Failed to start audio capture: ' + error.message, 'error');
+            this.updateStatus('Audio capture failed - check microphone permissions');
+        }
+    }
+
     startAudioStreaming() {
         if (!this.mediaStream) return;
         
@@ -447,6 +475,7 @@ class HybridSTTControl {
         processor.onaudioprocess = (event) => {
             if (this.isRecording) {
                 const audioData = event.inputBuffer.getChannelData(0);
+                
                 // Convert to 16-bit PCM
                 const pcmData = new Int16Array(audioData.length);
                 for (let i = 0; i < audioData.length; i++) {
@@ -460,6 +489,12 @@ class HybridSTTControl {
                         data: Array.from(pcmData),
                         provider: this.currentProvider
                     });
+                    
+                    // Log audio activity (only occasionally to avoid spam)
+                    if (this.chunkCount % 100 === 0) {
+                        this.addLogMessage(`🎤 Audio streaming: ${pcmData.length} samples`, 'info');
+                    }
+                    this.chunkCount++;
                 } else if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
                     this.websocket.send(JSON.stringify({
                         type: 'audio',
