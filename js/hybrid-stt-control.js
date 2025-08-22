@@ -637,6 +637,30 @@ class HybridSTTControl {
                 }
             }
         }
+        
+        // Show detailed status message for errors and important states
+        const statusMessageElement = document.getElementById('statusMessage');
+        if (statusMessageElement) {
+            if (message.includes('Failed') || message.includes('error') || message.includes('unavailable')) {
+                statusMessageElement.textContent = message;
+                statusMessageElement.className = 'status-message error';
+                statusMessageElement.style.display = 'block';
+            } else if (message.includes('Retrying') || message.includes('Connecting')) {
+                statusMessageElement.textContent = message;
+                statusMessageElement.className = 'status-message warning';
+                statusMessageElement.style.display = 'block';
+            } else if (message.includes('Connected') || message.includes('ready')) {
+                statusMessageElement.textContent = message;
+                statusMessageElement.className = 'status-message success';
+                statusMessageElement.style.display = 'block';
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    statusMessageElement.style.display = 'none';
+                }, 3000);
+            } else {
+                statusMessageElement.style.display = 'none';
+            }
+        }
     }
 
     addLogMessage(message, type = 'info') {
