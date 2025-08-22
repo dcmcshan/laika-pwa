@@ -165,7 +165,12 @@ class LAIKAMusic {
                 const result = await response.json();
                 if (result.success && result.song) {
                     this.displayAutoRecognitionResult(result.song);
+                } else if (result.success) {
+                    // API call succeeded but no song detected
+                    console.log('🎵 No music detected in current audio');
                 }
+            } else {
+                console.warn('⚠️ Music identification API returned error status');
             }
             
         } catch (error) {
@@ -253,6 +258,23 @@ class LAIKAMusic {
     }
 
     async connectWebSocket() {
+        // Try to connect to the main server's Socket.IO endpoint first
+        try {
+            console.log('🔌 Checking Socket.IO availability on main server');
+            
+            // Check if Socket.IO is available on the main server
+            const socketioResponse = await fetch('/socket.io/');
+            if (socketioResponse.ok) {
+                console.log('✅ Socket.IO endpoint available on main server');
+                // For now, we'll use simulation mode since we need to implement Socket.IO client
+                this.enableSimulationMode();
+                return;
+            }
+        } catch (error) {
+            console.log('⚠️ Socket.IO not available on main server:', error.message);
+        }
+        
+        // Fallback to WebSocket connections
         const wsUrls = [
             `ws://${window.location.hostname}:8765/music`,
             'ws://laika.local:8765/music',
@@ -1258,9 +1280,15 @@ class LAIKAMusic {
             });
             
             if (response.ok) {
+                const result = await response.json();
                 this.sttActive = true;
                 this.updateUI();
                 this.addSTTLog('🎤 STT service started', 'success');
+                
+                // Add the initial simulated transcript
+                if (result.text) {
+                    this.addSTTTranscript(result.text, 0.95, result.provider || 'openai_realtime');
+                }
                 
                 // Start periodic STT simulation
                 this.sttSimulationInterval = setInterval(() => {
@@ -1268,7 +1296,8 @@ class LAIKAMusic {
                 }, 3000 + Math.random() * 5000); // Random intervals between 3-8 seconds
                 
             } else {
-                throw new Error('Failed to start STT service');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to start STT service');
             }
             
         } catch (error) {
