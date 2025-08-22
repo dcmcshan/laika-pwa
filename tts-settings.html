@@ -24,6 +24,9 @@
     <!-- Header/Footer Styles -->
     <link rel="stylesheet" href="css/header-footer.css">
     
+    <!-- Voice Manager -->
+    <script src="js/voice-manager.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
         
@@ -1077,6 +1080,30 @@
                     
                     <div id="tts-status" class="status-message" style="display: none;">
                         <!-- Status messages will appear here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voice Cache Management -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📦 Voice Cache</h2>
+                    <p>Manage downloaded and cached voices</p>
+                </div>
+                <div class="card-content">
+                    <div id="cache-info" style="margin-bottom: 20px;">
+                        <p>Loading cache information...</p>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <button id="refresh-cache" class="btn btn-secondary">
+                            🔄 Refresh Cache Info
+                        </button>
+                        <button id="clear-cache" class="btn btn-secondary">
+                            🗑️ Clear Cache
+                        </button>
+                        <button id="export-cache" class="btn btn-secondary">
+                            📤 Export Cache
+                        </button>
                     </div>
                 </div>
             </div>

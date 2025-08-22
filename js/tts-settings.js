@@ -9,11 +9,10 @@ class TTSSettings {
         this.currentVoice = null;
         this.elevenLabsApiKey = '';
         this.openaiApiKey = '';
-        this.voices = {};
         this.audioPlayer = null;
         
-        // Default voice configuration
-        this.defaultElevenLabsVoice = 'GN4wbsbejSnGSa1AzjH5'; // Ekaterina voice ID
+        // Initialize voice manager
+        this.voiceManager = new VoiceManager();
         
         this.initializeEventListeners();
         this.initializeSliders();
@@ -23,6 +22,9 @@ class TTSSettings {
         
         // Initialize search functionality
         this.initializeVoiceSearch();
+        
+        // Initialize cache info display
+        setTimeout(() => this.updateCacheInfo(), 100);
     }
 
     initializeEventListeners() {
@@ -118,6 +120,22 @@ class TTSSettings {
         const exportBtn = document.getElementById('export-config');
         if (exportBtn) {
             exportBtn.addEventListener('click', () => this.exportConfig());
+        }
+
+        // Cache management
+        const refreshCacheBtn = document.getElementById('refresh-cache');
+        if (refreshCacheBtn) {
+            refreshCacheBtn.addEventListener('click', () => this.updateCacheInfo());
+        }
+
+        const clearCacheBtn = document.getElementById('clear-cache');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => this.clearVoiceCache());
+        }
+
+        const exportCacheBtn = document.getElementById('export-cache');
+        if (exportCacheBtn) {
+            exportCacheBtn.addEventListener('click', () => this.exportVoiceCache());
         }
     }
 
@@ -324,22 +342,12 @@ class TTSSettings {
         }
 
         try {
-            const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-                headers: {
-                    'xi-api-key': this.elevenLabsApiKey
-                }
-            });
-
-            if (response.ok) {
-                const voices = await response.json();
-                this.voices.elevenlabs = voices.voices || [];
-                this.renderElevenLabsVoices();
-                this.showStatus(`Loaded ${this.voices.elevenlabs.length} ElevenLabs voices`, 'success');
-            } else {
-                this.showStatus('Failed to load ElevenLabs voices', 'error');
-            }
+            this.showStatus('Downloading ElevenLabs voices...', 'info');
+            const voices = await this.voiceManager.downloadElevenLabsVoices(this.elevenLabsApiKey);
+            this.renderElevenLabsVoices();
+            this.showStatus(`Downloaded and cached ${voices.length} ElevenLabs voices`, 'success');
         } catch (error) {
-            this.showStatus('Failed to load voices: ' + error.message, 'error');
+            this.showStatus('Failed to download voices: ' + error.message, 'error');
         }
     }
 
@@ -349,8 +357,9 @@ class TTSSettings {
 
         dropdown.innerHTML = '<option value="">Select a voice...</option>';
         
-        if (this.voices.elevenlabs && this.voices.elevenlabs.length > 0) {
-            this.voices.elevenlabs.forEach(voice => {
+        const voices = this.voiceManager.getVoices('elevenlabs');
+        if (voices && voices.length > 0) {
+            voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice.voice_id;
                 
@@ -377,8 +386,9 @@ class TTSSettings {
             
             // Auto-select Ekaterina if no voice is currently selected
             if (!this.currentVoice && this.currentProvider === 'elevenlabs') {
+                const defaultVoice = this.voiceManager.getDefaultVoice('elevenlabs');
                 const ekaterinaOption = Array.from(dropdown.options).find(option => 
-                    option.value === this.defaultElevenLabsVoice || 
+                    option.value === defaultVoice.id || 
                     option.textContent.toLowerCase().includes('ekaterina')
                 );
                 
@@ -401,19 +411,9 @@ class TTSSettings {
         this.showStatus('Loading OpenAI voices...', 'info');
 
         try {
-            // OpenAI TTS has predefined voices
-            const openaiVoices = [
-                { id: 'alloy', name: 'Alloy', description: 'Balanced and versatile' },
-                { id: 'echo', name: 'Echo', description: 'Clear and articulate' },
-                { id: 'fable', name: 'Fable', description: 'Narrative and engaging' },
-                { id: 'onyx', name: 'Onyx', description: 'Deep and resonant' },
-                { id: 'nova', name: 'Nova', description: 'Bright and energetic' },
-                { id: 'shimmer', name: 'Shimmer', description: 'Smooth and melodic' }
-            ];
-
-            this.voices.openai = openaiVoices;
+            const voices = await this.voiceManager.downloadOpenAIVoices(this.openaiApiKey);
             this.renderOpenAIVoices();
-            this.showStatus(`Loaded ${openaiVoices.length} OpenAI voices`, 'success');
+            this.showStatus(`Loaded ${voices.length} OpenAI voices`, 'success');
         } catch (error) {
             this.showStatus('Failed to load OpenAI voices: ' + error.message, 'error');
         }
@@ -425,8 +425,9 @@ class TTSSettings {
 
         dropdown.innerHTML = '<option value="">Select a voice...</option>';
         
-        if (this.voices.openai && this.voices.openai.length > 0) {
-            this.voices.openai.forEach(voice => {
+        const voices = this.voiceManager.getVoices('openai');
+        if (voices && voices.length > 0) {
+            voices.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice.id;
                 option.textContent = `${voice.name} - ${voice.description}`;
@@ -696,6 +697,12 @@ class TTSSettings {
     }
 
     addSearchInput(container, provider) {
+        // Check if search input already exists
+        const existingSearch = container.querySelector('.voice-search-container');
+        if (existingSearch) {
+            return; // Already exists, don't create duplicate
+        }
+        
         // Create search input
         const searchDiv = document.createElement('div');
         searchDiv.className = 'voice-search-container';
@@ -724,80 +731,115 @@ class TTSSettings {
         const dropdown = document.getElementById(`${provider}-voice-dropdown`);
         if (!dropdown) return;
 
-        const options = dropdown.querySelectorAll('option');
-        const searchLower = searchTerm.toLowerCase();
-
-        options.forEach(option => {
-            if (option.value === '') return; // Skip placeholder option
-            
-            const voiceName = option.textContent.toLowerCase();
-            const voiceId = option.value.toLowerCase();
-            
-            // Check if voice matches search term
-            const matches = voiceName.includes(searchLower) || 
-                           voiceId.includes(searchLower) ||
-                           (option.dataset.labels && option.dataset.labels.toLowerCase().includes(searchLower));
-            
-            option.style.display = matches ? '' : 'none';
-        });
-
-        // Update dropdown display
-        if (searchTerm) {
-            dropdown.style.maxHeight = '200px';
-            dropdown.style.overflowY = 'auto';
-        } else {
+        if (!searchTerm.trim()) {
+            // Show all voices when search is empty
+            const options = dropdown.querySelectorAll('option');
+            options.forEach(option => {
+                option.style.display = '';
+            });
             dropdown.style.maxHeight = '';
             dropdown.style.overflowY = '';
+            return;
         }
+
+        // Use voice manager's search functionality
+        const filteredVoices = this.voiceManager.searchVoices(provider, searchTerm);
+        
+        // Update dropdown to show only filtered voices
+        const options = dropdown.querySelectorAll('option');
+        const voiceIds = filteredVoices.map(v => v.voice_id || v.id);
+        
+        options.forEach(option => {
+            if (option.value === '') {
+                option.style.display = ''; // Always show placeholder
+            } else {
+                option.style.display = voiceIds.includes(option.value) ? '' : 'none';
+            }
+        });
+
+        // Update dropdown display for scrolling
+        dropdown.style.maxHeight = '200px';
+        dropdown.style.overflowY = 'auto';
     }
 
     setDefaultVoice(provider) {
-        if (provider === 'elevenlabs') {
-            const dropdown = document.getElementById('elevenlabs-voice-dropdown');
-            if (dropdown) {
-                // Find Ekaterina voice
-                const ekaterinaOption = Array.from(dropdown.options).find(option => 
-                    option.value === this.defaultElevenLabsVoice || 
-                    option.textContent.toLowerCase().includes('ekaterina')
-                );
-                
-                if (ekaterinaOption) {
-                    dropdown.value = ekaterinaOption.value;
-                    this.currentVoice = ekaterinaOption.value;
-                    this.updatePlayButton('elevenlabs-voice-dropdown');
-                    this.saveSettings();
-                    this.showStatus('Set to default voice: Ekaterina', 'success');
-                } else {
-                    this.showStatus('Ekaterina voice not found. Please load voices first.', 'warning');
-                }
+        const dropdown = document.getElementById(`${provider}-voice-dropdown`);
+        if (!dropdown) return;
+
+        const defaultVoice = this.voiceManager.getDefaultVoice(provider);
+        if (!defaultVoice) return;
+
+        // Find the default voice in the dropdown
+        const defaultOption = Array.from(dropdown.options).find(option => 
+            option.value === defaultVoice.id || 
+            option.value === defaultVoice.voice_id ||
+            option.textContent.toLowerCase().includes(defaultVoice.name.toLowerCase())
+        );
+        
+        if (defaultOption) {
+            dropdown.value = defaultOption.value;
+            this.currentVoice = defaultOption.value;
+            this.updatePlayButton(`${provider}-voice-dropdown`);
+            this.saveSettings();
+            this.showStatus(`Set to default voice: ${defaultVoice.name}`, 'success');
+        } else {
+            this.showStatus(`${defaultVoice.name} voice not found. Please load voices first.`, 'warning');
+        }
+    }
+
+    updateCacheInfo() {
+        const cacheInfo = this.voiceManager.getCacheInfo();
+        const cacheInfoElement = document.getElementById('cache-info');
+        
+        if (cacheInfoElement) {
+            cacheInfoElement.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="background: rgba(0,255,255,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--atomic-cyan);">
+                        <h4 style="color: var(--atomic-cyan); margin-bottom: 10px;">📊 Cache Statistics</h4>
+                        <p><strong>Total Voices:</strong> ${cacheInfo.totalVoices}</p>
+                        <p><strong>Cache Size:</strong> ${cacheInfo.cacheSize}</p>
+                    </div>
+                    <div style="background: rgba(0,255,255,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--atomic-cyan);">
+                        <h4 style="color: var(--atomic-cyan); margin-bottom: 10px;">🎵 Voice Providers</h4>
+                        ${cacheInfo.providers.map(p => `<p><strong>${p.name}:</strong> ${p.count} voices</p>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    clearVoiceCache() {
+        if (confirm('Are you sure you want to clear all cached voices? This will remove all downloaded voice data.')) {
+            this.voiceManager.clearCache();
+            this.updateCacheInfo();
+            this.showStatus('Voice cache cleared successfully', 'success');
+            
+            // Refresh voice dropdowns
+            this.renderElevenLabsVoices();
+            this.renderOpenAIVoices();
+        }
+    }
+
+    exportVoiceCache() {
+        try {
+            const cacheData = localStorage.getItem('laika_cached_voices');
+            if (!cacheData) {
+                this.showStatus('No cached voices to export', 'warning');
+                return;
             }
-        } else if (provider === 'openai') {
-            const dropdown = document.getElementById('openai-voice-dropdown');
-            if (dropdown) {
-                // Set to first available voice (usually 'alloy')
-                if (dropdown.options.length > 1) {
-                    dropdown.value = dropdown.options[1].value;
-                    this.currentVoice = dropdown.options[1].value;
-                    this.updatePlayButton('openai-voice-dropdown');
-                    this.saveSettings();
-                    this.showStatus('Set to default OpenAI voice', 'success');
-                }
-            }
-        } else if (provider === 'piper') {
-            const dropdown = document.getElementById('piper-voice-dropdown');
-            if (dropdown) {
-                // Set to Joe (English Male) as default
-                const joeOption = Array.from(dropdown.options).find(option => 
-                    option.textContent.toLowerCase().includes('joe')
-                );
-                if (joeOption) {
-                    dropdown.value = joeOption.value;
-                    this.currentVoice = joeOption.value;
-                    this.updatePlayButton('piper-voice-dropdown');
-                    this.saveSettings();
-                    this.showStatus('Set to default voice: Joe', 'success');
-                }
-            }
+            
+            const dataStr = JSON.stringify(JSON.parse(cacheData), null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'laika_voice_cache.json';
+            link.click();
+            
+            this.showStatus('Voice cache exported successfully', 'success');
+        } catch (error) {
+            console.error('Failed to export voice cache:', error);
+            this.showStatus('Failed to export voice cache', 'error');
         }
     }
 }
