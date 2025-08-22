@@ -95,16 +95,8 @@ class LAIKAMusic {
         // Attempt to connect
         await this.connectWebSocket();
         
-        // Auto-start audio on load (with user interaction fallback)
-        setTimeout(async () => {
-            try {
-                await this.startAudio();
-            } catch (error) {
-                console.log('🎤 Auto-start failed (user interaction required):', error.message);
-                // Show a subtle notification that user can click to start audio
-                this.showAudioStartPrompt();
-            }
-        }, 1000);
+        // Auto-start audio capture immediately
+        await this.autoStartAudio();
         
         // Load music data
         this.loadDetectedTracks();
@@ -116,6 +108,100 @@ class LAIKAMusic {
         
         // Load STT history
         this.loadSTTHistory();
+        
+        // Start automatic music identification
+        this.startAutoMusicIdentification();
+    }
+
+    async autoStartAudio() {
+        try {
+            console.log('🎤 Auto-starting audio capture...');
+            await this.startAudio();
+            
+            // Auto-start STT as well
+            setTimeout(() => {
+                this.startSTT();
+            }, 2000); // Start STT 2 seconds after audio
+            
+        } catch (error) {
+            console.log('🎤 Auto-start failed (user interaction required):', error.message);
+            // Show a subtle notification that user can click to start audio
+            this.showAudioStartPrompt();
+        }
+    }
+
+    startAutoMusicIdentification() {
+        // Start automatic music identification every 30 seconds
+        this.musicIdentificationInterval = setInterval(async () => {
+            if (this.audioActive && !this.recognitionInProgress) {
+                await this.identifyMusicAutomatically();
+            }
+        }, 30000); // Every 30 seconds
+        
+        console.log('🎵 Auto music identification started (every 30 seconds)');
+    }
+
+    async identifyMusicAutomatically() {
+        if (this.recognitionInProgress) return;
+        
+        this.recognitionInProgress = true;
+        
+        try {
+            console.log('🎵 Auto-identifying music...');
+            
+            // Trigger automatic music identification via API
+            const response = await fetch('/api/music/identify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    auto: true,
+                    timestamp: Date.now()
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.song) {
+                    this.displayAutoRecognitionResult(result.song);
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Auto music recognition failed:', error);
+        } finally {
+            this.recognitionInProgress = false;
+        }
+    }
+
+    displayAutoRecognitionResult(song) {
+        const songInfo = document.getElementById('songInfo');
+        const songTitle = document.getElementById('songTitle');
+        const songArtist = document.getElementById('songArtist');
+        const statusEl = document.getElementById('recognitionStatus');
+        
+        if (song.title && song.artist) {
+            songTitle.textContent = song.title;
+            songArtist.textContent = song.artist;
+            songInfo.classList.add('show');
+            statusEl.textContent = `🎵 Now playing: ${song.title} by ${song.artist}`;
+            
+            // Send to robot
+            this.sendMessage({
+                type: 'music-recognized',
+                song: song,
+                auto: true
+            });
+            
+            // Hide after 15 seconds
+            setTimeout(() => {
+                songInfo.classList.remove('show');
+                statusEl.textContent = '🎵 Listening for music...';
+            }, 15000);
+            
+            console.log(`🎵 Auto-detected: ${song.title} by ${song.artist}`);
+        }
     }
 
     setupCanvases() {
@@ -137,14 +223,10 @@ class LAIKAMusic {
     }
 
     setupEventListeners() {
-        // Audio controls
-        document.getElementById('startAudioBtn')?.addEventListener('click', () => this.toggleAudio());
+        // Audio controls (removed start audio button - now automatic)
         document.getElementById('recordBtn')?.addEventListener('click', () => this.toggleRecording());
         document.getElementById('playbackBtn')?.addEventListener('click', () => this.playRecording());
         document.getElementById('stopBtn')?.addEventListener('click', () => this.stopAll());
-        
-        // Music recognition
-        document.getElementById('recognizeBtn')?.addEventListener('click', () => this.recognizeMusic());
         
         // STT controls
         document.getElementById('startSttBtn')?.addEventListener('click', () => this.toggleSTT());
@@ -1010,10 +1092,6 @@ class LAIKAMusic {
         if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
         
         switch (event.key) {
-            case ' ':
-                event.preventDefault();
-                this.toggleAudio();
-                break;
             case 'r':
                 event.preventDefault();
                 this.toggleRecording();
@@ -1026,10 +1104,6 @@ class LAIKAMusic {
                 event.preventDefault();
                 this.stopAll();
                 break;
-            case 'i':
-                event.preventDefault();
-                this.recognizeMusic();
-                break;
             case 't':
                 event.preventDefault();
                 this.toggleSTT();
@@ -1039,21 +1113,13 @@ class LAIKAMusic {
 
     // UI updates
     updateUI() {
-        const startBtn = document.getElementById('startAudioBtn');
         const recordBtn = document.getElementById('recordBtn');
         const audioStatus = document.getElementById('audioStatus');
         const sttBtn = document.getElementById('startSttBtn');
         const sttStatus = document.getElementById('sttStatus');
         
-        if (this.audioActive) {
-            startBtn.classList.add('active');
-            startBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Stop Audio';
-            audioStatus.textContent = 'Audio Active';
-        } else {
-            startBtn.classList.remove('active');
-            startBtn.innerHTML = '<i class="fas fa-microphone"></i> Start Audio';
-            audioStatus.textContent = 'Audio Inactive';
-        }
+        // Audio is always active in auto mode
+        audioStatus.textContent = this.audioActive ? 'Audio Active - Real-time Processing' : 'Audio Starting...';
         
         if (this.isRecording) {
             recordBtn.classList.add('recording');
@@ -1072,12 +1138,12 @@ class LAIKAMusic {
             } else {
                 sttBtn.classList.remove('active');
                 sttBtn.innerHTML = '<i class="fas fa-microphone"></i> Start STT';
-                sttStatus.textContent = this.audioActive ? 'STT service ready' : 'Start audio first';
+                sttStatus.textContent = this.audioActive ? 'STT service ready' : 'Audio starting...';
             }
         }
         
         // Update beat status
-        document.getElementById('beatStatus').textContent = this.audioActive ? 'Active' : 'Inactive';
+        document.getElementById('beatStatus').textContent = this.audioActive ? 'Active' : 'Starting...';
         document.getElementById('beatStatus').classList.toggle('active', this.audioActive);
     }
 
@@ -1126,6 +1192,24 @@ class LAIKAMusic {
             console.log('🔄 Attempting to reconnect...');
             await this.connectWebSocket();
         }
+    }
+
+    cleanup() {
+        // Stop all intervals and timers
+        if (this.musicIdentificationInterval) {
+            clearInterval(this.musicIdentificationInterval);
+            this.musicIdentificationInterval = null;
+        }
+        
+        if (this.sttSimulationInterval) {
+            clearInterval(this.sttSimulationInterval);
+            this.sttSimulationInterval = null;
+        }
+        
+        // Stop audio and STT
+        this.stopAll();
+        
+        console.log('🧹 Music system cleanup completed');
     }
 
     // STT Integration Methods
@@ -1354,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Handle page unload
 window.addEventListener('beforeunload', () => {
     if (window.laikaMusic) {
-        window.laikaMusic.stopAll();
+        window.laikaMusic.cleanup();
         if (window.laikaMusic.ws) {
             window.laikaMusic.ws.close();
         }
