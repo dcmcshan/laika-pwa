@@ -1,6 +1,6 @@
 {
   "openai_api_key": "sk-test123",
   "anthropic_api_key": "",
-  "elevenlabs_api_key": "test456",
+  "elevenlabs_api_key": "test-elevenlabs-key-123",
   "google_api_key": ""
 }

@@ -4996,26 +4996,38 @@ def test_api_keys():
         elif service == 'stt' or service == 'elevenlabs':
             # Test ElevenLabs API key for STT
             try:
-                import requests
+                import urllib.request
+                import urllib.parse
+                import json
+                
+                url = "https://api.elevenlabs.io/v1/voices"
                 headers = {"xi-api-key": api_key}
-                response = requests.get("https://api.elevenlabs.io/v1/voices", headers=headers)
-                if response.status_code == 200:
-                    test_results['stt'] = {'success': True, 'message': 'ElevenLabs API key is valid for STT'}
-                else:
-                    test_results['stt'] = {'success': False, 'error': f'HTTP {response.status_code}'}
+                
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req) as response:
+                    if response.status == 200:
+                        test_results['stt'] = {'success': True, 'message': 'ElevenLabs API key is valid for STT'}
+                    else:
+                        test_results['stt'] = {'success': False, 'error': f'HTTP {response.status}'}
             except Exception as e:
                 test_results['stt'] = {'success': False, 'error': str(e)}
         
         elif service == 'tts' or service == 'elevenlabs':
             # Test ElevenLabs API key for TTS
             try:
-                import requests
+                import urllib.request
+                import urllib.parse
+                import json
+                
+                url = "https://api.elevenlabs.io/v1/voices"
                 headers = {"xi-api-key": api_key}
-                response = requests.get("https://api.elevenlabs.io/v1/voices", headers=headers)
-                if response.status_code == 200:
-                    test_results['tts'] = {'success': True, 'message': 'ElevenLabs API key is valid for TTS'}
-                else:
-                    test_results['tts'] = {'success': False, 'error': f'HTTP {response.status_code}'}
+                
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req) as response:
+                    if response.status == 200:
+                        test_results['tts'] = {'success': True, 'message': 'ElevenLabs API key is valid for TTS'}
+                    else:
+                        test_results['tts'] = {'success': False, 'error': f'HTTP {response.status}'}
             except Exception as e:
                 test_results['tts'] = {'success': False, 'error': str(e)}
         

@@ -333,6 +333,25 @@
             <div id="logs-container" style="height: 300px; overflow-y: auto; border: 1px solid var(--atomic-cyan); background: rgba(0,0,0,0.3); padding: 10px; font-family: 'Exo 2', monospace; font-size: 11px; line-height: 1.4;">
                 <div style="color: var(--text-dim);">Loading system logs...</div>
             </div>
+            
+            <!-- API Key Configuration -->
+            <div class="llm-panel" style="margin-top: 20px;">
+                <h3>🔑 API Keys</h3>
+                <div style="margin-top: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="openai-api-key" style="display: block; margin-bottom: 5px; color: var(--text-cyan);">OpenAI API Key:</label>
+                        <input type="password" id="openai-api-key" placeholder="Enter OpenAI API key" 
+                               style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--atomic-cyan); color: var(--text-cyan); border-radius: 3px; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="saveApiKey('openai_api_key', 'openai-api-key')" 
+                                    style="padding: 8px 16px; background: var(--atomic-cyan); color: black; border: none; border-radius: 3px; cursor: pointer;">💾 Save</button>
+                            <button onclick="testApiKey('openai', 'openai-api-key')" 
+                                    style="padding: 8px 16px; background: var(--atomic-orange); color: black; border: none; border-radius: 3px; cursor: pointer;">🧪 Test</button>
+                        </div>
+                        <div id="openai-status" style="margin-top: 8px; padding: 5px; border-radius: 3px; font-size: 0.9em;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -924,6 +943,97 @@
             }
         }
 
+        // Global functions for API key management
+        async function saveApiKey(keyName, inputId) {
+            const input = document.getElementById(inputId);
+            const apiKey = input.value.trim();
+            
+            if (!apiKey) {
+                showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Please enter an API key', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/keys', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ [keyName]: apiKey })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showApiKeyStatus(inputId.replace('-api-key', '-status'), 'API key saved successfully!', 'success');
+                    input.value = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+                } else {
+                    showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Failed to save API key: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Error saving API key: ' + error.message, 'error');
+            }
+        }
+        
+        async function testApiKey(service, inputId) {
+            const input = document.getElementById(inputId);
+            const apiKey = input.value.trim();
+            
+            if (!apiKey) {
+                showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Please enter an API key to test', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/keys/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ service: service, api_key: apiKey })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const testResult = data.test_results[service === 'openai' ? 'llm' : service];
+                    if (testResult && testResult.success) {
+                        showApiKeyStatus(inputId.replace('-api-key', '-status'), testResult.message, 'success');
+                    } else {
+                        showApiKeyStatus(inputId.replace('-api-key', '-status'), 'API key test failed: ' + (testResult?.error || 'Unknown error'), 'error');
+                    }
+                } else {
+                    showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Test failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showApiKeyStatus(inputId.replace('-api-key', '-status'), 'Error testing API key: ' + error.message, 'error');
+            }
+        }
+        
+        function showApiKeyStatus(statusId, message, type) {
+            const statusElement = document.getElementById(statusId);
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.style.background = type === 'success' ? 'rgba(0, 255, 0, 0.1)' : 
+                                                type === 'error' ? 'rgba(255, 0, 0, 0.1)' : 
+                                                'rgba(0, 255, 255, 0.1)';
+                statusElement.style.border = type === 'success' ? '1px solid #00ff00' : 
+                                           type === 'error' ? '1px solid #ff0000' : 
+                                           '1px solid #00ffff';
+                statusElement.style.color = type === 'success' ? '#00ff00' : 
+                                          type === 'error' ? '#ff0000' : 
+                                          '#00ffff';
+                
+                // Clear status after 5 seconds
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.style.background = '';
+                    statusElement.style.border = '';
+                    statusElement.style.color = '';
+                }, 5000);
+            }
+        }
+        
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             initWebSocket();

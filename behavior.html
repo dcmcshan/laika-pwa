@@ -6,17 +6,74 @@
     <title>LAIKA Behavior Tree Editor</title>
     <link rel="stylesheet" href="css/header-footer.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --dark-cyan: #00BCD4;
+            --electric-blue: #0080FF;
+            --atomic-bg: #0A0A0F;
+            --panel-bg: #141420;
+            --grid-color: #00FFFF33;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --atomic-orange: #FF6B35;
+            --atomic-pink: #FF1B8D;
+            --warning-yellow: #FFD700;
+        }
+        
         body {
-            font-family: 'Courier New', monospace;
-            background: #0a0a0a;
-            color: #00ff41;
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: var(--atomic-bg);
+            background-image: 
+                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
+            background-size: 40px 40px, 40px 40px, 100% 100%;
+            background-attachment: fixed;
+            color: var(--text-cyan);
             margin: 0;
             padding: 20px;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    var(--grid-color) 2px,
+                    var(--grid-color) 3px
+                );
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.3;
         }
         
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            background: var(--panel-bg);
+            background-image: 
+                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
+            box-shadow: 
+                0 0 30px var(--glow-cyan),
+                inset 0 0 30px rgba(0, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 15px;
+            padding: 30px;
+            position: relative;
+            z-index: 2;
         }
         
         .header {
@@ -27,13 +84,17 @@
         .header h1 {
             font-size: 2.5em;
             margin: 0;
-            text-shadow: 0 0 10px #00ff41;
+            text-shadow: 0 0 10px var(--atomic-cyan);
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
         }
         
         .header p {
             font-size: 1.2em;
             opacity: 0.8;
             margin: 10px 0;
+            color: var(--text-dim);
         }
         
         .main-content {
@@ -44,18 +105,26 @@
         }
         
         .card {
-            background: #1a1a1a;
-            border: 2px solid #00ff41;
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            border-color: var(--tron-cyan);
         }
         
         .card h2 {
             margin-top: 0;
-            color: #00ff41;
-            border-bottom: 1px solid #00ff41;
+            color: var(--atomic-cyan);
+            border-bottom: 1px solid var(--atomic-cyan);
             padding-bottom: 10px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
         }
         
         .behavior-controls {
@@ -66,37 +135,40 @@
         }
         
         .btn {
-            background: #00ff41;
+            background: var(--atomic-cyan);
             color: #000;
             border: none;
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            font-family: 'Courier New', monospace;
+            font-family: 'Orbitron', monospace;
             font-weight: bold;
             transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .btn:hover {
-            background: #00cc33;
-            box-shadow: 0 0 10px #00ff41;
+            background: var(--tron-cyan);
+            box-shadow: 0 0 15px var(--atomic-cyan);
+            transform: translateY(-2px);
         }
         
         .btn-danger {
-            background: #ff0040;
+            background: var(--atomic-pink);
         }
         
         .btn-danger:hover {
-            background: #cc0033;
-            box-shadow: 0 0 10px #ff0040;
+            background: #FF1B8D;
+            box-shadow: 0 0 15px var(--atomic-pink);
         }
         
         .btn-success {
-            background: #00ff41;
+            background: var(--atomic-cyan);
         }
         
         .btn-warning {
-            background: #ffaa00;
+            background: var(--warning-yellow);
             color: #000;
         }
         
@@ -109,18 +181,18 @@
         }
         
         .status-active {
-            background: #00ff41;
-            box-shadow: 0 0 10px #00ff41;
+            background: var(--atomic-cyan);
+            box-shadow: 0 0 10px var(--atomic-cyan);
         }
         
         .status-inactive {
-            background: #ff0040;
-            box-shadow: 0 0 10px #ff0040;
+            background: var(--atomic-pink);
+            box-shadow: 0 0 10px var(--atomic-pink);
         }
         
         .status-connecting {
-            background: #ffaa00;
-            box-shadow: 0 0 10px #ffaa00;
+            background: var(--warning-yellow);
+            box-shadow: 0 0 10px var(--warning-yellow);
             animation: pulse 1s infinite;
         }
         
@@ -133,9 +205,9 @@
         .xml-editor {
             width: 100%;
             height: 400px;
-            background: #000;
-            color: #00ff41;
-            border: 1px solid #00ff41;
+            background: var(--atomic-bg);
+            color: var(--text-cyan);
+            border: 1px solid var(--atomic-cyan);
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
@@ -146,9 +218,9 @@
         .groot2-container {
             width: 100%;
             height: 600px;
-            border: 2px solid #00ff41;
+            border: 2px solid var(--atomic-cyan);
             border-radius: 10px;
-            background: #000;
+            background: var(--atomic-bg);
             position: relative;
         }
         
@@ -157,7 +229,7 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #666;
+            color: var(--text-dim);
             font-size: 1.2em;
         }
         
@@ -169,8 +241,8 @@
         }
         
         .action-item {
-            background: #1a1a1a;
-            border: 1px solid #333;
+            background: var(--panel-bg);
+            border: 1px solid var(--atomic-cyan);
             border-radius: 5px;
             padding: 15px;
             text-align: center;
@@ -179,13 +251,16 @@
         }
         
         .action-item:hover {
-            border-color: #00ff41;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+            border-color: var(--tron-cyan);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            transform: translateY(-2px);
         }
         
         .action-item h3 {
             margin: 0 0 10px 0;
-            color: #00ff41;
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
         }
         
         .action-item p {
@@ -195,8 +270,8 @@
         }
         
         .log-area {
-            background: #000;
-            border: 1px solid #00ff41;
+            background: var(--atomic-bg);
+            border: 1px solid var(--atomic-cyan);
             border-radius: 5px;
             padding: 15px;
             height: 200px;

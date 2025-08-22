@@ -242,19 +242,29 @@ class TTSSettings {
         this.showStatus('Testing ElevenLabs API key...', 'info');
         
         try {
-            const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+            // Use the centralized API key testing endpoint
+            const response = await fetch('/api/keys/test', {
+                method: 'POST',
                 headers: {
-                    'xi-api-key': apiKey
-                }
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ service: 'elevenlabs', api_key: apiKey })
             });
 
-            if (response.ok) {
-                this.elevenLabsApiKey = apiKey;
-                this.showStatus('ElevenLabs API key is valid!', 'success');
-                this.loadElevenLabsVoices();
-                this.saveSettings();
+            const data = await response.json();
+            
+            if (data.success) {
+                const testResult = data.test_results.tts;
+                if (testResult && testResult.success) {
+                    this.elevenLabsApiKey = apiKey;
+                    this.showStatus('ElevenLabs API key is valid!', 'success');
+                    this.loadElevenLabsVoices();
+                    this.saveSettings();
+                } else {
+                    this.showStatus('Invalid ElevenLabs API key: ' + (testResult?.error || 'Unknown error'), 'error');
+                }
             } else {
-                this.showStatus('Invalid ElevenLabs API key', 'error');
+                this.showStatus('Failed to test API key: ' + data.error, 'error');
             }
         } catch (error) {
             this.showStatus('Failed to test API key: ' + error.message, 'error');
@@ -273,18 +283,28 @@ class TTSSettings {
         this.showStatus('Testing OpenAI API key...', 'info');
         
         try {
-            const response = await fetch('https://api.openai.com/v1/models', {
+            // Use the centralized API key testing endpoint
+            const response = await fetch('/api/keys/test', {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`
-                }
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ service: 'openai', api_key: apiKey })
             });
 
-            if (response.ok) {
-                this.openaiApiKey = apiKey;
-                this.showStatus('OpenAI API key is valid!', 'success');
-                this.saveSettings();
+            const data = await response.json();
+            
+            if (data.success) {
+                const testResult = data.test_results.llm;
+                if (testResult && testResult.success) {
+                    this.openaiApiKey = apiKey;
+                    this.showStatus('OpenAI API key is valid!', 'success');
+                    this.saveSettings();
+                } else {
+                    this.showStatus('Invalid OpenAI API key: ' + (testResult?.error || 'Unknown error'), 'error');
+                }
             } else {
-                this.showStatus('Invalid OpenAI API key', 'error');
+                this.showStatus('Failed to test API key: ' + data.error, 'error');
             }
         } catch (error) {
             this.showStatus('Failed to test API key: ' + error.message, 'error');
@@ -627,6 +647,47 @@ class TTSSettings {
 }
 
 // Initialize when DOM is loaded
+// Global function for API key management (called from HTML)
+async function saveApiKey(keyName, inputId) {
+    const input = document.getElementById(inputId);
+    const apiKey = input.value.trim();
+    
+    if (!apiKey) {
+        if (window.ttsSettings) {
+            window.ttsSettings.showStatus('Please enter an API key', 'error');
+        }
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/keys', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ [keyName]: apiKey })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (window.ttsSettings) {
+                window.ttsSettings.showStatus('API key saved successfully!', 'success');
+            }
+            // Mask the key in the input field
+            input.value = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+        } else {
+            if (window.ttsSettings) {
+                window.ttsSettings.showStatus('Failed to save API key: ' + data.error, 'error');
+            }
+        }
+    } catch (error) {
+        if (window.ttsSettings) {
+            window.ttsSettings.showStatus('Error saving API key: ' + error.message, 'error');
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     window.ttsSettings = new TTSSettings();
 });
