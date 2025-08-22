@@ -4,9 +4,10 @@
 Modular Flask routes for 3D model functionality
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from datetime import datetime
 import logging
+import os
 
 # Import our 3D API
 from three_d_api import get_3d_api
@@ -181,6 +182,37 @@ def get_3d_status():
         })
     except Exception as e:
         logger.error(f"❌ Failed to get 3D status: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@three_d_bp.route('/puppypi_description/<path:filename>')
+def serve_puppypi_file(filename):
+    """Serve puppypi_description files (URDF, STL, etc.)"""
+    try:
+        api = get_3d_api()
+        file_path = os.path.join(api.puppypi_dir, filename)
+        
+        if not os.path.exists(file_path):
+            logger.warning(f"⚠️ File not found: {file_path}")
+            return jsonify({
+                'success': False,
+                'error': f'File not found: {filename}'
+            }), 404
+        
+        # Set appropriate content type based on file extension
+        content_type = 'text/plain'  # Default for URDF
+        if filename.lower().endswith('.stl'):
+            content_type = 'application/octet-stream'
+        elif filename.lower().endswith('.urdf'):
+            content_type = 'application/xml'
+        
+        logger.info(f"📁 Serving puppypi_description file: {filename}")
+        return send_file(file_path, mimetype=content_type)
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to serve puppypi_description file {filename}: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

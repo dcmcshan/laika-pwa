@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URDF-Loaders Demo - LAIKA PWA</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ffff;
+        }
+        
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button:hover {
+            background: #00cccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="info">
+        <h3>🤖 URDF-Loaders Demo</h3>
+        <p>Based on <a href="https://github.com/gkjohnson/urdf-loaders" target="_blank">urdf-loaders</a></p>
+        <p>Status: <span id="status">Loading...</span></p>
+    </div>
+    
+    <div id="controls">
+        <h4>🎮 Controls</h4>
+        <button onclick="animateRobot()">Animate</button>
+        <button onclick="resetRobot()">Reset</button>
+        <button onclick="toggleWireframe()">Wireframe</button>
+        <button onclick="toggleGrid()">Grid</button>
+    </div>
+
+    <!-- Load Three.js -->
+    <script src="/js/libs/three.min.js"></script>
+    <script src="/js/libs/OrbitControls.js"></script>
+    <script src="/js/libs/URDFLoader.min.js"></script>
+    <script src="/js/libs/roslib.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, robot;
+        let animationId = null;
+        let isAnimating = false;
+        let showWireframe = false;
+        let showGrid = true;
+        
+        // Initialize the 3D scene
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0.5, 0.5, 0.5);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(1, 10, 0x00ffff, 0x333333);
+            gridHelper.name = 'grid';
+            scene.add(gridHelper);
+            
+            // Load robot
+            loadRobot();
+            
+            // Start animation loop
+            animate();
+        }
+        
+        function loadRobot() {
+            const loader = new URDFLoader();
+            
+            // Map package paths
+            loader.packages = {
+                'puppypi_description': '/puppypi_description'
+            };
+            
+            const urdfPath = '/puppypi_description/puppy.urdf';
+            
+            loader.load(urdfPath, (model) => {
+                robot = model;
+                robot.rotation.x = Math.PI / 2; // Align Z-up to Y-up
+                scene.add(robot);
+                
+                // Center camera on robot
+                const bbox = new THREE.Box3().setFromObject(robot);
+                const center = bbox.getCenter(new THREE.Vector3());
+                const size = bbox.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180);
+                let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                
+                camera.position.set(center.x, center.y, center.z + cameraZ * 1.5);
+                controls.target.copy(center);
+                controls.update();
+                
+                document.getElementById('status').textContent = 'Robot loaded successfully';
+                console.log('Robot loaded:', robot);
+                console.log('Available joints:', Object.keys(robot.joints));
+            }, undefined, (error) => {
+                console.error('Failed to load URDF:', error);
+                document.getElementById('status').textContent = 'Failed to load URDF';
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (isAnimating && robot) {
+                const time = Date.now() * 0.001;
+                
+                // Animate joints
+                Object.keys(robot.joints).forEach((jointName, index) => {
+                    const joint = robot.joints[jointName];
+                    if (joint && joint.setJointValue) {
+                        const value = Math.sin(time + index) * 0.5;
+                        joint.setJointValue(value);
+                    }
+                });
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function animateRobot() {
+            isAnimating = !isAnimating;
+            const button = event.target;
+            button.textContent = isAnimating ? 'Stop' : 'Animate';
+        }
+        
+        function resetRobot() {
+            if (robot) {
+                Object.keys(robot.joints).forEach((jointName) => {
+                    const joint = robot.joints[jointName];
+                    if (joint && joint.setJointValue) {
+                        joint.setJointValue(0);
+                    }
+                });
+            }
+        }
+        
+        function toggleWireframe() {
+            showWireframe = !showWireframe;
+            if (robot) {
+                robot.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        child.material.wireframe = showWireframe;
+                    }
+                });
+            }
+        }
+        
+        function toggleGrid() {
+            showGrid = !showGrid;
+            const grid = scene.getObjectByName('grid');
+            if (grid) {
+                grid.visible = showGrid;
+            }
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

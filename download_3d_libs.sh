@@ -40,13 +40,13 @@ echo -e "${BLUE}🔧 Downloading Three.js libraries...${NC}"
 
 # Three.js core
 download_file \
-    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js" \
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" \
     "three.min.js" \
     "Three.js core library"
 
 # OrbitControls
 download_file \
-    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/examples/js/controls/OrbitControls.js" \
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js" \
     "OrbitControls.js" \
     "Three.js OrbitControls"
 

@@ -32,6 +32,41 @@ def init_stt_api(app, socketio=None):
     # Register blueprint
     app.register_blueprint(stt_bp)
     
+    # Initialize standalone STT service
+    try:
+        import sys
+        import os
+        # Add parent directory to path to find standalone_stt_service.py
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.append(parent_dir)
+        
+        from standalone_stt_service import get_stt_service
+        
+        # Get the standalone STT service
+        app.stt_service = get_stt_service()
+        
+        # Set up SocketIO callback for broadcasting transcripts
+        if socketio:
+            def broadcast_transcript(event, data):
+                socketio.emit(event, data)
+            
+            app.stt_service.set_socketio_callback(broadcast_transcript)
+        
+        # Start the STT service automatically in background
+        if hasattr(app.stt_service, 'start_recording'):
+            app.stt_service.start_recording()
+            print("✅ STT service started automatically in background")
+        
+        print("✅ Standalone STT service initialized successfully")
+            
+    except ImportError as e:
+        print(f"❌ Failed to import standalone STT service: {e}")
+        app.stt_service = None
+    except Exception as e:
+        print(f"❌ Failed to initialize STT service: {e}")
+        app.stt_service = None
+    
     print("✅ STT API module initialized")
 
 @stt_bp.route('/config', methods=['GET', 'POST'])
@@ -188,6 +223,41 @@ def api_stt_simulate():
         print(f"❌ Error simulating STT: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@stt_bp.route('/audio', methods=['POST'])
+def api_stt_audio():
+    """Receive audio data from PWA and process with STT service"""
+    try:
+        if not hasattr(request, 'app') or not hasattr(request.app, 'stt_service') or not request.app.stt_service:
+            return jsonify({'success': False, 'error': 'STT service not initialized'}), 500
+        
+        stt_service = request.app.stt_service
+        
+        # Get audio data from request
+        data = request.get_json()
+        if not data or 'audio' not in data:
+            return jsonify({'success': False, 'error': 'No audio data received'}), 400
+        
+        # Decode base64 audio data
+        import base64
+        audio_data = base64.b64decode(data['audio'])
+        
+        # Send to STT service
+        if hasattr(stt_service, 'process_audio'):
+            stt_service.process_audio(audio_data)
+            print("✅ Audio data sent to STT service")
+        else:
+            print("⚠️ STT service does not have process_audio method")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Audio data received and processed',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error processing audio: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @stt_bp.route('/transcript', methods=['POST'])
 def api_stt_transcript():
     """Receive transcript from STT service and broadcast to connected clients"""
@@ -249,21 +319,31 @@ def api_stt_history():
     """Get transcript history"""
     try:
         # Get query parameters
-        limit = request.args.get('limit', MAX_HISTORY_SIZE, type=int)
+        limit = request.args.get('limit', 100, type=int)
         provider = request.args.get('provider', None)
         since = request.args.get('since', None)  # ISO timestamp
         
+        # Get history from standalone STT service
+        if hasattr(request, 'app') and hasattr(request.app, 'stt_service') and request.app.stt_service:
+            stt_service = request.app.stt_service
+            if hasattr(stt_service, 'get_transcript_history'):
+                history = stt_service.get_transcript_history()
+            else:
+                history = []
+        else:
+            history = []
+        
         # Filter history based on parameters
-        filtered_history = transcript_history.copy()
+        filtered_history = history.copy()
         
         if provider:
-            filtered_history = [entry for entry in filtered_history if entry['provider'] == provider]
+            filtered_history = [entry for entry in filtered_history if entry.get('provider') == provider]
         
         if since:
             try:
                 since_dt = datetime.fromisoformat(since.replace('Z', '+00:00'))
                 filtered_history = [entry for entry in filtered_history 
-                                  if datetime.fromisoformat(entry['datetime'].replace('Z', '+00:00')) >= since_dt]
+                                  if datetime.fromisoformat(entry.get('timestamp', '').replace('Z', '+00:00')) >= since_dt]
             except ValueError:
                 return jsonify({'success': False, 'error': 'Invalid since timestamp format'}), 400
         
@@ -275,8 +355,8 @@ def api_stt_history():
             'success': True,
             'history': filtered_history,
             'total_count': len(filtered_history),
-            'total_available': len(transcript_history),
-            'max_history_size': MAX_HISTORY_SIZE
+            'total_available': len(history),
+            'max_history_size': 100
         })
         
     except Exception as e:
@@ -301,15 +381,83 @@ def api_stt_history_clear():
         print(f"❌ Error clearing transcript history: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@stt_bp.route('/start', methods=['POST'])
+def api_stt_start():
+    """Start the STT service"""
+    try:
+        if not hasattr(request, 'app') or not hasattr(request.app, 'stt_service') or not request.app.stt_service:
+            return jsonify({'success': False, 'error': 'STT service not initialized'}), 500
+        
+        stt_service = request.app.stt_service
+        
+        # Start the standalone STT service
+        if hasattr(stt_service, 'start_recording'):
+            stt_service.start_recording()
+            print("✅ STT service started successfully")
+        else:
+            print("⚠️ STT service does not have start_recording method")
+        
+        return jsonify({
+            'success': True,
+            'message': 'STT service started successfully',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error starting STT service: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@stt_bp.route('/stop', methods=['POST'])
+def api_stt_stop():
+    """Stop the STT service"""
+    try:
+        if not hasattr(request, 'app') or not hasattr(request.app, 'stt_service') or not request.app.stt_service:
+            return jsonify({'success': False, 'error': 'STT service not initialized'}), 500
+        
+        stt_service = request.app.stt_service
+        
+        # Stop the standalone STT service
+        if hasattr(stt_service, 'stop_recording'):
+            stt_service.stop_recording()
+            print("✅ STT service stopped successfully")
+        else:
+            print("⚠️ STT service does not have stop_recording method")
+        
+        return jsonify({
+            'success': True,
+            'message': 'STT service stopped successfully',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error stopping STT service: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @stt_bp.route('/status', methods=['GET'])
 def api_stt_status():
     """Get STT service status"""
     try:
-        # Check if STT service is available
+        # Check if STT service is available and running
         stt_available = False
+        stt_running = False
+        stt_provider = None
+        
         try:
-            from hybrid_stt_service import HybridSTTService
+            import sys
+            import os
+            # Add parent directory to path to find standalone_stt_service.py
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if parent_dir not in sys.path:
+                sys.path.append(parent_dir)
+            
+            from standalone_stt_service import StandaloneSTTService
             stt_available = True
+            
+            # Check if service instance exists and is running
+            if hasattr(request, 'app') and hasattr(request.app, 'stt_service') and request.app.stt_service:
+                stt_service = request.app.stt_service
+                stt_running = stt_service.is_recording if hasattr(stt_service, 'is_recording') else True  # Assume running if service exists
+                stt_provider = "openai_whisper"  # Standalone service uses OpenAI Whisper
         except ImportError:
             pass
         
@@ -317,6 +465,8 @@ def api_stt_status():
             'success': True,
             'status': {
                 'stt_available': stt_available,
+                'stt_running': stt_running,
+                'stt_provider': stt_provider,
                 'history_count': len(transcript_history),
                 'max_history_size': MAX_HISTORY_SIZE,
                 'socketio_available': SOCKETIO_AVAILABLE

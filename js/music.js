@@ -1228,6 +1228,11 @@ class LAIKAMusic {
             this.sttSimulationInterval = null;
         }
         
+        if (this.sttListenerInterval) {
+            clearInterval(this.sttListenerInterval);
+            this.sttListenerInterval = null;
+        }
+        
         // Stop audio and STT
         this.stopAll();
         
@@ -1265,17 +1270,19 @@ class LAIKAMusic {
         }
         
         try {
-            console.log('🎤 Starting STT service...');
+            console.log('🎤 Starting LAIKA STT service...');
             
-            // Start STT simulation/connection
-            const response = await fetch('/api/stt/simulate', {
+            // Start real STT service using LAIKA's hybrid STT system
+            const response = await fetch('/api/stt/start', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    mode: 'continuous',
-                    language: this.sttConfig.language
+                    provider: this.sttConfig.provider,
+                    language: this.sttConfig.language,
+                    continuous: true,
+                    enable_ros2: true
                 })
             });
             
@@ -1283,26 +1290,19 @@ class LAIKAMusic {
                 const result = await response.json();
                 this.sttActive = true;
                 this.updateUI();
-                this.addSTTLog('🎤 STT service started', 'success');
+                this.addSTTLog('🎤 LAIKA STT service started', 'success');
                 
-                // Add the initial simulated transcript
-                if (result.text) {
-                    this.addSTTTranscript(result.text, 0.95, result.provider || 'openai_realtime');
-                }
-                
-                // Start periodic STT simulation
-                this.sttSimulationInterval = setInterval(() => {
-                    this.simulateSTTTranscript();
-                }, 3000 + Math.random() * 5000); // Random intervals between 3-8 seconds
+                // Start listening for real transcripts from LAIKA STT
+                this.startSTTListener();
                 
             } else {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to start STT service');
+                throw new Error(errorData.error || 'Failed to start LAIKA STT service');
             }
             
         } catch (error) {
-            console.error('❌ Failed to start STT:', error);
-            this.addSTTLog('❌ STT start failed: ' + error.message, 'error');
+            console.error('❌ Failed to start LAIKA STT:', error);
+            this.addSTTLog('❌ LAIKA STT start failed: ' + error.message, 'error');
         }
     }
 
@@ -1312,30 +1312,36 @@ class LAIKAMusic {
             clearInterval(this.sttSimulationInterval);
             this.sttSimulationInterval = null;
         }
+        if (this.sttListenerInterval) {
+            clearInterval(this.sttListenerInterval);
+            this.sttListenerInterval = null;
+        }
         this.updateUI();
-        this.addSTTLog('🔇 STT service stopped', 'info');
+        this.addSTTLog('🔇 LAIKA STT service stopped', 'info');
     }
 
-    async simulateSTTTranscript() {
-        if (!this.sttActive) return;
-        
-        const testPhrases = [
-            "Hello LAIKA, how are you today?",
-            "What's the weather like?",
-            "Tell me a joke",
-            "Play some music",
-            "What time is it?",
-            "How are you feeling?",
-            "Can you dance?",
-            "What's your favorite song?",
-            "Tell me about yourself",
-            "Good morning LAIKA"
-        ];
-        
-        const randomPhrase = testPhrases[Math.floor(Math.random() * testPhrases.length)];
-        const confidence = 0.85 + Math.random() * 0.15; // 85-100% confidence
-        
-        this.addSTTTranscript(randomPhrase, confidence, 'openai_realtime');
+    startSTTListener() {
+        // Listen for real transcripts from LAIKA STT system
+        this.sttListenerInterval = setInterval(async () => {
+            if (!this.sttActive) return;
+            
+            try {
+                // Check for new transcripts from LAIKA STT
+                const response = await fetch('/api/stt/transcripts/latest');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.transcript) {
+                        this.addSTTTranscript(
+                            data.transcript.text,
+                            data.transcript.confidence || 0.9,
+                            data.transcript.provider || 'openai_realtime'
+                        );
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ STT listener error:', error);
+            }
+        }, 1000); // Check every second for new transcripts
     }
 
     addSTTTranscript(text, confidence, provider) {

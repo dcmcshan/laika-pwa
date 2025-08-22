@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LAIKA System Architecture</title>
+  <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    html, body { 
+      margin: 0; 
+      padding: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: 'Courier New', monospace;
+      color: #00ffff;
+    }
+    
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid #00ffff;
+      z-index: 1000;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #00ffff;
+    }
+    
+    .header-nav {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .header-nav a {
+      color: #00ffff;
+      text-decoration: none;
+      padding: 8px 16px;
+      border: 1px solid #00ffff;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+    
+    .header-nav a:hover {
+      background: #00ffff;
+      color: #000;
+    }
+    
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      padding-top: 60px;
+    }
+    
+    #network { 
+      flex: 2;
+      height: calc(100vh - 60px); 
+    }
+    
+    #sidebar {
+      flex: 1;
+      background: rgba(26, 26, 26, 0.95);
+      border-left: 2px solid #00ffff;
+      display: flex;
+      flex-direction: column;
+      max-width: 450px;
+      min-width: 350px;
+    }
+    
+    .sidebar-section {
+      border-bottom: 1px solid #333;
+      padding: 15px;
+    }
+    
+    .sidebar-section h3 {
+      margin: 0 0 10px 0;
+      color: #00ffff;
+      font-size: 16px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+    }
+    
+    .service-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #222;
+    }
+    
+    .service-status:last-child {
+      border-bottom: none;
+    }
+    
+    .service-name {
+      font-weight: bold;
+      color: #fff;
+    }
+    
+    .service-description {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00ff88;
+      display: inline-block;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    
+    .status-offline {
+      background: #ff0000;
+      animation: none;
+    }
+    
+    .status-warning {
+      background: #ffff00;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    .log-header {
+      background: #2a2a2a;
+      color: #fff;
+      padding: 10px 15px;
+      border-bottom: 1px solid #333;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .log-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .log-btn {
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.3s ease;
+    }
+    
+    .log-btn:hover {
+      background: #555;
+    }
+    
+    .log-btn.clear {
+      background: #d63031;
+    }
+    
+    .log-btn.clear:hover {
+      background: #e17055;
+    }
+    
+    #logContent {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      color: #00ff88;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      border-radius: 3px;
+      background: rgba(0, 255, 136, 0.1);
+      border-left: 3px solid #00ff88;
+    }
+    
+    .log-entry.error {
+      background: rgba(255, 0, 0, 0.1);
+      border-left-color: #ff0000;
+      color: #ff6b6b;
+    }
+    
+    .log-entry.warning {
+      background: rgba(255, 255, 0, 0.1);
+      border-left-color: #ffff00;
+      color: #fdcb6e;
+    }
+    
+    .log-entry.info {
+      background: rgba(0, 150, 255, 0.1);
+      border-left-color: #0096ff;
+      color: #74b9ff;
+    }
+    
+    .log-timestamp {
+      color: #888;
+      font-size: 10px;
+    }
+    
+    .log-message {
+      margin-top: 2px;
+    }
+    
+    .log-source {
+      font-weight: bold;
+      color: #fff;
+    }
+    
+    .log-target {
+      font-weight: bold;
+      color: #fff;
+    }
+    
+    .log-data {
+      color: #ddd;
+      font-style: italic;
+      margin-top: 2px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .stat-item {
+      background: rgba(0, 255, 255, 0.1);
+      border: 1px solid #00ffff;
+      border-radius: 4px;
+      padding: 8px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00ffff;
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: #888;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🤖 LAIKA System Architecture</h1>
+    <div class="header-nav">
+      <a href="/">🏠 Home</a>
+      <a href="/control">🎮 Control</a>
+      <a href="/3d">🔧 3D Model</a>
+      <a href="/slam">🗺️ SLAM</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="network"></div>
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <h3>📊 System Status</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="totalServices">0</div>
+            <div class="stat-label">Total Services</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="activeServices">0</div>
+            <div class="stat-label">Active Services</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="messageCount">0</div>
+            <div class="stat-label">Messages/min</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="uptime">0s</div>
+            <div class="stat-label">System Uptime</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="cpuPercent">0%</div>
+            <div class="stat-label">CPU Usage</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="memoryPercent">0%</div>
+            <div class="stat-label">Memory Usage</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="sidebar-section">
+        <h3>🔧 Service Status</h3>
+        <div id="serviceStatusList">
+          <!-- Service status items will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <div class="sidebar-section" style="flex: 1;">
+        <div class="log-header">
+          <div>
+            <span class="status-indicator" id="connectionStatus"></span>
+            Message Log
+          </div>
+          <div class="log-controls">
+            <button class="log-btn" id="pauseBtn">Pause</button>
+            <button class="log-btn clear" id="clearBtn">Clear</button>
+          </div>
+        </div>
+        <div id="logContent"></div>
+      </div>
+    </div>
+  </div>
+  <script src="js/architecture.js"></script>
+</body>
+</html>

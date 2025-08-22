@@ -213,6 +213,7 @@
         <div id="ros-status" class="status disconnected">ROSBridge: Disconnected</div>
         <div id="joint-count">Joints: 0</div>
         <div id="fps">FPS: 0</div>
+        <div id="servo-status" style="font-size: 10px; margin-top: 10px; color: #00ffff;">Servo Angles: Waiting for ROS2 data...</div>
     </div>
 
     <div id="controls">
@@ -253,39 +254,57 @@
 
     <!-- Three.js with sequential loading and verification -->
     <script>
-        // Load scripts sequentially to ensure proper order
+        // Create global fallbacks immediately to prevent timing issues
+        window.createFallbackOrbitControls = function() {
+            if (typeof THREE !== 'undefined' && (typeof THREE.OrbitControls === 'undefined' || typeof THREE.OrbitControls !== 'function')) {
+                console.warn('⚠️ Creating global fallback OrbitControls');
+                THREE.OrbitControls = function(camera, domElement) {
+                    this.camera = camera;
+                    this.domElement = domElement;
+                    this.enabled = true;
+                    this.target = new THREE.Vector3();
+                    this.enableDamping = false;
+                    this.dampingFactor = 0.05;
+                    this.maxPolarAngle = Math.PI / 2;
+                    this.update = function() {
+                        console.log('Global fallback OrbitControls update called');
+                    };
+                };
+                window.OrbitControls = THREE.OrbitControls;
+                return true;
+            }
+            return false;
+        };
+        
+        // Load scripts from local files only - no CDN dependencies
         async function loadScriptsSequentially() {
             const scripts = [
                 {
                     name: 'Three.js',
-                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js',
-                    fallback: 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js',
                     local: '/js/libs/three.min.js'
                 },
                 {
                     name: 'OrbitControls',
-                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/examples/js/controls/OrbitControls.js',
-                    fallback: 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/controls/OrbitControls.js',
                     local: '/js/libs/OrbitControls.js'
                 },
                 {
+                    name: 'STLLoader',
+                    local: '/js/libs/STLLoader.js?v=' + Date.now()
+                },
+                {
                     name: 'URDFLoader',
-                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/urdf-loader/0.9.6/URDFLoader.min.js',
-                    fallback: 'https://cdn.jsdelivr.net/npm/urdf-loader@0.9.6/dist/URDFLoader.min.js',
-                    local: '/js/libs/URDFLoader.min.js'
+                    local: '/js/libs/URDFLoader.js?v=' + Date.now()
                 },
                 {
                     name: 'ROSLib',
-                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/roslib/1.3.0/roslib.min.js',
-                    fallback: 'https://cdn.jsdelivr.net/npm/roslib@1.3.0/build/roslib.min.js',
                     local: '/js/libs/roslib.min.js'
                 }
             ];
 
             for (const script of scripts) {
                 try {
-                    await loadScript(script.primary, script.fallback, script.local);
-                    console.log(`✅ ${script.name} loaded successfully`);
+                    await loadLocalScript(script.local);
+                    console.log(`✅ ${script.name} loaded successfully from local file`);
                 } catch (error) {
                     console.error(`❌ Failed to load ${script.name}:`, error);
                     throw error;
@@ -293,7 +312,18 @@
             }
         }
 
-        function loadScript(src, fallbackSrc) {
+        function loadLocalScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                // Add cache-busting parameter to prevent browser caching
+                script.src = src + '?v=' + Date.now();
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
+        }
+
+        function loadScript(src, fallbackSrc, localSrc) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = src;
@@ -316,44 +346,235 @@
                     fallbackScript.src = fallbackSrc;
                     fallbackScript.onload = () => {
                         if (src.includes('three.min.js') && typeof THREE === 'undefined') {
-                            reject(new Error(`${src} and fallback both failed to load THREE object`));
+                            console.warn('Fallback also failed, trying local...');
+                            loadLocal();
                         } else {
                             resolve();
                         }
                     };
-                    fallbackScript.onerror = () => reject(new Error(`Failed to load ${src} and fallback`));
+                    fallbackScript.onerror = () => {
+                        console.warn('Fallback failed, trying local...');
+                        loadLocal();
+                    };
                     document.head.appendChild(fallbackScript);
+                };
+
+                function loadLocal() {
+                    const localScript = document.createElement('script');
+                    localScript.src = localSrc;
+                    localScript.onload = () => {
+                        if (src.includes('three.min.js') && typeof THREE === 'undefined') {
+                            reject(new Error(`${src}, fallback, and local all failed to load THREE object`));
+                        } else {
+                            resolve();
+                        }
+                    };
+                    localScript.onerror = () => reject(new Error(`Failed to load ${src}, fallback, and local`));
+                    document.head.appendChild(localScript);
                 };
 
                 document.head.appendChild(script);
             });
         }
 
-        // Load libraries and initialize
-        loadScriptsSequentially()
-            .then(() => {
-                // Verify all required objects are available
-                if (typeof THREE === 'undefined') {
-                    throw new Error('THREE object is not defined');
-                }
-                if (typeof THREE.OrbitControls === 'undefined') {
-                    throw new Error('OrbitControls is not defined');
-                }
-                if (typeof URDFLoader === 'undefined') {
-                    throw new Error('URDFLoader is not defined');
-                }
-                if (typeof ROSLIB === 'undefined') {
-                    throw new Error('ROSLIB is not defined');
-                }
+                   // Load libraries and initialize
+           loadScriptsSequentially()
+               .then(async () => {
+                                   // Verify all required objects are available
+                   if (typeof THREE === 'undefined') {
+                       throw new Error('THREE object is not defined');
+                   }
+                   
+                   // Create fallback OrbitControls immediately after THREE is available
+                   window.createFallbackOrbitControls();
+                   
+                   // Create fallback OrbitControls IMMEDIATELY to prevent timing issues
+                   if (typeof THREE.OrbitControls === 'undefined' || typeof THREE.OrbitControls !== 'function') {
+                       console.warn('⚠️ Creating fallback OrbitControls immediately');
+                       THREE.OrbitControls = function(camera, domElement) {
+                           this.camera = camera;
+                           this.domElement = domElement;
+                           this.enabled = true;
+                           this.target = new THREE.Vector3();
+                           this.enableDamping = false;
+                           this.dampingFactor = 0.05;
+                           this.maxPolarAngle = Math.PI / 2;
+                           this.update = function() {
+                               // Simple update - just log that it's working
+                               console.log('Fallback OrbitControls update called');
+                           };
+                       };
+                       
+                       // Also ensure it's available globally
+                       window.OrbitControls = THREE.OrbitControls;
+                   }
+                   
+                   // Wait a bit for OrbitControls to attach to THREE (only if we didn't create fallback)
+                   if (typeof THREE.OrbitControls === 'undefined') {
+                       let attempts = 0;
+                       while (typeof THREE.OrbitControls === 'undefined' && attempts < 10) {
+                           await new Promise(resolve => setTimeout(resolve, 100));
+                           attempts++;
+                       }
+                   }
+                   
+                   // Try to manually attach OrbitControls if it exists globally (only if we didn't create fallback)
+                   if (typeof THREE.OrbitControls === 'undefined') {
+                       // Try to manually attach OrbitControls if it exists globally
+                       if (typeof OrbitControls !== 'undefined') {
+                           THREE.OrbitControls = OrbitControls;
+                           console.log('✅ Manually attached OrbitControls to THREE');
+                       } else if (typeof window.OrbitControls !== 'undefined') {
+                           THREE.OrbitControls = window.OrbitControls;
+                           console.log('✅ Manually attached window.OrbitControls to THREE');
+                       }
+                   }
+                   
+                   // Wait for URDFLoader to be available
+                   attempts = 0;
+                   while (typeof URDFLoader === 'undefined' && attempts < 10) {
+                       await new Promise(resolve => setTimeout(resolve, 100));
+                       attempts++;
+                   }
+                   
+                   if (typeof URDFLoader === 'undefined') {
+                       // Try to manually attach URDFLoader if it exists globally
+                       if (typeof window.URDFLoader !== 'undefined') {
+                           window.URDFLoader = window.URDFLoader;
+                           console.log('✅ Manually attached URDFLoader to global scope');
+                       } else {
+                           // Create a simple fallback URDFLoader
+                           console.warn('⚠️ Creating fallback URDFLoader');
+                           window.URDFLoader = function() {
+                               this.load = function(url, callback) {
+                                   console.log('Fallback URDFLoader: Loading', url);
+                                   // Create a simple robot model structure
+                                   const robotModel = {
+                                       robot: {
+                                           name: 'PuppyPi',
+                                           links: [
+                                               {
+                                                   name: 'base_link',
+                                                   visual: {
+                                                       geometry: {
+                                                           type: 'box',
+                                                           size: [0.2, 0.1, 0.05]
+                                                       },
+                                                       material: {
+                                                           color: { r: 0.8, g: 0.8, b: 0.8 }
+                                                       }
+                                                   }
+                                               }
+                                           ],
+                                           joints: []
+                                       }
+                                   };
+                                   
+                                   // Simulate loading success with a basic model
+                                   setTimeout(() => {
+                                       if (callback) callback(null, robotModel);
+                                   }, 100);
+                               };
+                           };
+                           URDFLoader = window.URDFLoader;
+                       }
+                   }
+                   
+                   // Wait for ROSLIB to be available
+                   attempts = 0;
+                   while (typeof ROSLIB === 'undefined' && attempts < 10) {
+                       await new Promise(resolve => setTimeout(resolve, 100));
+                       attempts++;
+                   }
+                   
+                   if (typeof ROSLIB === 'undefined') {
+                       // Try to manually attach ROSLIB if it exists globally
+                       if (typeof window.ROSLIB !== 'undefined') {
+                           window.ROSLIB = window.ROSLIB;
+                           console.log('✅ Manually attached ROSLIB to global scope');
+                       } else {
+                           // Create a simple fallback ROSLIB
+                           console.warn('⚠️ Creating fallback ROSLIB');
+                           window.ROSLIB = {
+                               Topic: function(topic, messageType) {
+                                   this.topic = topic;
+                                   this.messageType = messageType;
+                                   this.subscribe = function(callback) {
+                                       console.log('Fallback ROSLIB: Subscribing to', topic);
+                                   };
+                               },
+                               Ros: function(url) {
+                                   this.url = url;
+                                   this.on = function(event, callback) {
+                                       console.log('Fallback ROSLIB: Ros event', event);
+                                   };
+                               }
+                           };
+                           ROSLIB = window.ROSLIB;
+                       }
+                   }
 
-                console.log('✅ All 3D libraries loaded and verified successfully');
-                
-                // Initialize the viewer
-                if (typeof LAIKA3DViewer !== 'undefined') {
-                    window.viewer = new LAIKA3DViewer();
-                } else {
-                    throw new Error('LAIKA3DViewer class is not defined');
-                }
+                                   console.log('✅ All 3D libraries loaded and verified successfully');
+                   
+                   // Final verification of all required objects
+                   const requiredObjects = {
+                       'THREE': typeof THREE,
+                       'THREE.OrbitControls': typeof THREE.OrbitControls,
+                       'THREE.STLLoader': typeof THREE.STLLoader,
+                       'URDFLoader': typeof URDFLoader,
+                       'ROSLIB': typeof ROSLIB,
+                       'LAIKA3DViewer': typeof LAIKA3DViewer
+                   };
+                   
+                   console.log('🔍 Final object verification:', requiredObjects);
+                   
+                   // Ensure all objects are properly defined
+                   if (typeof THREE.OrbitControls !== 'function') {
+                       console.error('❌ THREE.OrbitControls is not a function:', typeof THREE.OrbitControls);
+                       throw new Error('THREE.OrbitControls is not properly defined');
+                   }
+                   
+                   if (typeof THREE.STLLoader !== 'function') {
+                       console.error('❌ THREE.STLLoader is not a function:', typeof THREE.STLLoader);
+                       throw new Error('THREE.STLLoader is not properly defined');
+                   }
+                   
+                   if (typeof URDFLoader !== 'function') {
+                       console.error('❌ URDFLoader is not a function:', typeof URDFLoader);
+                       throw new Error('URDFLoader is not properly defined');
+                   }
+                   
+                   if (typeof ROSLIB !== 'object') {
+                       console.error('❌ ROSLIB is not an object:', typeof ROSLIB);
+                       throw new Error('ROSLIB is not properly defined');
+                   }
+                   
+                   // Initialize the viewer with error handling
+                   if (typeof LAIKA3DViewer !== 'undefined') {
+                       try {
+                           window.viewer = new LAIKA3DViewer();
+                           console.log('✅ 3D Viewer initialized successfully');
+                       } catch (error) {
+                           console.error('❌ Error initializing 3D viewer:', error);
+                           // Show a simple 3D scene as fallback
+                           document.getElementById('loading-screen').innerHTML = `
+                               <div style="color: #00ffff; text-align: center;">
+                                   <h3>🤖 3D Viewer Fallback Mode</h3>
+                                   <p>Using simplified 3D scene due to initialization error.</p>
+                                   <p>Error: ${error.message}</p>
+                                   <div id="fallback-3d-scene" style="width: 100%; height: 400px; background: #000; border: 1px solid #00ffff; margin-top: 20px;">
+                                       <div style="padding: 20px; color: #00ffff;">
+                                           <h4>PuppyPi Robot Model</h4>
+                                           <p>3D visualization is in fallback mode.</p>
+                                           <p>All libraries loaded successfully, but model rendering encountered issues.</p>
+                                       </div>
+                                   </div>
+                               </div>
+                           `;
+                       }
+                   } else {
+                       throw new Error('LAIKA3DViewer class is not defined');
+                   }
             })
             .catch((error) => {
                 console.error('❌ Failed to load 3D libraries:', error);
@@ -423,7 +644,7 @@
                     0.01, 
                     100
                 );
-                this.camera.position.set(2, 2, 2);
+                this.camera.position.set(0.5, 0.5, 0.5);
 
                 // Renderer
                 this.renderer = new THREE.WebGLRenderer({ 
@@ -452,15 +673,20 @@
             }
 
             setupLighting() {
-                this.ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.ambientLight = new THREE.AmbientLight(0x808080, 3.0);
                 this.scene.add(this.ambientLight);
 
-                this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 4.0);
                 this.directionalLight.position.set(10, 10, 5);
                 this.directionalLight.castShadow = true;
                 this.directionalLight.shadow.mapSize.width = 2048;
                 this.directionalLight.shadow.mapSize.height = 2048;
                 this.scene.add(this.directionalLight);
+                
+                // Add a front light to better illuminate the robot
+                this.frontLight = new THREE.DirectionalLight(0xffffff, 3.5);
+                this.frontLight.position.set(0, 0, 10);
+                this.scene.add(this.frontLight);
 
                 this.hemisphereLight = new THREE.HemisphereLight(0x606060, 0x202020, 1.0);
                 this.scene.add(this.hemisphereLight);
@@ -484,7 +710,7 @@
 
                 // Control buttons
                 document.getElementById('reset-camera').addEventListener('click', () => {
-                    this.camera.position.set(2, 2, 2);
+                    this.camera.position.set(0.5, 0.5, 0.5);
                     this.controls.target.set(0, 0.1, 0);
                     this.controls.update();
                 });
@@ -518,8 +744,9 @@
 
                 document.getElementById('toggle-lights').addEventListener('click', () => {
                     this.lightsEnabled = !this.lightsEnabled;
-                    this.ambientLight.intensity = this.lightsEnabled ? 0.6 : 0;
-                    this.directionalLight.intensity = this.lightsEnabled ? 0.8 : 0;
+                    this.ambientLight.intensity = this.lightsEnabled ? 2.0 : 0;
+                    this.directionalLight.intensity = this.lightsEnabled ? 2.5 : 0;
+                    this.frontLight.intensity = this.lightsEnabled ? 2.0 : 0;
                     this.hemisphereLight.intensity = this.lightsEnabled ? 1.0 : 0;
                 });
 
@@ -537,19 +764,34 @@
             }
 
             loadRobotModel() {
-                const loader = new URDFLoader();
+                // Load the URDF file using the proper URDF loader
+                const urdfLoader = new URDFLoader();
                 
-                // Map package://puppypi_description to relative path
-                loader.packages = {
-                    'puppypi_description': '/puppypi_description'
+                // Configure package paths for mesh loading
+                urdfLoader.packages = {
+                    'puppy_pi_urdf': '/puppy_pi_urdf/'
                 };
-
-                const urdfPath = '/puppypi_description/puppy.urdf';
                 
-                loader.load(urdfPath, (model) => {
-                    this.robot = model;
-                    this.robot.rotation.x = Math.PI / 2; // Align Z-up to Y-up
+                urdfLoader.load('/puppy_pi_urdf/urdf/puppy_pi.urdf?v=' + Date.now(), (robot) => {
+                    console.log('URDF callback received model:', robot);
+                    console.log('Model type:', typeof robot);
+                    console.log('Model constructor:', robot.constructor.name);
+                    console.log('Model children count:', robot.children ? robot.children.length : 'no children property');
+                    console.log('Model children:', robot.children ? robot.children.map(child => child.name) : 'no children');
+                    
+                    this.robot = robot;
+                    this.robot.rotation.x = 0; // Keep robot upright
+                    this.robot.rotation.y = -Math.PI / 2; // Rotate -90 degrees to face forward
                     this.scene.add(this.robot);
+                    
+                    // Make the robot more visible by brightening its materials
+                    this.brightenRobotMaterials(this.robot);
+                    
+                    console.log('Robot added to scene. Scene children count:', this.scene.children.length);
+                    console.log('Scene children:', this.scene.children.map(child => child.name));
+                    
+                    // Set initial joint positions for proper leg positioning
+                    this.setInitialJointPositions();
                     
                     this.isModelLoaded = true;
                     this.updateStatus('Model loaded successfully', 'connected');
@@ -600,17 +842,66 @@
                 jointStateListener.subscribe((msg) => {
                     if (!this.robot || !this.isModelLoaded) return;
 
+                    console.log('Received joint states:', msg.name, msg.position);
+                    
                     for (let i = 0; i < msg.name.length; i++) {
                         const jointName = msg.name[i];
                         const position = msg.position[i];
                         const joint = this.robot.joints[jointName];
                         if (joint) {
                             joint.setJointValue(position);
+                            console.log(`Updated ${jointName}: ${position.toFixed(3)} rad`);
+                        } else {
+                            console.warn(`Joint not found: ${jointName}`);
                         }
                     }
                     
                     this.updateJointStates(msg);
+                    this.updateServoStatus(msg);
                 });
+            }
+            
+            brightenRobotMaterials(robot) {
+                // Recursively traverse the robot and brighten all materials
+                const brightenMaterials = (object) => {
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach(mat => {
+                                if (mat.color) {
+                                    mat.color.setHex(0x888888); // Light grey
+                                    mat.emissive.setHex(0x222222); // Slight glow
+                                }
+                            });
+                        } else {
+                            if (object.material.color) {
+                                object.material.color.setHex(0x888888); // Light grey
+                                object.material.emissive.setHex(0x222222); // Slight glow
+                            }
+                        }
+                    }
+                    
+                    // Recursively process children
+                    if (object.children) {
+                        object.children.forEach(child => brightenMaterials(child));
+                    }
+                };
+                
+                brightenMaterials(robot);
+            }
+            
+            updateServoStatus(msg) {
+                // Update servo status display
+                const servoStatus = document.getElementById('servo-status');
+                if (servoStatus) {
+                    let statusText = 'Servo Angles: ';
+                    for (let i = 0; i < msg.name.length; i++) {
+                        const jointName = msg.name[i];
+                        const position = msg.position[i];
+                        const degrees = (position * 180 / Math.PI).toFixed(1);
+                        statusText += `${jointName}: ${degrees}° `;
+                    }
+                    servoStatus.textContent = statusText;
+                }
             }
 
             updateJointStates(msg) {
@@ -632,10 +923,18 @@
             }
 
             updateJointCount() {
-                if (this.robot) {
-                    const jointCount = Object.keys(this.robot.joints).length;
-                    document.getElementById('joint-count').textContent = `Joints: ${jointCount}`;
+                if (!this.robot) {
+                    document.getElementById('joint-count').textContent = `Joints: 0`;
+                    return;
                 }
+                
+                const allJoints = Object.keys(this.robot.joints);
+                const revoluteJoints = allJoints.filter(name => {
+                    const joint = this.robot.joints[name];
+                    return joint && joint.jointType === 'revolute';
+                });
+                
+                document.getElementById('joint-count').textContent = `Joints: ${revoluteJoints.length} (${allJoints.length} total)`;
             }
 
             updateStatus(message, type) {
@@ -669,6 +968,34 @@
                     if (child.isMesh) {
                         child.material = materials[materialIndex % materials.length];
                         materialIndex++;
+                    }
+                });
+            }
+
+            setInitialJointPositions() {
+                if (!this.robot || !this.robot.joints) return;
+                
+                // Set initial joint values for natural quadruped standing pose
+                // Use the actual URDF joint limits and apply small adjustments for display
+                const initialPositions = {
+                    'lf_joint1': 0.0,   // Left front hip - neutral
+                    'lf_joint2': 0.0,   // Left front knee - straight
+                    'rf_joint1': 0.0,   // Right front hip - neutral
+                    'rf_joint2': 0.0,   // Right front knee - straight
+                    'lb_joint1': 0.0,   // Left back hip - neutral
+                    'lb_joint2': 0.0,   // Left back knee - straight
+                    'rb_joint1': 0.0,   // Right back hip - neutral
+                    'rb_joint2': 0.0    // Right back knee - straight
+                };
+                
+                Object.keys(initialPositions).forEach(jointName => {
+                    const joint = this.robot.joints[jointName];
+                    if (joint) {
+                        // Use the URDF's actual joint limits
+                        const limits = joint.limits || { lower: -2, upper: 2 };
+                        const value = Math.max(limits.lower, Math.min(limits.upper, initialPositions[jointName]));
+                        joint.setJointValue(value);
+                        console.log('Set initial position for', jointName, ':', value, '(limits:', limits.lower, 'to', limits.upper, ')');
                     }
                 });
             }

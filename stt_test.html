@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAIKA STT Test - Realtime Speech Recognition</title>
+    <title>LAIKA STT Test - Interactive Speech Recognition</title>
     
     <!-- PWA Meta -->
     <meta name="theme-color" content="#00ffff">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     
@@ -86,11 +86,6 @@
             background: #666;
             box-shadow: none;
             animation: none;
-        }
-        
-        .status-indicator.connected {
-            background: #00ffff;
-            box-shadow: 0 0 10px #00ffff;
         }
         
         @keyframes pulse {
@@ -204,11 +199,6 @@
             background: rgba(0, 255, 0, 0.1);
         }
         
-        .result-item.realtime {
-            border-color: #00ffff;
-            background: rgba(0, 255, 255, 0.1);
-        }
-        
         .result-text {
             font-size: 1.1em;
             margin-bottom: 5px;
@@ -249,14 +239,6 @@
             margin-top: 10px;
         }
         
-        .connection-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
         @media (max-width: 768px) {
             .control-panel {
                 grid-template-columns: 1fr;
@@ -273,44 +255,42 @@
         <!-- Header -->
         <div class="header">
             <h1>🎤 LAIKA STT Test</h1>
-            <p>Realtime Speech Recognition with LAIKA STT Service</p>
+            <p>Interactive Speech Recognition with Wake Word Detection</p>
         </div>
         
         <!-- Status Panel -->
         <div class="status-panel">
-            <div class="connection-status">
-                <div class="status-indicator idle" id="statusIndicator"></div>
-                <span id="statusText">Connecting to LAIKA STT...</span>
-            </div>
+            <div class="status-indicator idle" id="statusIndicator"></div>
+            <span id="statusText">Ready to listen</span>
             <div style="margin-top: 10px;">
-                <span id="providerDisplay">Provider: LAIKA Realtime</span> | 
-                <span id="connectionDisplay">Status: Connecting...</span>
+                <span id="wakeWordDisplay">Wake Word: LAIKA</span> | 
+                <span id="timeoutDisplay">Timeout: 5s</span>
             </div>
         </div>
         
         <!-- Control Panel -->
         <div class="control-panel">
-            <!-- STT Controls -->
+            <!-- Recording Controls -->
             <div class="control-section">
-                <h3>🎤 LAIKA STT Controls</h3>
-                <button class="btn" id="connectBtn" onclick="connectToSTT()">
-                    🔌 Connect to LAIKA STT
+                <h3>🎤 Recording Controls</h3>
+                <button class="btn" id="startBtn" onclick="startListening()">
+                    🎤 Start Listening
                 </button>
-                <button class="btn" id="disconnectBtn" onclick="disconnectFromSTT()" disabled>
-                    🔌 Disconnect
+                <button class="btn" id="stopBtn" onclick="stopListening()" disabled>
+                    ⏹️ Stop Listening
                 </button>
                 <button class="btn" onclick="clearResults()">
                     🗑️ Clear Results
                 </button>
                 
                 <div class="input-group">
-                    <label>STT Provider:</label>
-                    <select id="sttProvider" onchange="updateSTTProvider()">
-                        <option value="openai_realtime" selected>OpenAI Realtime</option>
-                        <option value="openai_whisper">OpenAI Whisper</option>
-                        <option value="local_whisper">Local Whisper</option>
-                        <option value="elevenlabs">ElevenLabs STT</option>
-                    </select>
+                    <label>Wake Word:</label>
+                    <input type="text" id="wakeWordInput" value="LAIKA" onchange="updateWakeWord()">
+                </div>
+                
+                <div class="input-group">
+                    <label>Timeout (seconds):</label>
+                    <input type="number" id="timeoutInput" value="5" min="1" max="30" onchange="updateTimeout()">
                 </div>
             </div>
             
@@ -318,36 +298,38 @@
             <div class="control-section">
                 <h3>⚙️ Configuration</h3>
                 <div class="input-group">
-                    <label>API Endpoint:</label>
-                    <input type="text" id="apiEndpoint" value="/api/stt" readonly>
+                    <label>STT Provider:</label>
+                    <select id="sttProvider" onchange="updateSTTProvider()">
+                        <option value="web_speech">Web Speech API (Browser)</option>
+                        <option value="whisper_local">Whisper (Local)</option>
+                        <option value="openai_whisper">OpenAI Whisper</option>
+                        <option value="openai_realtime">OpenAI Realtime</option>
+                        <option value="elevenlabs">ElevenLabs STT</option>
+                    </select>
                 </div>
                 
                 <div class="input-group">
-                    <label>SocketIO:</label>
-                    <input type="text" id="wsEndpoint" value="http://localhost:8081/socket.io/" readonly>
+                    <label>Mode:</label>
+                    <select id="listeningMode" onchange="updateListeningMode()">
+                        <option value="continuous">Continuous Listening</option>
+                        <option value="single">Single Recognition</option>
+                        <option value="wake_word">Wake Word Only</option>
+                    </select>
                 </div>
                 
-                <button class="btn" onclick="testConnection()">
-                    🧪 Test Connection
-                </button>
-                
-                <button class="btn" onclick="getSTTStatus()">
-                    📊 Get Status
-                </button>
-                
-                <button class="btn" onclick="simulateTranscript()">
-                    🎭 Simulate Transcript
+                <button class="btn" onclick="testMicrophone()">
+                    🎤 Test Microphone
                 </button>
             </div>
         </div>
         
         <!-- Results Panel -->
         <div class="results-panel">
-            <h3>📊 Realtime Recognition Results</h3>
+            <h3>📊 Recognition Results</h3>
             <div id="resultsContainer">
                 <div class="result-item">
-                    <div class="result-text">Waiting for LAIKA STT connection...</div>
-                    <div class="result-meta">Ready to receive realtime transcripts</div>
+                    <div class="result-text">No results yet. Start listening to see speech recognition results.</div>
+                    <div class="result-meta">Ready to test</div>
                 </div>
             </div>
         </div>
@@ -359,18 +341,20 @@
         <div class="results-panel">
             <h3>📋 Activity Log</h3>
             <div class="log-panel" id="logPanel">
-                <div class="log-entry info">LAIKA STT Test initialized</div>
-                <div class="log-entry info">Connecting to LAIKA STT service...</div>
+                <div class="log-entry info">STT Test initialized</div>
+                <div class="log-entry info">Ready to start listening</div>
             </div>
         </div>
     </div>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
         // Global variables
-        let socket = null;
-        let isConnected = false;
-        let sttProvider = 'openai_realtime';
+        let recognition = null;
+        let isListening = false;
+        let wakeWord = 'LAIKA';
+        let timeout = 5000;
+        let sttProvider = 'web_speech';
+        let listeningMode = 'continuous';
         let audioContext = null;
         let analyser = null;
         let microphone = null;
@@ -378,10 +362,63 @@
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            initializeSpeechRecognition();
             initializeAudioVisualizer();
-            connectToSTT();
-            log('info', 'LAIKA STT Test page loaded');
+            log('info', 'STT Test page loaded');
         });
+        
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+                
+                recognition.onstart = function() {
+                    log('success', 'Speech recognition started');
+                    updateStatus('listening', 'Listening for speech...');
+                };
+                
+                recognition.onresult = function(event) {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    if (finalTranscript) {
+                        processSpeech(finalTranscript);
+                    }
+                    
+                    if (interimTranscript) {
+                        updateInterimResult(interimTranscript);
+                    }
+                };
+                
+                recognition.onerror = function(event) {
+                    log('error', `Speech recognition error: ${event.error}`);
+                    updateStatus('idle', 'Error occurred');
+                };
+                
+                recognition.onend = function() {
+                    log('info', 'Speech recognition ended');
+                    updateStatus('idle', 'Ready to listen');
+                    isListening = false;
+                    updateButtons();
+                };
+                
+                log('success', 'Speech recognition initialized');
+            } else {
+                log('error', 'Speech recognition not supported in this browser');
+            }
+        }
         
         // Initialize audio visualizer
         async function initializeAudioVisualizer() {
@@ -399,158 +436,68 @@
             }
         }
         
-        // Connect to LAIKA STT service
-        function connectToSTT() {
-            try {
-                // Create SocketIO connection
-                socket = io();
-                
-                socket.on('connect', function() {
-                    isConnected = true;
-                    updateStatus('connected', 'Connected to LAIKA STT');
-                    updateButtons();
-                    log('success', 'Connected to LAIKA STT SocketIO');
-                    
-                    // Subscribe to STT events
-                    socket.emit('subscribe', {
-                        channel: 'stt'
-                    });
-                });
-                
-                socket.on('stt_response', function(data) {
-                    handleSTTMessage(data);
-                });
-                
-                socket.on('disconnect', function() {
-                    isConnected = false;
-                    updateStatus('idle', 'Disconnected from LAIKA STT');
-                    updateButtons();
-                    log('warning', 'Disconnected from LAIKA STT SocketIO');
-                });
-                
-                socket.on('connect_error', function(error) {
-                    log('error', `SocketIO connection error: ${error}`);
-                    updateStatus('idle', 'Connection error');
-                });
-                
-            } catch (error) {
-                log('error', `Failed to connect to LAIKA STT: ${error}`);
-                updateStatus('idle', 'Connection failed');
+        // Start listening
+        function startListening() {
+            if (!recognition) {
+                log('error', 'Speech recognition not available');
+                return;
             }
-        }
-        
-        // Disconnect from STT service
-        function disconnectFromSTT() {
-            if (socket) {
-                socket.disconnect();
-                socket = null;
-                isConnected = false;
-                updateStatus('idle', 'Disconnected');
+            
+            try {
+                recognition.start();
+                isListening = true;
                 updateButtons();
-                log('info', 'Disconnected from LAIKA STT');
-            }
-        }
-        
-        // Handle STT messages from SocketIO
-        function handleSTTMessage(data) {
-            if (data.type === 'transcript') {
-                // Handle realtime transcript
-                addResult(data.text, data.text, false, data.provider || sttProvider);
-                log('success', `Realtime transcript: "${data.text}"`);
-            } else if (data.type === 'status') {
-                // Handle status updates
-                log('info', `STT Status: ${data.message}`);
-            } else if (data.type === 'error') {
-                // Handle errors
-                log('error', `STT Error: ${data.message}`);
-            }
-        }
-        
-        // Test connection to STT API
-        async function testConnection() {
-            try {
-                const response = await fetch('/api/stt/status');
-                const data = await response.json();
-                
-                if (data.success) {
-                    log('success', 'STT API connection test successful');
-                    log('info', `STT Available: ${data.status.stt_available}`);
-                    log('info', `History Count: ${data.status.history_count}`);
-                    log('info', `SocketIO Available: ${data.status.socketio_available}`);
-                } else {
-                    log('error', `STT API test failed: ${data.error}`);
-                }
+                log('info', `Started listening for wake word: "${wakeWord}"`);
             } catch (error) {
-                log('error', `Connection test failed: ${error}`);
+                log('error', `Failed to start listening: ${error}`);
             }
         }
         
-        // Get STT service status
-        async function getSTTStatus() {
-            try {
-                const response = await fetch('/api/stt/config');
-                const data = await response.json();
-                
-                if (data.success) {
-                    log('success', 'STT configuration retrieved');
-                    log('info', `Provider: ${data.config.provider}`);
-                    log('info', `Wake Word: ${data.config.wake_word}`);
-                    log('info', `Sample Rate: ${data.config.sample_rate}`);
-                } else {
-                    log('error', `Failed to get STT status: ${data.error}`);
-                }
-            } catch (error) {
-                log('error', `Status check failed: ${error}`);
+        // Stop listening
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+                isListening = false;
+                updateButtons();
+                log('info', 'Stopped listening');
             }
         }
         
-        // Simulate transcript for testing
-        async function simulateTranscript() {
-            try {
-                const testTexts = [
-                    "Hello LAIKA, how are you today?",
-                    "What's the weather like outside?",
-                    "Can you take a picture for me?",
-                    "Tell me a joke",
-                    "What time is it?"
-                ];
+        // Process speech
+        function processSpeech(text) {
+            log('success', `Recognized: "${text}"`);
+            
+            const textLower = text.toLowerCase();
+            const wakeWordLower = wakeWord.toLowerCase();
+            
+            if (textLower.includes(wakeWordLower)) {
+                // Wake word detected
+                const cleanText = textLower.replace(wakeWordLower, '').trim();
+                addResult(text, cleanText, true);
+                log('success', `Wake word detected! Clean text: "${cleanText}"`);
                 
-                const randomText = testTexts[Math.floor(Math.random() * testTexts.length)];
-                
-                const response = await fetch('/api/stt/simulate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        text: randomText,
-                        provider: sttProvider
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    log('success', `Simulated transcript sent: "${randomText}"`);
-                } else {
-                    log('error', `Simulation failed: ${data.error}`);
+                if (listeningMode === 'wake_word') {
+                    // Stop listening after wake word in wake_word mode
+                    setTimeout(() => stopListening(), 1000);
                 }
-            } catch (error) {
-                log('error', `Simulation error: ${error}`);
+            } else {
+                // No wake word
+                addResult(text, text, false);
+                log('info', 'No wake word detected');
             }
         }
         
         // Add result to display
-        function addResult(originalText, cleanText, isWakeWord, provider) {
+        function addResult(originalText, cleanText, isWakeWord) {
             const container = document.getElementById('resultsContainer');
             const resultItem = document.createElement('div');
-            resultItem.className = `result-item ${isWakeWord ? 'wake-word' : 'realtime'}`;
+            resultItem.className = `result-item ${isWakeWord ? 'wake-word' : ''}`;
             
             const timestamp = new Date().toLocaleTimeString();
             resultItem.innerHTML = `
                 <div class="result-text">${isWakeWord ? '🎯 ' : '📝 '}${originalText}</div>
                 ${isWakeWord ? `<div class="result-text">🧹 Clean: "${cleanText}"</div>` : ''}
-                <div class="result-meta">${timestamp} | Provider: ${provider}</div>
+                <div class="result-meta">${timestamp} | Provider: ${sttProvider}</div>
             `;
             
             container.insertBefore(resultItem, container.firstChild);
@@ -561,37 +508,63 @@
             }
         }
         
+        // Update interim result
+        function updateInterimResult(text) {
+            // Could be used to show real-time recognition
+        }
+        
         // Update status
         function updateStatus(status, text) {
             const indicator = document.getElementById('statusIndicator');
             const statusText = document.getElementById('statusText');
-            const connectionDisplay = document.getElementById('connectionDisplay');
             
             indicator.className = `status-indicator ${status}`;
             statusText.textContent = text;
-            connectionDisplay.textContent = `Status: ${text}`;
         }
         
         // Update buttons
         function updateButtons() {
-            const connectBtn = document.getElementById('connectBtn');
-            const disconnectBtn = document.getElementById('disconnectBtn');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
             
-            connectBtn.disabled = isConnected;
-            disconnectBtn.disabled = !isConnected;
+            startBtn.disabled = isListening;
+            stopBtn.disabled = !isListening;
+        }
+        
+        // Update wake word
+        function updateWakeWord() {
+            wakeWord = document.getElementById('wakeWordInput').value;
+            document.getElementById('wakeWordDisplay').textContent = `Wake Word: ${wakeWord}`;
+            log('info', `Wake word updated to: "${wakeWord}"`);
+        }
+        
+        // Update timeout
+        function updateTimeout() {
+            timeout = parseInt(document.getElementById('timeoutInput').value) * 1000;
+            document.getElementById('timeoutDisplay').textContent = `Timeout: ${timeout/1000}s`;
+            log('info', `Timeout updated to: ${timeout/1000} seconds`);
         }
         
         // Update STT provider
         function updateSTTProvider() {
             sttProvider = document.getElementById('sttProvider').value;
-            document.getElementById('providerDisplay').textContent = `Provider: ${sttProvider}`;
             log('info', `STT provider updated to: ${sttProvider}`);
-            
-            // Update provider in backend if connected
-            if (isConnected && socket) {
-                socket.emit('stt_config', {
-                    provider: sttProvider
-                });
+        }
+        
+        // Update listening mode
+        function updateListeningMode() {
+            listeningMode = document.getElementById('listeningMode').value;
+            log('info', `Listening mode updated to: ${listeningMode}`);
+        }
+        
+        // Test microphone
+        async function testMicrophone() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('success', 'Microphone test successful');
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                log('error', `Microphone test failed: ${error}`);
             }
         }
         
@@ -599,8 +572,8 @@
         function clearResults() {
             document.getElementById('resultsContainer').innerHTML = `
                 <div class="result-item">
-                    <div class="result-text">Results cleared. Waiting for new transcripts...</div>
-                    <div class="result-meta">Ready to receive realtime transcripts</div>
+                    <div class="result-text">No results yet. Start listening to see speech recognition results.</div>
+                    <div class="result-meta">Ready to test</div>
                 </div>
             `;
             log('info', 'Results cleared');
@@ -623,13 +596,6 @@
                 logPanel.removeChild(logPanel.firstChild);
             }
         }
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (socket) {
-                socket.disconnect();
-            }
-        });
     </script>
 </body>
 </html>

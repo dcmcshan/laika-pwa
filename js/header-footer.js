@@ -92,6 +92,24 @@ class LAIKAHeaderFooter {
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="stt" class="nav-link" data-page="stt">
+                            <span class="nav-icon">🎤</span>
+                            <span>STT</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="llm" class="nav-link" data-page="llm">
+                            <span class="nav-icon">🤖</span>
+                            <span>LLM</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="tts" class="nav-link" data-page="tts">
+                            <span class="nav-icon">🗣️</span>
+                            <span>TTS</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="processes" class="nav-link" data-page="processes">
                             <span class="nav-icon">🖥️</span>
                             <span>Processes</span>
@@ -101,6 +119,12 @@ class LAIKAHeaderFooter {
                         <a href="logs" class="nav-link" data-page="logs">
                             <span class="nav-icon">📋</span>
                             <span>Logs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="architecture" class="nav-link" data-page="architecture">
+                            <span class="nav-icon">🏗️</span>
+                            <span>Architecture</span>
                         </a>
                     </li>
                 </ul>

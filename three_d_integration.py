@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 3D Integration Module for LAIKA PWA
 Simple integration to register 3D routes with the main Flask app

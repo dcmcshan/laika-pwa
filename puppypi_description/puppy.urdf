@@ -22,8 +22,8 @@
   <transmission_block joint_name="rb_joint2"/>
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-      /puppy</robotNamespace>
-      gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <robotNamespace>/puppy</robotNamespace>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
       <legacyModeNS>true</legacyModeNS>
     </plugin>
   </gazebo>

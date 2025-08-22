@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+        <meta charset="utf-8"/>
+
+        <title>PuppyPi 3D Viewer</title>
+
+        <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.4.3/webcomponents-bundle.js"></script>
+        <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+        <script src="urdf-loaders/javascript/umd/URDFLoader.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet"/>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: 'Roboto', sans-serif;
+                background-color: #1a1a1a;
+                color: white;
+                overflow: hidden;
+            }
+
+            #menu {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                z-index: 1000;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 15px;
+                border-radius: 8px;
+                max-width: 300px;
+            }
+
+            #urdf-options {
+                list-style: none;
+                padding: 0;
+                margin: 0 0 15px 0;
+            }
+
+            #urdf-options li {
+                padding: 8px 12px;
+                margin: 5px 0;
+                background: #333;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            #urdf-options li:hover {
+                background: #555;
+            }
+
+            #urdf-options li.active {
+                background: #007acc;
+            }
+
+            #controls {
+                margin-top: 15px;
+            }
+
+            #controls.hidden {
+                display: none;
+            }
+
+            .toggle {
+                padding: 8px 12px;
+                margin: 5px 0;
+                background: #333;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .toggle:hover {
+                background: #555;
+            }
+
+            .toggle.checked {
+                background: #007acc;
+            }
+
+            #toggle-controls {
+                padding: 8px 12px;
+                background: #007acc;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+
+            urdf-viewer {
+                width: 100vw;
+                height: 100vh;
+                display: block;
+            }
+
+            select {
+                background: #333;
+                color: white;
+                border: 1px solid #555;
+                padding: 5px;
+                border-radius: 4px;
+                margin-top: 5px;
+            }
+
+            label {
+                display: block;
+                margin: 10px 0 5px 0;
+            }
+        </style>
+    </head>
+    <body tabindex="0">
+
+        <div id="menu">
+            <ul id="urdf-options">
+                <li urdf="puppy_pi_urdf/urdf/puppy_pi_web.urdf" color="#E91E63" class="active">PuppyPi Robot</li>
+            </ul>
+
+            <div id="controls">
+                <div id="toggle-controls">Hide Controls</div>
+                <div>Drag and drop URDF files or folders! <br/> (Chrome Only)</div>
+                <div id="ignore-joint-limits" class="toggle">Ignore Joint Limits</div>
+                <div id="hide-fixed" class="toggle">Hide Fixed Joints</div>
+                <div id="radians-toggle" class="toggle">Use Radians</div>
+                <div id="autocenter-toggle" class="toggle checked">Autocenter</div>
+                <div id="collision-toggle" class="toggle">Show Collision</div>
+                <div id="do-animate" class="toggle checked">Animate Joints</div>
+                <label>
+                    Up Axis
+                    <select id="up-select">
+                        <option value="+X">+X</option>
+                        <option value="-X">-X</option>
+                        <option value="+Y">+Y</option>
+                        <option value="-Y">-Y</option>
+                        <option value="+Z">+Z</option>
+                        <option value="-Z" selected>-Z</option>
+                    </select>
+                </label>
+                <ul></ul>
+            </div>
+        </div>
+        <urdf-viewer up="-Z" display-shadow tabindex="0"></urdf-viewer>
+
+        <!-- Load the UMD bundle -->
+        <script src="urdf-loaders/javascript/umd/urdf-viewer-element.js"></script>
+        <script>
+            // Get the viewer element
+            const viewer = document.querySelector('urdf-viewer');
+            
+            // Set up controls
+            const limitsToggle = document.getElementById('ignore-joint-limits');
+            const collisionToggle = document.getElementById('collision-toggle');
+            const radiansToggle = document.getElementById('radians-toggle');
+            const autocenterToggle = document.getElementById('autocenter-toggle');
+            const upSelect = document.getElementById('up-select');
+            const sliderList = document.querySelector('#controls ul');
+            const controlsel = document.getElementById('controls');
+            const controlsToggle = document.getElementById('toggle-controls');
+            const animToggle = document.getElementById('do-animate');
+            const hideFixedToggle = document.getElementById('hide-fixed');
+            
+            let sliders = {};
+
+            // Set initial color
+            const setColor = color => {
+                document.body.style.backgroundColor = color;
+                if (typeof THREE !== 'undefined') {
+                    viewer.highlightColor = '#' + (new THREE.Color(0xffffff)).lerp(new THREE.Color(color), 0.35).getHexString();
+                }
+            };
+
+            // Set initial color for PuppyPi
+            if (viewer) {
+                setColor('#E91E63');
+            }
+
+            // Event listeners
+            limitsToggle.addEventListener('click', () => {
+                limitsToggle.classList.toggle('checked');
+                viewer.ignoreLimits = limitsToggle.classList.contains('checked');
+            });
+
+            radiansToggle.addEventListener('click', () => {
+                radiansToggle.classList.toggle('checked');
+                Object.values(sliders).forEach(sl => sl.update());
+            });
+
+            collisionToggle.addEventListener('click', () => {
+                collisionToggle.classList.toggle('checked');
+                viewer.showCollision = collisionToggle.classList.contains('checked');
+            });
+
+            autocenterToggle.addEventListener('click', () => {
+                autocenterToggle.classList.toggle('checked');
+                viewer.noAutoRecenter = !autocenterToggle.classList.contains('checked');
+            });
+
+            hideFixedToggle.addEventListener('click', () => {
+                hideFixedToggle.classList.toggle('checked');
+                const hideFixed = hideFixedToggle.classList.contains('checked');
+                if (hideFixed) controlsel.classList.add('hide-fixed');
+                else controlsel.classList.remove('hide-fixed');
+            });
+
+            upSelect.addEventListener('change', () => viewer.up = upSelect.value);
+
+            controlsToggle.addEventListener('click', () => {
+                controlsel.classList.toggle('hidden');
+                controlsToggle.textContent = controlsel.classList.contains('hidden') ? 'Show Controls' : 'Hide Controls';
+            });
+
+            // Watch for URDF changes
+            viewer.addEventListener('urdf-change', () => {
+                Object.values(sliders).forEach(sl => sl.remove());
+                sliders = {};
+            });
+
+            viewer.addEventListener('ignore-limits-change', () => {
+                Object.values(sliders).forEach(sl => sl.update());
+            });
+
+            viewer.addEventListener('angle-change', e => {
+                if (sliders[e.detail]) sliders[e.detail].update();
+            });
+
+            // Handle URDF selection
+            document.querySelectorAll('#urdf-options li').forEach(li => {
+                li.addEventListener('click', () => {
+                    document.querySelectorAll('#urdf-options li').forEach(l => l.classList.remove('active'));
+                    li.classList.add('active');
+                    
+                    const urdf = li.getAttribute('urdf');
+                    const color = li.getAttribute('color');
+                    
+                    setColor(color);
+                    viewer.load(urdf);
+                });
+            });
+
+            // Wait for viewer to be ready and load the URDF
+            const loadURDF = () => {
+                const viewer = document.querySelector('urdf-viewer');
+                console.log('Viewer element:', viewer);
+                console.log('Viewer load function:', viewer ? typeof viewer.load : 'no viewer');
+                
+                if (viewer && typeof viewer.load === 'function') {
+                    console.log('Loading puppy_pi_urdf...');
+                    setColor('#E91E63');
+                    // Load the web-compatible URDF file
+                    viewer.load('puppy_pi_urdf/urdf/puppy_pi_web.urdf');
+                } else {
+                    console.log('Viewer not ready, retrying...');
+                    setTimeout(loadURDF, 500);
+                }
+            };
+            
+            // Wait for custom elements to be defined
+            if (customElements.get('urdf-viewer')) {
+                loadURDF();
+            } else {
+                customElements.whenDefined('urdf-viewer').then(() => {
+                    loadURDF();
+                });
+            }
+        </script>
+    </body>
+</html>
