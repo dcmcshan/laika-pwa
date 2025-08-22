@@ -251,14 +251,124 @@
         <div id="joint-list"></div>
     </div>
 
-    <!-- Three.js -->
-    <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
-    <!-- OrbitControls for camera interaction -->
-    <script src="https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
-    <!-- URDFLoader from three.js examples -->
-    <script src="https://unpkg.com/urdf-loader@0.9.6/dist/URDFLoader.min.js"></script>
-    <!-- roslibjs for ROSBridge connection -->
-    <script src="https://unpkg.com/roslib@1.3.0/build/roslib.min.js"></script>
+    <!-- Three.js with sequential loading and verification -->
+    <script>
+        // Load scripts sequentially to ensure proper order
+        async function loadScriptsSequentially() {
+            const scripts = [
+                {
+                    name: 'Three.js',
+                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/three.min.js',
+                    fallback: 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js',
+                    local: '/js/libs/three.min.js'
+                },
+                {
+                    name: 'OrbitControls',
+                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.161.0/examples/js/controls/OrbitControls.js',
+                    fallback: 'https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/controls/OrbitControls.js',
+                    local: '/js/libs/OrbitControls.js'
+                },
+                {
+                    name: 'URDFLoader',
+                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/urdf-loader/0.9.6/URDFLoader.min.js',
+                    fallback: 'https://cdn.jsdelivr.net/npm/urdf-loader@0.9.6/dist/URDFLoader.min.js',
+                    local: '/js/libs/URDFLoader.min.js'
+                },
+                {
+                    name: 'ROSLib',
+                    primary: 'https://cdnjs.cloudflare.com/ajax/libs/roslib/1.3.0/roslib.min.js',
+                    fallback: 'https://cdn.jsdelivr.net/npm/roslib@1.3.0/build/roslib.min.js',
+                    local: '/js/libs/roslib.min.js'
+                }
+            ];
+
+            for (const script of scripts) {
+                try {
+                    await loadScript(script.primary, script.fallback, script.local);
+                    console.log(`✅ ${script.name} loaded successfully`);
+                } catch (error) {
+                    console.error(`❌ Failed to load ${script.name}:`, error);
+                    throw error;
+                }
+            }
+        }
+
+        function loadScript(src, fallbackSrc) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    // Verify the library actually loaded
+                    if (src.includes('three.min.js') && typeof THREE === 'undefined') {
+                        console.warn('Three.js script loaded but THREE object not found, trying fallback...');
+                        loadFallback();
+                    } else {
+                        resolve();
+                    }
+                };
+                script.onerror = () => {
+                    console.warn(`Failed to load ${src}, trying fallback...`);
+                    loadFallback();
+                };
+
+                function loadFallback() {
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = fallbackSrc;
+                    fallbackScript.onload = () => {
+                        if (src.includes('three.min.js') && typeof THREE === 'undefined') {
+                            reject(new Error(`${src} and fallback both failed to load THREE object`));
+                        } else {
+                            resolve();
+                        }
+                    };
+                    fallbackScript.onerror = () => reject(new Error(`Failed to load ${src} and fallback`));
+                    document.head.appendChild(fallbackScript);
+                };
+
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load libraries and initialize
+        loadScriptsSequentially()
+            .then(() => {
+                // Verify all required objects are available
+                if (typeof THREE === 'undefined') {
+                    throw new Error('THREE object is not defined');
+                }
+                if (typeof THREE.OrbitControls === 'undefined') {
+                    throw new Error('OrbitControls is not defined');
+                }
+                if (typeof URDFLoader === 'undefined') {
+                    throw new Error('URDFLoader is not defined');
+                }
+                if (typeof ROSLIB === 'undefined') {
+                    throw new Error('ROSLIB is not defined');
+                }
+
+                console.log('✅ All 3D libraries loaded and verified successfully');
+                
+                // Initialize the viewer
+                if (typeof LAIKA3DViewer !== 'undefined') {
+                    window.viewer = new LAIKA3DViewer();
+                } else {
+                    throw new Error('LAIKA3DViewer class is not defined');
+                }
+            })
+            .catch((error) => {
+                console.error('❌ Failed to load 3D libraries:', error);
+                document.getElementById('loading-screen').innerHTML = `
+                    <div style="color: #ff0000; text-align: center;">
+                        <h3>❌ Failed to load 3D libraries</h3>
+                        <p>Please check your internet connection and refresh the page.</p>
+                        <p>Error: ${error.message}</p>
+                        <button onclick="location.reload()" style="background: #00ffff; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            });
+    </script>
 
     <script>
         class LAIKA3DViewer {
@@ -617,16 +727,22 @@
             }
         }
 
-        // Initialize the viewer when the page loads
+        // Initialize the viewer when libraries are loaded
         let viewer;
+        
+        // The viewer will be initialized by the library loading script above
+        // This is just a fallback in case the loading script fails
         window.addEventListener('load', () => {
-            viewer = new LAIKA3DViewer();
+            if (typeof THREE !== 'undefined' && !window.viewer) {
+                console.log('Initializing viewer from load event...');
+                window.viewer = new LAIKA3DViewer();
+            }
         });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
-            if (viewer) {
-                viewer.dispose();
+            if (window.viewer) {
+                window.viewer.dispose();
             }
         });
     </script>

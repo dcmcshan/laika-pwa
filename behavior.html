@@ -222,6 +222,201 @@
             border-radius: 10px;
             background: var(--atomic-bg);
             position: relative;
+            overflow: hidden;
+        }
+        
+        #groot2Canvas {
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 10px;
+            background: var(--atomic-bg);
+            cursor: grab;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .groot2-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .node-palette {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            background: var(--panel-bg);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 1000;
+        }
+        
+        .node-palette h3 {
+            margin: 0 0 15px 0;
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .palette-section {
+            margin-bottom: 15px;
+        }
+        
+        .palette-section h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-cyan);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .palette-items {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .palette-item {
+            padding: 5px 8px;
+            background: var(--atomic-bg);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 3px;
+            cursor: grab;
+            font-size: 11px;
+            color: var(--text-cyan);
+            transition: all 0.2s;
+        }
+        
+        .palette-item:hover {
+            background: var(--atomic-cyan);
+            color: #000;
+        }
+        
+        .palette-item:active {
+            cursor: grabbing;
+        }
+        
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--atomic-cyan);
+            padding-bottom: 10px;
+        }
+        
+        .tab-btn {
+            background: var(--atomic-bg);
+            color: var(--text-cyan);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 5px 5px 0 0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover {
+            background: var(--atomic-cyan);
+            color: #000;
+        }
+        
+        .tab-btn.active {
+            background: var(--atomic-cyan);
+            color: #000;
+            border-bottom-color: var(--panel-bg);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Behavior Library */
+        .behavior-library {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .behavior-category {
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 10px;
+            padding: 20px;
+            background: var(--atomic-bg);
+        }
+        
+        .behavior-category h3 {
+            margin: 0 0 20px 0;
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            text-align: center;
+        }
+        
+        .behavior-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .behavior-card {
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .behavior-card:hover {
+            border-color: var(--tron-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            transform: translateY(-3px);
+        }
+        
+        .behavior-card h4 {
+            margin: 0 0 10px 0;
+            color: var(--atomic-cyan);
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+        }
+        
+        .behavior-card p {
+            margin: 0 0 15px 0;
+            color: var(--text-cyan);
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .behavior-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: var(--atomic-cyan);
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: 'Orbitron', monospace;
+        }
+        
+        .xml-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
         }
         
         .groot2-placeholder {
@@ -341,8 +536,62 @@
             <button class="btn btn-warning" onclick="clearLog()">🗑️ Clear Log</button>
         </div>
         
-        <div class="main-content">
-            <!-- XML Editor -->
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" onclick="switchTab('visual')">🎨 Visual Editor</button>
+            <button class="tab-btn" onclick="switchTab('xml')">📝 XML Editor</button>
+            <button class="tab-btn" onclick="switchTab('behaviors')">🤖 LAIKA Behaviors</button>
+        </div>
+
+        <!-- Visual Editor Tab -->
+        <div id="visual-tab" class="tab-content active">
+            <div class="card">
+                <h2>🎨 Groot2 Web Editor</h2>
+                <div class="groot2-container" id="groot2Container">
+                    <canvas id="groot2Canvas" width="1200" height="800"></canvas>
+                </div>
+                <div class="groot2-controls">
+                    <button class="btn" onclick="groot2Editor.resetView()">🔄 Reset View</button>
+                    <button class="btn" onclick="groot2Editor.saveTree()">💾 Save Tree</button>
+                    <button class="btn" onclick="groot2Editor.loadTree()">📂 Load Tree</button>
+                    <button class="btn" onclick="groot2Editor.executeTree()">▶️ Execute</button>
+                    <button class="btn" onclick="groot2Editor.toggleMonitoring()">📊 Monitor</button>
+                </div>
+                
+                <!-- Node Palette -->
+                <div class="node-palette">
+                    <h3>🌳 Add Nodes</h3>
+                    <div class="palette-section">
+                        <h4>Control Nodes</h4>
+                        <div class="palette-items">
+                            <div class="palette-item" draggable="true" data-type="sequence">⟳ Sequence</div>
+                            <div class="palette-item" draggable="true" data-type="selector">? Selector</div>
+                            <div class="palette-item" draggable="true" data-type="parallel">∥ Parallel</div>
+                        </div>
+                    </div>
+                    <div class="palette-section">
+                        <h4>LAIKA Actions</h4>
+                        <div class="palette-items">
+                            <div class="palette-item" draggable="true" data-type="action">▶ Sit</div>
+                            <div class="palette-item" draggable="true" data-type="action">▶ Stand</div>
+                            <div class="palette-item" draggable="true" data-type="action">▶ Dance</div>
+                            <div class="palette-item" draggable="true" data-type="action">▶ Wave</div>
+                        </div>
+                    </div>
+                    <div class="palette-section">
+                        <h4>Conditions</h4>
+                        <div class="palette-items">
+                            <div class="palette-item" draggable="true" data-type="condition">◯ Battery Low</div>
+                            <div class="palette-item" draggable="true" data-type="condition">◯ Obstacle Detected</div>
+                            <div class="palette-item" draggable="true" data-type="condition">◯ Human Detected</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- XML Editor Tab -->
+        <div id="xml-tab" class="tab-content">
             <div class="card">
                 <h2>📝 Behavior Tree XML</h2>
                 <textarea id="xmlEditor" class="xml-editor" placeholder="Enter behavior tree XML here...">
@@ -368,18 +617,100 @@
     </Sequence>
 </BehaviorTree>
                 </textarea>
+                <div class="xml-controls">
+                    <button class="btn" onclick="loadXmlFromEditor()">📂 Load XML</button>
+                    <button class="btn" onclick="saveXmlToEditor()">💾 Save XML</button>
+                    <button class="btn" onclick="exportToGroot2()">📤 Export to Groot2</button>
+                </div>
             </div>
-            
-            <!-- Groot2 Visual Editor -->
+        </div>
+
+        <!-- LAIKA Behaviors Tab -->
+        <div id="behaviors-tab" class="tab-content">
             <div class="card">
-                <h2>🎨 Groot2 Visual Editor</h2>
-                <div class="groot2-container">
-                    <div class="groot2-placeholder">
-                        <div>
-                            <h3>🌳 Groot2 Integration</h3>
-                            <p>Visual behavior tree editor</p>
-                            <p>Click "Export to Groot2" to open in Groot2</p>
-                            <p>Or use the XML editor above</p>
+                <h2>🤖 LAIKA Behavior Library</h2>
+                <div class="behavior-library">
+                    <div class="behavior-category">
+                        <h3>🎯 Core Behaviors</h3>
+                        <div class="behavior-grid">
+                            <div class="behavior-card" onclick="loadBehavior('greeting')">
+                                <h4>👋 Greeting Behavior</h4>
+                                <p>Greet humans with voice and gestures</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">STT</span>
+                                    <span class="tag">TTS</span>
+                                    <span class="tag">SEN</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('patrol')">
+                                <h4>🚶 Patrol Behavior</h4>
+                                <p>Autonomous area patrol with obstacle avoidance</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">LIDAR</span>
+                                    <span class="tag">NAV</span>
+                                    <span class="tag">SEN</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('follow')">
+                                <h4>👥 Follow Behavior</h4>
+                                <p>Follow humans while maintaining safe distance</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">CAM</span>
+                                    <span class="tag">LIDAR</span>
+                                    <span class="tag">NAV</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('play')">
+                                <h4>🎮 Play Behavior</h4>
+                                <p>Interactive play with humans</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">STT</span>
+                                    <span class="tag">TTS</span>
+                                    <span class="tag">ACT</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="behavior-category">
+                        <h3>🧠 Advanced Behaviors</h3>
+                        <div class="behavior-grid">
+                            <div class="behavior-card" onclick="loadBehavior('memory')">
+                                <h4>🧠 Memory Behavior</h4>
+                                <p>Learn and remember human interactions</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">MEM</span>
+                                    <span class="tag">LLM</span>
+                                    <span class="tag">STT</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('emergency')">
+                                <h4>🚨 Emergency Behavior</h4>
+                                <p>Emergency response and safety protocols</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">SEN</span>
+                                    <span class="tag">NAV</span>
+                                    <span class="tag">ACT</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('learning')">
+                                <h4>📚 Learning Behavior</h4>
+                                <p>Adaptive learning from interactions</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">LLM</span>
+                                    <span class="tag">MEM</span>
+                                    <span class="tag">STT</span>
+                                </div>
+                            </div>
+                            <div class="behavior-card" onclick="loadBehavior('social')">
+                                <h4>🤝 Social Behavior</h4>
+                                <p>Complex social interactions and conversations</p>
+                                <div class="behavior-tags">
+                                    <span class="tag">STT</span>
+                                    <span class="tag">TTS</span>
+                                    <span class="tag">LLM</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -451,5 +782,249 @@
     </div>
     
     <script src="js/behavior-tree-editor.js"></script>
+    <script src="js/groot2-web-editor.js"></script>
+    
+    <script>
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+        
+        // Behavior loading functionality
+        function loadBehavior(behaviorType) {
+            console.log('Loading behavior:', behaviorType);
+            
+            // Define complex LAIKA behaviors with sensor integration
+            const behaviors = {
+                'greeting': {
+                    name: 'Greeting Behavior',
+                    description: 'Advanced greeting with voice, gestures, and memory',
+                    xml: `<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorTree ID="LAIKA_Greeting">
+    <Sequence name="greeting_root">
+        <Condition ID="is_human_detected" />
+        <Selector name="greeting_selector">
+            <Sequence name="new_human_greeting">
+                <Condition ID="is_new_human" />
+                <Action ID="excited_greeting" />
+                <Action ID="remember_human" />
+            </Sequence>
+            <Sequence name="known_human_greeting">
+                <Condition ID="is_known_human" />
+                <Action ID="personalized_greeting" />
+                <Action ID="update_memory" />
+            </Sequence>
+        </Selector>
+    </Sequence>
+</BehaviorTree>`,
+                    nodes: [
+                        { type: 'sequence', x: 400, y: 50, name: 'Greeting Root' },
+                        { type: 'condition', x: 400, y: 150, name: 'Human Detected' },
+                        { type: 'selector', x: 400, y: 250, name: 'Greeting Selector' },
+                        { type: 'sequence', x: 200, y: 350, name: 'New Human' },
+                        { type: 'sequence', x: 600, y: 350, name: 'Known Human' },
+                        { type: 'action', x: 200, y: 450, name: 'Excited Greeting' },
+                        { type: 'action', x: 200, y: 550, name: 'Remember Human' },
+                        { type: 'action', x: 600, y: 450, name: 'Personalized Greeting' },
+                        { type: 'action', x: 600, y: 550, name: 'Update Memory' }
+                    ]
+                },
+                
+                'patrol': {
+                    name: 'Patrol Behavior',
+                    description: 'Autonomous patrol with obstacle avoidance and human detection',
+                    xml: `<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorTree ID="LAIKA_Patrol">
+    <Sequence name="patrol_root">
+        <Condition ID="is_safe_to_patrol" />
+        <Selector name="patrol_selector">
+            <Sequence name="normal_patrol">
+                <Action ID="navigate_to_waypoint" />
+                <Condition ID="is_waypoint_reached" />
+                <Action ID="scan_environment" />
+            </Sequence>
+            <Sequence name="obstacle_avoidance">
+                <Condition ID="is_obstacle_detected" />
+                <Action ID="calculate_avoidance_path" />
+                <Action ID="execute_avoidance" />
+            </Sequence>
+            <Sequence name="human_interaction">
+                <Condition ID="is_human_detected" />
+                <Action ID="approach_human_safely" />
+                <Action ID="greet_human" />
+            </Sequence>
+        </Selector>
+    </Sequence>
+</BehaviorTree>`,
+                    nodes: [
+                        { type: 'sequence', x: 400, y: 50, name: 'Patrol Root' },
+                        { type: 'condition', x: 400, y: 150, name: 'Safe to Patrol' },
+                        { type: 'selector', x: 400, y: 250, name: 'Patrol Selector' },
+                        { type: 'sequence', x: 100, y: 350, name: 'Normal Patrol' },
+                        { type: 'sequence', x: 400, y: 350, name: 'Obstacle Avoidance' },
+                        { type: 'sequence', x: 700, y: 350, name: 'Human Interaction' },
+                        { type: 'action', x: 100, y: 450, name: 'Navigate to Waypoint' },
+                        { type: 'action', x: 100, y: 550, name: 'Scan Environment' },
+                        { type: 'action', x: 400, y: 450, name: 'Calculate Avoidance' },
+                        { type: 'action', x: 400, y: 550, name: 'Execute Avoidance' },
+                        { type: 'action', x: 700, y: 450, name: 'Approach Human' },
+                        { type: 'action', x: 700, y: 550, name: 'Greet Human' }
+                    ]
+                },
+                
+                'memory': {
+                    name: 'Memory Behavior',
+                    description: 'Learn and remember human interactions using LLM and memory systems',
+                    xml: `<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorTree ID="LAIKA_Memory">
+    <Sequence name="memory_root">
+        <Condition ID="is_interaction_occurring" />
+        <Selector name="memory_selector">
+            <Sequence name="learning_sequence">
+                <Action ID="capture_interaction_data" />
+                <Action ID="process_with_llm" />
+                <Action ID="store_in_memory" />
+                <Action ID="update_behavior_model" />
+            </Sequence>
+            <Sequence name="recall_sequence">
+                <Condition ID="is_memory_triggered" />
+                <Action ID="retrieve_relevant_memories" />
+                <Action ID="generate_response" />
+                <Action ID="execute_learned_behavior" />
+            </Sequence>
+        </Selector>
+    </Sequence>
+</BehaviorTree>`,
+                    nodes: [
+                        { type: 'sequence', x: 400, y: 50, name: 'Memory Root' },
+                        { type: 'condition', x: 400, y: 150, name: 'Interaction Occurring' },
+                        { type: 'selector', x: 400, y: 250, name: 'Memory Selector' },
+                        { type: 'sequence', x: 200, y: 350, name: 'Learning Sequence' },
+                        { type: 'sequence', x: 600, y: 350, name: 'Recall Sequence' },
+                        { type: 'action', x: 200, y: 450, name: 'Capture Data' },
+                        { type: 'action', x: 200, y: 550, name: 'Process with LLM' },
+                        { type: 'action', x: 200, y: 650, name: 'Store in Memory' },
+                        { type: 'action', x: 600, y: 450, name: 'Retrieve Memories' },
+                        { type: 'action', x: 600, y: 550, name: 'Generate Response' },
+                        { type: 'action', x: 600, y: 650, name: 'Execute Behavior' }
+                    ]
+                },
+                
+                'social': {
+                    name: 'Social Behavior',
+                    description: 'Complex social interactions with conversation and emotional responses',
+                    xml: `<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorTree ID="LAIKA_Social">
+    <Sequence name="social_root">
+        <Condition ID="is_social_context" />
+        <Selector name="social_selector">
+            <Sequence name="conversation_sequence">
+                <Action ID="listen_to_speech" />
+                <Action ID="process_with_llm" />
+                <Action ID="generate_response" />
+                <Action ID="speak_response" />
+            </Sequence>
+            <Sequence name="emotional_response">
+                <Condition ID="is_emotional_trigger" />
+                <Action ID="analyze_emotion" />
+                <Action ID="generate_emotional_response" />
+                <Action ID="express_emotion" />
+            </Sequence>
+            <Sequence name="play_interaction">
+                <Condition ID="is_play_time" />
+                <Action ID="initiate_play" />
+                <Action ID="maintain_engagement" />
+                <Action ID="end_play_gracefully" />
+            </Sequence>
+        </Selector>
+    </Sequence>
+</BehaviorTree>`,
+                    nodes: [
+                        { type: 'sequence', x: 400, y: 50, name: 'Social Root' },
+                        { type: 'condition', x: 400, y: 150, name: 'Social Context' },
+                        { type: 'selector', x: 400, y: 250, name: 'Social Selector' },
+                        { type: 'sequence', x: 100, y: 350, name: 'Conversation' },
+                        { type: 'sequence', x: 400, y: 350, name: 'Emotional Response' },
+                        { type: 'sequence', x: 700, y: 350, name: 'Play Interaction' },
+                        { type: 'action', x: 100, y: 450, name: 'Listen to Speech' },
+                        { type: 'action', x: 100, y: 550, name: 'Process with LLM' },
+                        { type: 'action', x: 100, y: 650, name: 'Generate Response' },
+                        { type: 'action', x: 400, y: 450, name: 'Analyze Emotion' },
+                        { type: 'action', x: 400, y: 550, name: 'Generate Emotional Response' },
+                        { type: 'action', x: 700, y: 450, name: 'Initiate Play' },
+                        { type: 'action', x: 700, y: 550, name: 'Maintain Engagement' }
+                    ]
+                }
+            };
+            
+            const behavior = behaviors[behaviorType];
+            if (behavior) {
+                // Load into XML editor
+                document.getElementById('xmlEditor').value = behavior.xml;
+                
+                // Load into visual editor
+                if (groot2Editor) {
+                    groot2Editor.nodes = behavior.nodes.map(node => ({
+                        id: 'node_' + Math.random().toString(36).substr(2, 9),
+                        type: node.type,
+                        x: node.x,
+                        y: node.y,
+                        name: node.name,
+                        status: 'idle'
+                    }));
+                }
+                
+                // Switch to visual editor tab
+                switchTab('visual');
+                
+                // Log the behavior load
+                if (behaviorEditor) {
+                    behaviorEditor.log(`📋 Loaded ${behavior.name}`, 'info');
+                }
+                
+                console.log('Loaded behavior:', behavior);
+            }
+        }
+        
+        // Test service connections
+        function testServiceConnections() {
+            console.log('Testing LAIKA service connections...');
+            
+            // Test main server status
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server status:', data);
+                    if (data.status === 'online') {
+                        if (behaviorEditor) behaviorEditor.log('✅ Connected to LAIKA server', 'info');
+                    } else {
+                        if (behaviorEditor) behaviorEditor.log('❌ Server not responding', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Server connection error:', error);
+                    if (behaviorEditor) behaviorEditor.log('❌ Cannot connect to server', 'error');
+                });
+        }
+        
+        // Initialize service testing
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(testServiceConnections, 2000);
+        });
+    </script>
 </body>
 </html>

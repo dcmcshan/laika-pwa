@@ -365,6 +365,7 @@
         </div>
     </div>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
         // Global variables
         let socket = null;
@@ -401,46 +402,36 @@
         // Connect to LAIKA STT service
         function connectToSTT() {
             try {
-                // Create WebSocket connection
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const host = window.location.host;
-                const wsUrl = `${protocol}//${host}`;
+                // Create SocketIO connection
+                socket = io();
                 
-                socket = new WebSocket(wsUrl);
-                
-                socket.onopen = function(event) {
+                socket.on('connect', function() {
                     isConnected = true;
                     updateStatus('connected', 'Connected to LAIKA STT');
                     updateButtons();
-                    log('success', 'Connected to LAIKA STT WebSocket');
+                    log('success', 'Connected to LAIKA STT SocketIO');
                     
                     // Subscribe to STT events
-                    socket.send(JSON.stringify({
-                        type: 'subscribe',
+                    socket.emit('subscribe', {
                         channel: 'stt'
-                    }));
-                };
+                    });
+                });
                 
-                socket.onmessage = function(event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        handleSTTMessage(data);
-                    } catch (error) {
-                        log('error', `Failed to parse WebSocket message: ${error}`);
-                    }
-                };
+                socket.on('stt_response', function(data) {
+                    handleSTTMessage(data);
+                });
                 
-                socket.onclose = function(event) {
+                socket.on('disconnect', function() {
                     isConnected = false;
                     updateStatus('idle', 'Disconnected from LAIKA STT');
                     updateButtons();
-                    log('warning', 'Disconnected from LAIKA STT WebSocket');
-                };
+                    log('warning', 'Disconnected from LAIKA STT SocketIO');
+                });
                 
-                socket.onerror = function(error) {
-                    log('error', `WebSocket error: ${error}`);
+                socket.on('connect_error', function(error) {
+                    log('error', `SocketIO connection error: ${error}`);
                     updateStatus('idle', 'Connection error');
-                };
+                });
                 
             } catch (error) {
                 log('error', `Failed to connect to LAIKA STT: ${error}`);

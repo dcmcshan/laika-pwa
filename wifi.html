@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA WiFi Management</title>
+    <link rel="stylesheet" href="css/header-footer.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+        
+        :root {
+            --atomic-cyan: #00FFFF;
+            --tron-cyan: #00E5FF;
+            --panel-bg: #141420;
+            --text-cyan: #E0FFFF;
+            --text-dim: #80C0C0;
+            --glow-cyan: #00FFFF80;
+            --success-green: #00FF88;
+            --error-red: #FF4444;
+        }
+
+        body {
+            font-family: 'Exo 2', 'Orbitron', monospace;
+            background: #0A0A0F;
+            color: var(--text-cyan);
+            margin: 0;
+            padding: 20px;
+            padding-top: 100px;
+        }
+
+        .wifi-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 30px var(--glow-cyan);
+        }
+
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px var(--glow-cyan);
+        }
+
+        .wifi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .wifi-card {
+            background: linear-gradient(135deg, var(--panel-bg), #1A1A30);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--atomic-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--atomic-cyan);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, var(--atomic-cyan), var(--tron-cyan));
+            border: none;
+            border-radius: 8px;
+            color: #0A0A0F;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            box-shadow: 0 5px 20px var(--glow-cyan);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--atomic-cyan);
+            border-radius: 8px;
+            color: var(--text-cyan);
+            margin-bottom: 15px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success-green);
+            color: var(--success-green);
+        }
+
+        .message.error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error-red);
+            color: var(--error-red);
+        }
+
+        @media (max-width: 768px) {
+            .wifi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wifi-container">
+        <h1 class="page-title">WiFi Management</h1>
+        
+        <div id="messageContainer"></div>
+        
+        <div class="wifi-grid">
+            <div class="wifi-card">
+                <h2 class="card-title">Connection Status</h2>
+                <div id="connectionStatus" class="status-indicator">
+                    <span>📡 Checking connection...</span>
+                </div>
+                <button class="btn" onclick="refreshStatus()">Refresh Status</button>
+                <button class="btn" onclick="disconnectWiFi()" id="disconnectBtn" style="display: none;">Disconnect</button>
+            </div>
+            
+            <div class="wifi-card">
+                <h2 class="card-title">Available Networks</h2>
+                <div id="networkList">
+                    <p>Click "Scan Networks" to discover available WiFi networks</p>
+                </div>
+                <button class="btn" onclick="scanNetworks()">Scan Networks</button>
+            </div>
+        </div>
+        
+        <div class="wifi-card">
+            <h2 class="card-title">Connect to Network</h2>
+            <form id="wifiForm">
+                <input type="text" id="ssid" class="form-input" placeholder="Network Name (SSID)" required>
+                <input type="password" id="password" class="form-input" placeholder="Password" required>
+                <button type="submit" class="btn">Connect to Network</button>
+                <button type="button" class="btn" onclick="clearForm()">Clear Form</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class WiFiManager {
+            constructor() {
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.refreshStatus();
+            }
+            
+            setupEventListeners() {
+                document.getElementById('wifiForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.connectToNetwork();
+                });
+            }
+            
+            async refreshStatus() {
+                try {
+                    const response = await fetch('/api/wifi/status');
+                    const data = await response.json();
+                    this.updateConnectionStatus(data);
+                } catch (error) {
+                    this.showMessage('Error refreshing status', 'error');
+                }
+            }
+            
+            async scanNetworks() {
+                try {
+                    const response = await fetch('/api/wifi/scan');
+                    const data = await response.json();
+                    this.updateNetworkList(data.networks || []);
+                } catch (error) {
+                    this.showMessage('Error scanning networks', 'error');
+                }
+            }
+            
+            async connectToNetwork() {
+                const ssid = document.getElementById('ssid').value.trim();
+                const password = document.getElementById('password').value;
+                
+                if (!ssid) {
+                    this.showMessage('Please enter a network name', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/wifi/connect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ssid, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showMessage('Successfully connected to WiFi!', 'success');
+                        this.refreshStatus();
+                        this.clearForm();
+                    } else {
+                        this.showMessage(`Failed to connect: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Error connecting to network', 'error');
+                }
+            }
+            
+            async disconnectWiFi() {
+                try {
+                    const response = await fetch('/api/wifi/disconnect', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showMessage('Successfully disconnected', 'success');
+                        this.refreshStatus();
+                    } else {
+                        this.showMessage(`Failed to disconnect: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Error disconnecting', 'error');
+                }
+            }
+            
+            updateConnectionStatus(status) {
+                const statusElement = document.getElementById('connectionStatus');
+                const disconnectBtn = document.getElementById('disconnectBtn');
+                
+                if (status.connected) {
+                    statusElement.innerHTML = `<span>✅ Connected to: ${status.ssid}</span>`;
+                    disconnectBtn.style.display = 'inline-block';
+                } else {
+                    statusElement.innerHTML = `<span>❌ Not connected to WiFi</span>`;
+                    disconnectBtn.style.display = 'none';
+                }
+            }
+            
+            updateNetworkList(networks) {
+                const networkList = document.getElementById('networkList');
+                
+                if (networks.length === 0) {
+                    networkList.innerHTML = '<p>No networks found</p>';
+                    return;
+                }
+                
+                networkList.innerHTML = networks.map(network => `
+                    <div onclick="wifiManager.selectNetwork('${network.ssid}')" style="padding: 10px; border: 1px solid var(--atomic-cyan); margin: 5px 0; cursor: pointer;">
+                        <strong>${network.ssid}</strong> - ${network.signal}% signal ${network.security ? '🔒' : '🔓'}
+                    </div>
+                `).join('');
+            }
+            
+            selectNetwork(ssid) {
+                document.getElementById('ssid').value = ssid;
+            }
+            
+            clearForm() {
+                document.getElementById('ssid').value = '';
+                document.getElementById('password').value = '';
+            }
+            
+            showMessage(message, type = 'info') {
+                const container = document.getElementById('messageContainer');
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.textContent = message;
+                
+                container.appendChild(messageElement);
+                messageElement.style.display = 'block';
+                
+                setTimeout(() => messageElement.remove(), 5000);
+            }
+        }
+        
+        let wifiManager;
+        
+        function refreshStatus() { wifiManager.refreshStatus(); }
+        function scanNetworks() { wifiManager.scanNetworks(); }
+        function disconnectWiFi() { wifiManager.disconnectWiFi(); }
+        function clearForm() { wifiManager.clearForm(); }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            wifiManager = new WiFiManager();
+        });
+    </script>
+</body>
+</html>

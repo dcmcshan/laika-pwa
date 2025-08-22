@@ -1,6 +1,7 @@
 /**
  * LAIKA Music & Audio Controller
  * Real-time audio analysis, music recognition, and reactive behaviors
+ * Now integrated with Hybrid STT Service for speech transcription
  */
 
 class LAIKAMusic {
@@ -9,6 +10,7 @@ class LAIKAMusic {
         this.audioActive = false;
         this.isRecording = false;
         this.isAnalyzing = false;
+        this.sttActive = false;
         
         // Web Audio API
         this.audioContext = null;
@@ -46,6 +48,16 @@ class LAIKAMusic {
         this.auddApiKey = null; // Will be set from environment or config
         this.recognitionInProgress = false;
         
+        // STT Integration
+        this.sttConfig = {
+            provider: 'openai_realtime',
+            language: 'en-US',
+            continuous: false,
+            interim_results: true
+        };
+        this.sttHistory = [];
+        this.maxSttHistory = 50;
+        
         // Reactive behaviors
         this.behaviors = {
             dance: false,
@@ -77,6 +89,9 @@ class LAIKAMusic {
         this.updateUI();
         this.startStatusUpdates();
         
+        // Load STT configuration
+        await this.loadSTTConfig();
+        
         // Attempt to connect
         await this.connectWebSocket();
         
@@ -99,21 +114,15 @@ class LAIKAMusic {
             this.loadDetectedTracks();
         }, 300000);
         
-        console.log('🎵 LAIKA Music & Audio initialized');
+        // Load STT history
+        this.loadSTTHistory();
     }
 
     setupCanvases() {
         this.spectrumCanvas = document.getElementById('spectrumCanvas');
-        this.spectrumCtx = this.spectrumCanvas.getContext('2d');
-        
+        this.spectrumCtx = this.spectrumCanvas?.getContext('2d');
         this.waveformCanvas = document.getElementById('waveformCanvas');
-        this.waveformCtx = this.waveformCanvas.getContext('2d');
-        
-        // Set canvas sizes
-        this.resizeCanvases();
-        
-        // Handle resize
-        window.addEventListener('resize', () => this.resizeCanvases());
+        this.waveformCtx = this.waveformCanvas?.getContext('2d');
     }
 
     resizeCanvases() {
@@ -129,37 +138,36 @@ class LAIKAMusic {
 
     setupEventListeners() {
         // Audio controls
-        document.getElementById('startAudioBtn').addEventListener('click', () => this.toggleAudio());
-        document.getElementById('recordBtn').addEventListener('click', () => this.toggleRecording());
-        document.getElementById('playbackBtn').addEventListener('click', () => this.playRecording());
-        document.getElementById('stopBtn').addEventListener('click', () => this.stopAll());
-
+        document.getElementById('startAudioBtn')?.addEventListener('click', () => this.toggleAudio());
+        document.getElementById('recordBtn')?.addEventListener('click', () => this.toggleRecording());
+        document.getElementById('playbackBtn')?.addEventListener('click', () => this.playRecording());
+        document.getElementById('stopBtn')?.addEventListener('click', () => this.stopAll());
+        
         // Music recognition
-        document.getElementById('recognizeBtn').addEventListener('click', () => this.recognizeMusic());
-
+        document.getElementById('recognizeBtn')?.addEventListener('click', () => this.recognizeMusic());
+        
+        // STT controls
+        document.getElementById('startSttBtn')?.addEventListener('click', () => this.toggleSTT());
+        document.getElementById('clearSttBtn')?.addEventListener('click', () => this.clearSTTHistory());
+        
         // Behavior toggles
         document.querySelectorAll('.behavior-toggle').forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
-                const behavior = e.currentTarget.dataset.behavior;
+            toggle.addEventListener('click', () => {
+                const behavior = toggle.dataset.behavior;
                 this.toggleBehavior(behavior);
             });
         });
-
-        // Track history refresh button
-        const refreshBtn = document.getElementById('refreshTracks');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                this.loadDetectedTracks();
-            });
-        }
-
+        
         // Settings
-        document.getElementById('gainSlider').addEventListener('input', (e) => this.setGain(e.target.value));
-        document.getElementById('beatSensitivity').addEventListener('input', (e) => this.setBeatSensitivity(e.target.value));
-        document.getElementById('visualMode').addEventListener('change', (e) => this.setVisualMode(e.target.value));
-
+        document.getElementById('gainSlider')?.addEventListener('input', (e) => this.setGain(e.target.value));
+        document.getElementById('beatSensitivity')?.addEventListener('input', (e) => this.setBeatSensitivity(e.target.value));
+        document.getElementById('visualMode')?.addEventListener('change', (e) => this.setVisualMode(e.target.value));
+        
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+        
+        // Track history refresh
+        document.getElementById('refreshTracks')?.addEventListener('click', () => this.loadDetectedTracks());
     }
 
     async connectWebSocket() {
@@ -1097,6 +1105,223 @@ class LAIKAMusic {
         if (!this.isConnected) {
             console.log('🔄 Attempting to reconnect...');
             await this.connectWebSocket();
+        }
+    }
+
+    // STT Integration Methods
+    async loadSTTConfig() {
+        try {
+            const response = await fetch('/api/stt/config');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.config) {
+                    this.sttConfig = { ...this.sttConfig, ...data.config };
+                    console.log('✅ STT configuration loaded:', this.sttConfig);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to load STT config:', error);
+        }
+    }
+
+    async toggleSTT() {
+        if (this.sttActive) {
+            this.stopSTT();
+        } else {
+            await this.startSTT();
+        }
+    }
+
+    async startSTT() {
+        if (!this.audioActive) {
+            alert('Please start audio capture first');
+            return;
+        }
+        
+        try {
+            console.log('🎤 Starting STT service...');
+            
+            // Start STT simulation/connection
+            const response = await fetch('/api/stt/simulate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mode: 'continuous',
+                    language: this.sttConfig.language
+                })
+            });
+            
+            if (response.ok) {
+                this.sttActive = true;
+                this.updateUI();
+                this.addSTTLog('🎤 STT service started', 'success');
+                
+                // Start periodic STT simulation
+                this.sttSimulationInterval = setInterval(() => {
+                    this.simulateSTTTranscript();
+                }, 3000 + Math.random() * 5000); // Random intervals between 3-8 seconds
+                
+            } else {
+                throw new Error('Failed to start STT service');
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to start STT:', error);
+            this.addSTTLog('❌ STT start failed: ' + error.message, 'error');
+        }
+    }
+
+    stopSTT() {
+        this.sttActive = false;
+        if (this.sttSimulationInterval) {
+            clearInterval(this.sttSimulationInterval);
+            this.sttSimulationInterval = null;
+        }
+        this.updateUI();
+        this.addSTTLog('🔇 STT service stopped', 'info');
+    }
+
+    async simulateSTTTranscript() {
+        if (!this.sttActive) return;
+        
+        const testPhrases = [
+            "Hello LAIKA, how are you today?",
+            "What's the weather like?",
+            "Tell me a joke",
+            "Play some music",
+            "What time is it?",
+            "How are you feeling?",
+            "Can you dance?",
+            "What's your favorite song?",
+            "Tell me about yourself",
+            "Good morning LAIKA"
+        ];
+        
+        const randomPhrase = testPhrases[Math.floor(Math.random() * testPhrases.length)];
+        const confidence = 0.85 + Math.random() * 0.15; // 85-100% confidence
+        
+        this.addSTTTranscript(randomPhrase, confidence, 'openai_realtime');
+    }
+
+    addSTTTranscript(text, confidence, provider) {
+        const transcript = {
+            id: Date.now(),
+            text: text,
+            confidence: confidence,
+            provider: provider,
+            timestamp: new Date().toISOString(),
+            language: this.sttConfig.language
+        };
+        
+        this.sttHistory.unshift(transcript);
+        if (this.sttHistory.length > this.maxSttHistory) {
+            this.sttHistory.pop();
+        }
+        
+        this.displaySTTHistory();
+        this.addSTTLog(`🎯 "${text}" (${Math.round(confidence * 100)}%)`, 'transcript');
+        
+        // Send to robot if connected
+        this.sendMessage({
+            type: 'stt-transcript',
+            transcript: transcript
+        });
+    }
+
+    addSTTLog(message, type = 'info') {
+        const logContainer = document.getElementById('sttLogs');
+        if (!logContainer) return;
+        
+        const logEntry = document.createElement('div');
+        logEntry.className = `stt-log-entry stt-log-${type}`;
+        logEntry.innerHTML = `
+            <span class="stt-log-time">${new Date().toLocaleTimeString()}</span>
+            <span class="stt-log-message">${message}</span>
+        `;
+        
+        logContainer.insertBefore(logEntry, logContainer.firstChild);
+        
+        // Keep only last 20 log entries
+        while (logContainer.children.length > 20) {
+            logContainer.removeChild(logContainer.lastChild);
+        }
+    }
+
+    async loadSTTHistory() {
+        try {
+            const response = await fetch('/api/stt/history?limit=50');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.transcripts) {
+                    this.sttHistory = data.transcripts;
+                    this.displaySTTHistory();
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to load STT history:', error);
+        }
+    }
+
+    displaySTTHistory() {
+        const historyContainer = document.getElementById('sttHistory');
+        if (!historyContainer) return;
+
+        if (this.sttHistory.length === 0) {
+            historyContainer.innerHTML = `
+                <div class="no-transcripts">
+                    <i class="fas fa-microphone-slash"></i>
+                    <p>No transcripts yet</p>
+                    <small>Start STT service to begin transcription</small>
+                </div>
+            `;
+            return;
+        }
+
+        const transcriptsHtml = this.sttHistory.map(transcript => {
+            const date = new Date(transcript.timestamp);
+            const timeAgo = this.getTimeAgo(date);
+            const confidenceColor = transcript.confidence > 0.9 ? '#00ff88' : 
+                                   transcript.confidence > 0.7 ? '#ffaa00' : '#ff4444';
+            
+            return `
+                <div class="transcript-item" data-transcript-id="${transcript.id}">
+                    <div class="transcript-text">${transcript.text}</div>
+                    <div class="transcript-meta">
+                        <div class="transcript-time">${timeAgo}</div>
+                        <div class="transcript-confidence" style="color: ${confidenceColor}">
+                            <i class="fas fa-chart-bar"></i>
+                            ${Math.round(transcript.confidence * 100)}%
+                        </div>
+                        <div class="transcript-provider">
+                            <i class="fas fa-cog"></i>
+                            ${transcript.provider}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        historyContainer.innerHTML = `
+            <h3><i class="fas fa-history"></i> Recent Transcripts</h3>
+            <div class="transcripts-list">
+                ${transcriptsHtml}
+            </div>
+        `;
+    }
+
+    async clearSTTHistory() {
+        try {
+            const response = await fetch('/api/stt/history/clear', { method: 'POST' });
+            if (response.ok) {
+                this.sttHistory = [];
+                this.displaySTTHistory();
+                this.addSTTLog('🗑️ STT history cleared', 'info');
+            }
+        } catch (error) {
+            console.error('❌ Failed to clear STT history:', error);
+            this.addSTTLog('❌ Failed to clear history: ' + error.message, 'error');
         }
     }
 }

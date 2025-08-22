@@ -453,6 +453,17 @@
                 inset 0 0 30px rgba(35, 134, 54, 0.2);
         }
 
+        .nav-card.wifi-card:hover {
+            border-color: var(--success-green);
+            box-shadow: 
+                0 10px 30px rgba(0, 255, 136, 0.5),
+                inset 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+            box-shadow: 
+                0 10px 30px rgba(35, 134, 54, 0.5),
+                inset 0 0 30px rgba(35, 134, 54, 0.2);
+        }
+
         .nav-card.shell-card:hover {
             border-color: var(--warning-yellow);
             box-shadow: 
@@ -929,6 +940,21 @@
                         <li>Submodule synchronization</li>
                         <li>Branch management</li>
                         <li>Update status monitoring</li>
+                    </ul>
+                </a>
+
+                <!-- WiFi Management -->
+                <a href="wifi" class="nav-card wifi-card">
+                    <span class="nav-icon">📡</span>
+                    <h3 class="nav-title">WiFi Management</h3>
+                    <p class="nav-description">
+                        Manage WiFi connections and network configuration for LAIKA. Scan networks, connect to WiFi, and monitor connection status.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Network scanning & discovery</li>
+                        <li>WiFi connection management</li>
+                        <li>Connection status monitoring</li>
+                        <li>Network diagnostics</li>
                     </ul>
                 </a>
 
