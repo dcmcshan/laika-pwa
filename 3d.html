@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAIKA 3D Model Viewer</title>
+    <link rel="stylesheet" href="/css/header-footer.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Orbitron', monospace;
+            background: #0a0a0a;
+            color: #00ffff;
+            overflow: hidden;
+        }
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #00ffff;
+        }
+
+        #container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #00ffff;
+            font-size: 14px;
+            max-width: 300px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #00ffff;
+            font-size: 12px;
+        }
+
+        #controls h3 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ffff;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            background: #333;
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+        }
+
+        .control-group button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 12px;
+            margin: 2px;
+        }
+
+        .control-group button:hover {
+            background: #00cccc;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 11px;
+        }
+
+        .status.connected {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .status.disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+
+        .status.loading {
+            background: rgba(255, 255, 0, 0.2);
+            border: 1px solid #ffff00;
+            color: #ffff00;
+        }
+
+        #joint-states {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #00ffff;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .joint-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+
+        .joint-name {
+            color: #00ffff;
+        }
+
+        .joint-value {
+            color: #ffffff;
+        }
+
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #00ffff;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div style="padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; font-size: 24px;">🤖 LAIKA 3D Model Viewer</h1>
+            <div style="display: flex; gap: 15px;">
+                <a href="/" style="color: #00ffff; text-decoration: none;">🏠 Home</a>
+                <a href="/control" style="color: #00ffff; text-decoration: none;">🎮 Control</a>
+                <a href="/slam" style="color: #00ffff; text-decoration: none;">🗺️ SLAM</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading 3D Model...</div>
+    </div>
+
+    <div id="container"></div>
+
+    <div id="overlay">
+        <h3>🤖 PuppyPi Robot Model</h3>
+        <div id="status" class="status loading">Loading model...</div>
+        <div id="ros-status" class="status disconnected">ROSBridge: Disconnected</div>
+        <div id="joint-count">Joints: 0</div>
+        <div id="fps">FPS: 0</div>
+    </div>
+
+    <div id="controls">
+        <h3>🎛️ Controls</h3>
+        
+        <div class="control-group">
+            <label>Camera Distance</label>
+            <input type="range" id="camera-distance" min="0.5" max="5" step="0.1" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>Animation Speed</label>
+            <input type="range" id="animation-speed" min="0" max="2" step="0.1" value="1">
+        </div>
+
+        <div class="control-group">
+            <button id="reset-camera">Reset Camera</button>
+            <button id="toggle-grid">Toggle Grid</button>
+            <button id="toggle-wireframe">Wireframe</button>
+        </div>
+
+        <div class="control-group">
+            <button id="demo-animation">Demo Animation</button>
+            <button id="stop-animation">Stop Animation</button>
+        </div>
+
+        <div class="control-group">
+            <label>Lighting</label>
+            <button id="toggle-lights">Toggle Lights</button>
+            <button id="cycle-materials">Cycle Materials</button>
+        </div>
+    </div>
+
+    <div id="joint-states">
+        <h4>🦴 Joint States</h4>
+        <div id="joint-list"></div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+    <!-- OrbitControls for camera interaction -->
+    <script src="https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- URDFLoader from three.js examples -->
+    <script src="https://unpkg.com/urdf-loader@0.9.6/dist/URDFLoader.min.js"></script>
+    <!-- roslibjs for ROSBridge connection -->
+    <script src="https://unpkg.com/roslib@1.3.0/build/roslib.min.js"></script>
+
+    <script>
+        class LAIKA3DViewer {
+            constructor() {
+                this.container = document.getElementById('container');
+                this.overlay = document.getElementById('overlay');
+                this.loadingScreen = document.getElementById('loading-screen');
+                
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                this.robot = null;
+                this.ros = null;
+                this.animationId = null;
+                this.clock = new THREE.Clock();
+                
+                this.isConnected = false;
+                this.isModelLoaded = false;
+                this.fps = 0;
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                
+                this.demoAnimation = false;
+                this.animationSpeed = 1.0;
+                this.showGrid = true;
+                this.showWireframe = false;
+                this.lightsEnabled = true;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupThreeJS();
+                this.setupControls();
+                this.setupEventListeners();
+                this.loadRobotModel();
+                this.setupROSConnection();
+                this.animate();
+            }
+
+            setupThreeJS() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a0a);
+                this.scene.fog = new THREE.Fog(0x0a0a0a, 5, 15);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(
+                    45, 
+                    this.container.clientWidth / this.container.clientHeight, 
+                    0.01, 
+                    100
+                );
+                this.camera.position.set(2, 2, 2);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    alpha: true 
+                });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Controls
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.maxPolarAngle = Math.PI / 2;
+                this.controls.target.set(0, 0.1, 0);
+
+                // Lighting
+                this.setupLighting();
+
+                // Grid
+                this.gridHelper = new THREE.GridHelper(4, 20, 0x00ffff, 0x333333);
+                this.scene.add(this.gridHelper);
+            }
+
+            setupLighting() {
+                this.ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(this.ambientLight);
+
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                this.directionalLight.position.set(10, 10, 5);
+                this.directionalLight.castShadow = true;
+                this.directionalLight.shadow.mapSize.width = 2048;
+                this.directionalLight.shadow.mapSize.height = 2048;
+                this.scene.add(this.directionalLight);
+
+                this.hemisphereLight = new THREE.HemisphereLight(0x606060, 0x202020, 1.0);
+                this.scene.add(this.hemisphereLight);
+            }
+
+            setupControls() {
+                // Camera distance control
+                const cameraDistanceSlider = document.getElementById('camera-distance');
+                cameraDistanceSlider.addEventListener('input', (e) => {
+                    const distance = parseFloat(e.target.value);
+                    const direction = this.camera.position.clone().normalize();
+                    this.camera.position.copy(direction.multiplyScalar(distance));
+                    this.controls.update();
+                });
+
+                // Animation speed control
+                const animationSpeedSlider = document.getElementById('animation-speed');
+                animationSpeedSlider.addEventListener('input', (e) => {
+                    this.animationSpeed = parseFloat(e.target.value);
+                });
+
+                // Control buttons
+                document.getElementById('reset-camera').addEventListener('click', () => {
+                    this.camera.position.set(2, 2, 2);
+                    this.controls.target.set(0, 0.1, 0);
+                    this.controls.update();
+                });
+
+                document.getElementById('toggle-grid').addEventListener('click', () => {
+                    this.showGrid = !this.showGrid;
+                    this.gridHelper.visible = this.showGrid;
+                });
+
+                document.getElementById('toggle-wireframe').addEventListener('click', () => {
+                    this.showWireframe = !this.showWireframe;
+                    if (this.robot) {
+                        this.robot.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material.wireframe = this.showWireframe;
+                            }
+                        });
+                    }
+                });
+
+                document.getElementById('demo-animation').addEventListener('click', () => {
+                    this.demoAnimation = !this.demoAnimation;
+                    const button = document.getElementById('demo-animation');
+                    button.textContent = this.demoAnimation ? 'Stop Demo' : 'Demo Animation';
+                });
+
+                document.getElementById('stop-animation').addEventListener('click', () => {
+                    this.demoAnimation = false;
+                    document.getElementById('demo-animation').textContent = 'Demo Animation';
+                });
+
+                document.getElementById('toggle-lights').addEventListener('click', () => {
+                    this.lightsEnabled = !this.lightsEnabled;
+                    this.ambientLight.intensity = this.lightsEnabled ? 0.6 : 0;
+                    this.directionalLight.intensity = this.lightsEnabled ? 0.8 : 0;
+                    this.hemisphereLight.intensity = this.lightsEnabled ? 1.0 : 0;
+                });
+
+                document.getElementById('cycle-materials').addEventListener('click', () => {
+                    this.cycleMaterials();
+                });
+            }
+
+            setupEventListeners() {
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                });
+            }
+
+            loadRobotModel() {
+                const loader = new URDFLoader();
+                
+                // Map package://puppypi_description to relative path
+                loader.packages = {
+                    'puppypi_description': '/puppypi_description'
+                };
+
+                const urdfPath = '/puppypi_description/puppy.urdf';
+                
+                loader.load(urdfPath, (model) => {
+                    this.robot = model;
+                    this.robot.rotation.x = Math.PI / 2; // Align Z-up to Y-up
+                    this.scene.add(this.robot);
+                    
+                    this.isModelLoaded = true;
+                    this.updateStatus('Model loaded successfully', 'connected');
+                    this.updateJointCount();
+                    this.hideLoadingScreen();
+                    
+                    console.log('Robot model loaded:', this.robot);
+                }, undefined, (err) => {
+                    console.error('Failed to load URDF:', err);
+                    this.updateStatus('Failed to load URDF model', 'disconnected');
+                    this.hideLoadingScreen();
+                });
+            }
+
+            setupROSConnection() {
+                const rosURL = (window.location.protocol === 'https:' ? 'wss' : 'ws') + 
+                              '://' + window.location.hostname + ':9090';
+
+                this.ros = new ROSLIB.Ros({ url: rosURL });
+                
+                this.ros.on('connection', () => {
+                    console.log('Connected to ROSBridge');
+                    this.isConnected = true;
+                    this.updateROSStatus('Connected', 'connected');
+                    this.subscribeToJointStates();
+                });
+                
+                this.ros.on('error', (error) => {
+                    console.error('Error connecting to ROSBridge:', error);
+                    this.isConnected = false;
+                    this.updateROSStatus('Connection Error', 'disconnected');
+                });
+                
+                this.ros.on('close', () => {
+                    console.warn('Connection to ROSBridge closed');
+                    this.isConnected = false;
+                    this.updateROSStatus('Disconnected', 'disconnected');
+                });
+            }
+
+            subscribeToJointStates() {
+                const jointStateListener = new ROSLIB.Topic({
+                    ros: this.ros,
+                    name: '/joint_states',
+                    messageType: 'sensor_msgs/JointState'
+                });
+
+                jointStateListener.subscribe((msg) => {
+                    if (!this.robot || !this.isModelLoaded) return;
+
+                    for (let i = 0; i < msg.name.length; i++) {
+                        const jointName = msg.name[i];
+                        const position = msg.position[i];
+                        const joint = this.robot.joints[jointName];
+                        if (joint) {
+                            joint.setJointValue(position);
+                        }
+                    }
+                    
+                    this.updateJointStates(msg);
+                });
+            }
+
+            updateJointStates(msg) {
+                const jointList = document.getElementById('joint-list');
+                jointList.innerHTML = '';
+                
+                for (let i = 0; i < msg.name.length; i++) {
+                    const jointName = msg.name[i];
+                    const position = msg.position[i];
+                    
+                    const jointItem = document.createElement('div');
+                    jointItem.className = 'joint-item';
+                    jointItem.innerHTML = `
+                        <span class="joint-name">${jointName}</span>
+                        <span class="joint-value">${position.toFixed(3)}</span>
+                    `;
+                    jointList.appendChild(jointItem);
+                }
+            }
+
+            updateJointCount() {
+                if (this.robot) {
+                    const jointCount = Object.keys(this.robot.joints).length;
+                    document.getElementById('joint-count').textContent = `Joints: ${jointCount}`;
+                }
+            }
+
+            updateStatus(message, type) {
+                const statusElement = document.getElementById('status');
+                statusElement.textContent = message;
+                statusElement.className = `status ${type}`;
+            }
+
+            updateROSStatus(message, type) {
+                const rosStatusElement = document.getElementById('ros-status');
+                rosStatusElement.textContent = `ROSBridge: ${message}`;
+                rosStatusElement.className = `status ${type}`;
+            }
+
+            hideLoadingScreen() {
+                this.loadingScreen.style.display = 'none';
+            }
+
+            cycleMaterials() {
+                if (!this.robot) return;
+                
+                const materials = [
+                    new THREE.MeshPhongMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 }),
+                    new THREE.MeshPhongMaterial({ color: 0xff00ff, transparent: true, opacity: 0.8 }),
+                    new THREE.MeshPhongMaterial({ color: 0xffff00, transparent: true, opacity: 0.8 }),
+                    new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 })
+                ];
+                
+                let materialIndex = 0;
+                this.robot.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material = materials[materialIndex % materials.length];
+                        materialIndex++;
+                    }
+                });
+            }
+
+            animate() {
+                this.animationId = requestAnimationFrame(() => this.animate());
+                
+                const delta = this.clock.getDelta();
+                
+                // Update controls
+                this.controls.update();
+                
+                // Demo animation
+                if (this.demoAnimation && this.robot) {
+                    const time = this.clock.getElapsedTime() * this.animationSpeed;
+                    
+                    // Simple walking animation
+                    Object.keys(this.robot.joints).forEach((jointName, index) => {
+                        const joint = this.robot.joints[jointName];
+                        if (joint) {
+                            const amplitude = 0.3;
+                            const frequency = 2.0;
+                            const phase = index * 0.5;
+                            const value = Math.sin(time * frequency + phase) * amplitude;
+                            joint.setJointValue(value);
+                        }
+                    });
+                }
+                
+                // Update robot matrix world
+                if (this.robot) {
+                    this.robot.updateMatrixWorld();
+                }
+                
+                // Calculate FPS
+                this.frameCount++;
+                const currentTime = performance.now();
+                if (currentTime - this.lastTime >= 1000) {
+                    this.fps = this.frameCount;
+                    this.frameCount = 0;
+                    this.lastTime = currentTime;
+                    document.getElementById('fps').textContent = `FPS: ${this.fps}`;
+                }
+                
+                // Render
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            dispose() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                if (this.renderer) {
+                    this.renderer.dispose();
+                }
+            }
+        }
+
+        // Initialize the viewer when the page loads
+        let viewer;
+        window.addEventListener('load', () => {
+            viewer = new LAIKA3DViewer();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (viewer) {
+                viewer.dispose();
+            }
+        });
+    </script>
+</body>
+</html>

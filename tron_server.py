@@ -4,7 +4,7 @@ LAIKA TRON PWA Server - Full Featured with TRON Aesthetic
 Serves all the beautiful TRON-styled pages with robust startup
 """
 
-from flask import Flask, send_file, jsonify, request, render_template_string, redirect
+from flask import Flask, send_file, send_from_directory, jsonify, request, render_template_string, redirect
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, disconnect
 import os
@@ -37,6 +37,21 @@ except ImportError:
     OPENAI_AVAILABLE = False
     OpenAI = None
 
+# Import modular API modules
+try:
+    from api_stt import init_stt_api, register_socketio_handlers as register_stt_handlers
+    STT_API_AVAILABLE = True
+except ImportError:
+    print("Warning: STT API module not available")
+    STT_API_AVAILABLE = False
+
+try:
+    from bhv_api import init_bhv_api, register_socketio_handlers as register_bhv_handlers
+    BHV_API_AVAILABLE = True
+except ImportError:
+    print("Warning: Behavior API module not available")
+    BHV_API_AVAILABLE = False
+
 # Try to import context camera system
 try:
     from context_camera_system import get_context_camera_system
@@ -52,6 +67,44 @@ try:
 except ImportError:
     print("Warning: Sensor telemetry not available")
     TELEMETRY_AVAILABLE = False
+
+# Import modular API modules
+try:
+    from api_stt import init_stt_api, register_socketio_handlers as register_stt_handlers
+    STT_API_AVAILABLE = True
+except ImportError:
+    print("Warning: STT API module not available")
+    STT_API_AVAILABLE = False
+
+try:
+    from bhv_api import init_bhv_api, register_socketio_handlers as register_bhv_handlers
+    BHV_API_AVAILABLE = True
+except ImportError:
+    print("Warning: Behavior API module not available")
+    BHV_API_AVAILABLE = False
+
+try:
+    from api_sensors import init_sensors_api, register_socketio_handlers as register_sensors_handlers
+    SENSORS_API_AVAILABLE = True
+except ImportError:
+    print("Warning: Sensors API module not available")
+    SENSORS_API_AVAILABLE = False
+
+try:
+    from api_memory import init_memory_api, register_socketio_handlers as register_memory_handlers
+    MEMORY_API_AVAILABLE = True
+except ImportError:
+    print("Warning: Memory API module not available")
+    MEMORY_API_AVAILABLE = False
+
+# Try to import 3D integration
+try:
+    from three_d_integration import integrate_3d_routes, get_3d_available
+    THREE_D_AVAILABLE = True
+    print("✅ 3D integration available")
+except ImportError:
+    print("Warning: 3D integration not available")
+    THREE_D_AVAILABLE = False
 
 app = Flask(__name__)
 CORS(app)
@@ -132,6 +185,8 @@ def initialize_llm_systems():
             print("✅ Sensor telemetry system connected")
         except Exception as e:
             print(f"❌ Failed to initialize sensor telemetry: {e}")
+    
+
 
 def get_laika_system_prompt():
     """Get LAIKA's system prompt with personality and capabilities"""
@@ -590,6 +645,35 @@ def stt_page():
     import os
     base_path = os.path.dirname(os.path.abspath(__file__))
     return send_file(os.path.join(base_path, 'stt.html'))
+
+@app.route('/stt_test')
+def stt_test_page():
+    """Serve the STT test page"""
+    import os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    return send_file(os.path.join(base_path, 'stt_test.html'))
+
+@app.route('/behavior')
+def behavior_page():
+    """Serve the behavior tree editor page"""
+    try:
+        print(f"🔍 Serving behavior.html from BASE_DIR: {BASE_DIR}")
+        print(f"🔍 File exists: {os.path.exists(os.path.join(BASE_DIR, 'behavior.html'))}")
+        return send_from_directory(BASE_DIR, 'behavior.html')
+    except Exception as e:
+        print(f"❌ Error serving behavior.html: {e}")
+        return f"Error serving behavior page: {str(e)}", 500
+
+@app.route('/3d')
+def three_d_page():
+    """Serve the 3D model viewer page"""
+    try:
+        print(f"🔍 Serving 3d.html from BASE_DIR: {BASE_DIR}")
+        print(f"🔍 File exists: {os.path.exists(os.path.join(BASE_DIR, '3d.html'))}")
+        return send_from_directory(BASE_DIR, '3d.html')
+    except Exception as e:
+        print(f"❌ Error serving 3d.html: {e}")
+        return f"Error serving 3D page: {str(e)}", 500
 
 # Static file serving
 @app.route('/css/<path:filename>')
@@ -4831,12 +4915,187 @@ def voice_status():
             'error': str(e)
         }), 500
 
+@app.route('/api/keys', methods=['GET', 'POST'])
+def handle_api_keys():
+    """Get or set API keys for all services"""
+    try:
+        if request.method == 'GET':
+            # Load current API keys
+            api_keys = load_api_keys()
+            
+            # Mask all keys for security
+            masked_keys = {}
+            for service, key in api_keys.items():
+                if key and service.endswith('_api_key'):
+                    masked_keys[service] = key[:8] + '...' + key[-4:] if len(key) > 12 else '***'
+                else:
+                    masked_keys[service] = key
+            
+            return jsonify({
+                'success': True,
+                'api_keys': masked_keys,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        elif request.method == 'POST':
+            # Update API keys
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': 'No data received'}), 400
+            
+            # Save API keys
+            save_result = save_api_keys(data)
+            
+            if save_result['success']:
+                print(f"🔑 API keys updated")
+                return jsonify({
+                    'success': True,
+                    'message': 'API keys updated successfully',
+                    'timestamp': datetime.now().isoformat()
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': save_result.get('error', 'Failed to save API keys')
+                }), 500
+                
+    except Exception as e:
+        print(f"❌ Error handling API keys: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/keys/test', methods=['POST'])
+def test_api_keys():
+    """Test API keys for LLM, STT, and TTS services"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+        
+        service = data.get('service', '')
+        api_key = data.get('api_key', '')
+        
+        if not service or not api_key:
+            return jsonify({'success': False, 'error': 'Service and API key required'}), 400
+        
+        test_results = {}
+        
+        if service == 'llm' or service == 'openai':
+            # Test OpenAI API key
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    max_tokens=10
+                )
+                test_results['llm'] = {'success': True, 'message': 'OpenAI API key is valid'}
+            except Exception as e:
+                test_results['llm'] = {'success': False, 'error': str(e)}
+        
+        elif service == 'stt' or service == 'elevenlabs':
+            # Test ElevenLabs API key for STT
+            try:
+                import requests
+                headers = {"xi-api-key": api_key}
+                response = requests.get("https://api.elevenlabs.io/v1/voices", headers=headers)
+                if response.status_code == 200:
+                    test_results['stt'] = {'success': True, 'message': 'ElevenLabs API key is valid for STT'}
+                else:
+                    test_results['stt'] = {'success': False, 'error': f'HTTP {response.status_code}'}
+            except Exception as e:
+                test_results['stt'] = {'success': False, 'error': str(e)}
+        
+        elif service == 'tts' or service == 'elevenlabs':
+            # Test ElevenLabs API key for TTS
+            try:
+                import requests
+                headers = {"xi-api-key": api_key}
+                response = requests.get("https://api.elevenlabs.io/v1/voices", headers=headers)
+                if response.status_code == 200:
+                    test_results['tts'] = {'success': True, 'message': 'ElevenLabs API key is valid for TTS'}
+                else:
+                    test_results['tts'] = {'success': False, 'error': f'HTTP {response.status_code}'}
+            except Exception as e:
+                test_results['tts'] = {'success': False, 'error': str(e)}
+        
+        return jsonify({
+            'success': True,
+            'test_results': test_results,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error testing API keys: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def load_api_keys():
+    """Load API keys from config file"""
+    try:
+        import json
+        config_path = os.path.join('config', 'api_keys.json')
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        else:
+            return {
+                'openai_api_key': '',
+                'anthropic_api_key': '',
+                'elevenlabs_api_key': '',
+                'google_api_key': ''
+            }
+    except Exception as e:
+        print(f"❌ Error loading API keys: {e}")
+        return {}
+
+def save_api_keys(api_keys):
+    """Save API keys to config file"""
+    try:
+        import json
+        config_path = os.path.join('config', 'api_keys.json')
+        
+        # Ensure config directory exists
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        
+        # Load existing keys and update
+        existing_keys = load_api_keys()
+        existing_keys.update(api_keys)
+        
+        # Save updated keys
+        with open(config_path, 'w') as f:
+            json.dump(existing_keys, f, indent=2)
+        
+        # Update environment variables
+        for key_name, key_value in api_keys.items():
+            if key_value:
+                env_var = key_name.upper()
+                os.environ[env_var] = key_value
+        
+        return {'success': True}
+    except Exception as e:
+        print(f"❌ Error saving API keys: {e}")
+        return {'success': False, 'error': str(e)}
+
 
 if __name__ == '__main__':
     print("🚀 Starting LAIKA TRON PWA Server...")
     print(f"📡 Server will be available at: http://localhost:5000")
     print(f"🌐 NGROK tunnel: https://laika.ngrok.app")
     print("💫 TRON Grid activated!")
+    
+    # Initialize systems
+    initialize_llm_systems()
+    
+
+    
+    # Initialize 3D integration
+    if THREE_D_AVAILABLE:
+        try:
+            integrate_3d_routes(app)
+            print("✅ 3D routes integrated successfully")
+        except Exception as e:
+            print(f"❌ Failed to integrate 3D routes: {e}")
     
     # Start the SocketIO server
     if socketio_app:

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.laika.pwa</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA/laika-pwa/tron_server.py</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA/laika-pwa</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA/venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA</string>
+        <key>FLASK_ENV</key>
+        <string>production</string>
+    </dict>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>StandardOutPath</key>
+    <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA/laika-pwa/logs/laika-pwa.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/danielmcshan/GitHub/PuppyPi/LAIKA/laika-pwa/logs/laika-pwa-error.log</string>
+    
+    <key>ProcessType</key>
+    <string>Background</string>
+    
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

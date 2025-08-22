@@ -90,15 +90,20 @@ async function loadCurrentConfiguration() {
         // Get current STT node parameters
         const wakeWord = await window.ros2Bridge.getParameter('/stt_node', 'awake_word');
         const enableWakeup = await window.ros2Bridge.getParameter('/stt_node', 'enable_wakeup');
+        const primaryProvider = await window.ros2Bridge.getParameter('/stt_node', 'stt_primary_provider');
+        const fallbackOrder = await window.ros2Bridge.getParameter('/stt_node', 'stt_fallback_order');
+        const enableElevenlabs = await window.ros2Bridge.getParameter('/stt_node', 'enable_elevenlabs_stt');
         
         // Update UI with current values
         document.getElementById('currentWakeWord').textContent = wakeWord || 'LAIKA';
         document.getElementById('currentWakeDetection').textContent = enableWakeup ? 'Enabled' : 'Disabled';
-        document.getElementById('currentSTTProvider').textContent = 'Robust STT (Multi-level)';
+        document.getElementById('currentSTTProvider').textContent = `${primaryProvider} (Primary)`;
+        document.getElementById('currentFallbackOrder').textContent = fallbackOrder ? fallbackOrder.join(' → ') : 'openai_whisper → local_whisper → elevenlabs';
         
         // Update form inputs
         document.getElementById('wakeWordInput').value = wakeWord || 'LAIKA';
         document.getElementById('enableWakeDetection').checked = enableWakeup !== false;
+        document.getElementById('sttPrioritySelect').value = primaryProvider || 'openai_realtime';
         
         log('✅ Loaded current STT configuration', 'success');
         
@@ -107,7 +112,8 @@ async function loadCurrentConfiguration() {
         // Use defaults
         document.getElementById('currentWakeWord').textContent = 'LAIKA';
         document.getElementById('currentWakeDetection').textContent = 'Enabled';
-        document.getElementById('currentSTTProvider').textContent = 'Robust STT (Multi-level)';
+        document.getElementById('currentSTTProvider').textContent = 'openai_realtime (Primary)';
+        document.getElementById('currentFallbackOrder').textContent = 'openai_whisper → local_whisper → elevenlabs';
     }
 }
 
@@ -132,10 +138,12 @@ async function saveConfiguration() {
         // Set STT node parameters
         await window.ros2Bridge.setParameter('/stt_node', 'awake_word', wakeWord);
         await window.ros2Bridge.setParameter('/stt_node', 'enable_wakeup', enableWakeup);
+        await window.ros2Bridge.setParameter('/stt_node', 'stt_primary_provider', sttPriority);
         
         // Update current configuration display
         document.getElementById('currentWakeWord').textContent = wakeWord;
         document.getElementById('currentWakeDetection').textContent = enableWakeup ? 'Enabled' : 'Disabled';
+        document.getElementById('currentSTTProvider').textContent = `${sttPriority} (Primary)`;
         
         log('✅ STT configuration saved successfully', 'success');
         
@@ -164,6 +172,7 @@ async function resetConfiguration() {
         // Set default parameters
         await window.ros2Bridge.setParameter('/stt_node', 'awake_word', defaultWakeWord);
         await window.ros2Bridge.setParameter('/stt_node', 'enable_wakeup', defaultEnableWakeup);
+        await window.ros2Bridge.setParameter('/stt_node', 'stt_primary_provider', 'openai_realtime');
         
         // Update UI
         document.getElementById('wakeWordInput').value = defaultWakeWord;
@@ -172,6 +181,7 @@ async function resetConfiguration() {
         
         document.getElementById('currentWakeWord').textContent = defaultWakeWord;
         document.getElementById('currentWakeDetection').textContent = 'Enabled';
+        document.getElementById('currentSTTProvider').textContent = 'openai_realtime (Primary)';
         
         log('✅ STT configuration reset to defaults', 'success');
         updateStatus('ready', 'Configuration Reset');

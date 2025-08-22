@@ -3,518 +3,378 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2196F3">
     <title>LAIKA Behavior Tree Editor</title>
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxOTZGMztzdG9wLW9wYWNpdHk6MSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIxQ0JGMztzdG9wLW9wYWNpdHk6MSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMTkiIHJ5PSIxOSIgZmlsbD0idXJsKCNiZykiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0OCwgNDgpIj48ZWxsaXBzZSBjeD0iNDgiIGN5PSI3MiIgcng9IjM2IiByeT0iMjQiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjM2IiByPSIyMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPjxlbGxpcHNlIGN4PSIzNiIgY3k9IjI0IiByeD0iNiIgcnk9IjEyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC44Ii8+PGVsbGlwc2UgY3g9IjYwIiBjeT0iMjQiIHJ4PSI2IiByeT0iMTIiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjgiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjMzIiByPSIyIiBmaWxsPSIjMzMzIi8+PGNpcmNsZSBjeD0iNTQiIGN5PSIzMyIgcj0iMiIgZmlsbD0iIzMzMyIvPjxlbGxpcHNlIGN4PSI0OCIgY3k9IjM5IiByeD0iMyIgcnk9IjEuNSIgZmlsbD0iIzMzMyIvPjwvZz48L3N2Zz4=">
-    
-    <!-- iOS PWA Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="LAIKA Behavior">
-    
+    <link rel="stylesheet" href="css/header-footer.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --atomic-cyan: #00FFFF;
-            --tron-cyan: #00E5FF;
-            --dark-cyan: #00BCD4;
-            --electric-blue: #0080FF;
-            --atomic-bg: #0A0A0F;
-            --panel-bg: #141420;
-            --grid-color: #00FFFF33;
-            --text-cyan: #E0FFFF;
-            --text-dim: #80C0C0;
-            --glow-cyan: #00FFFF80;
-            --atomic-orange: #FF6B35;
-            --atomic-pink: #FF1B8D;
-            --success-green: #00FF00;
-            --warning-orange: #FFA500;
-            --error-red: #FF0040;
-        }
-
         body {
-            font-family: 'Exo 2', 'Orbitron', monospace;
-            background: var(--atomic-bg);
-            background-image: 
-                radial-gradient(circle at 25% 25%, var(--grid-color) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, var(--grid-color) 1px, transparent 1px),
-                linear-gradient(135deg, var(--atomic-bg) 0%, #0F0F1A 50%, var(--atomic-bg) 100%);
-            background-size: 40px 40px, 40px 40px, 100% 100%;
-            background-attachment: fixed;
-            min-height: 100vh;
-            color: var(--text-cyan);
-            overflow-x: hidden;
-            position: relative;
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff41;
+            margin: 0;
+            padding: 20px;
         }
-
-        .app-container {
+        
+        .container {
             max-width: 1400px;
             margin: 0 auto;
-            min-height: 100vh;
-            background: var(--panel-bg);
-            background-image: 
-                linear-gradient(135deg, var(--panel-bg) 0%, #1A1A2E 100%);
-            box-shadow: 
-                0 0 30px var(--glow-cyan),
-                inset 0 0 30px rgba(0, 255, 255, 0.1),
-                0 0 60px rgba(0, 255, 255, 0.2);
-            border: 1px solid var(--atomic-cyan);
-            border-radius: 0;
-            position: relative;
-            z-index: 2;
         }
-
+        
         .header {
-            background: linear-gradient(135deg, var(--atomic-bg) 0%, var(--panel-bg) 100%);
-            border-bottom: 2px solid var(--atomic-cyan);
-            padding: 20px;
             text-align: center;
-            box-shadow: 0 0 20px var(--glow-cyan);
+            margin-bottom: 30px;
         }
-
+        
         .header h1 {
-            font-family: 'Orbitron', monospace;
             font-size: 2.5em;
-            font-weight: 900;
-            color: var(--atomic-cyan);
-            text-shadow: 0 0 20px var(--glow-cyan);
-            margin-bottom: 10px;
+            margin: 0;
+            text-shadow: 0 0 10px #00ff41;
         }
-
+        
         .header p {
-            color: var(--text-dim);
-            font-size: 1.1em;
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin: 10px 0;
         }
-
-        .control-panel {
-            background: var(--atomic-bg);
-            border-bottom: 1px solid var(--atomic-cyan);
-            padding: 15px;
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: #1a1a1a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: #00ff41;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 10px;
+        }
+        
+        .behavior-controls {
             display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            justify-content: center;
         }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .control-group label {
-            color: var(--text-cyan);
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
+        
         .btn {
-            background: linear-gradient(135deg, var(--atomic-cyan) 0%, var(--dark-cyan) 100%);
+            background: #00ff41;
+            color: #000;
             border: none;
-            color: var(--atomic-bg);
             padding: 10px 20px;
             border-radius: 5px;
-            font-family: 'Orbitron', monospace;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 10px var(--glow-cyan);
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
         }
-
+        
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px var(--glow-cyan);
+            background: #00cc33;
+            box-shadow: 0 0 10px #00ff41;
         }
-
-        .btn:active {
-            transform: translateY(0);
+        
+        .btn-danger {
+            background: #ff0040;
         }
-
-        .btn.secondary {
-            background: linear-gradient(135deg, var(--atomic-orange) 0%, #FF4500 100%);
+        
+        .btn-danger:hover {
+            background: #cc0033;
+            box-shadow: 0 0 10px #ff0040;
         }
-
-        .btn.danger {
-            background: linear-gradient(135deg, var(--error-red) 0%, #CC0000 100%);
+        
+        .btn-success {
+            background: #00ff41;
         }
-
+        
+        .btn-warning {
+            background: #ffaa00;
+            color: #000;
+        }
+        
         .status-indicator {
             display: inline-block;
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+            margin-right: 10px;
         }
-
-        .status-connected {
-            background: var(--success-green);
+        
+        .status-active {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
         }
-
-        .status-disconnected {
-            background: var(--error-red);
+        
+        .status-inactive {
+            background: #ff0040;
+            box-shadow: 0 0 10px #ff0040;
         }
-
+        
         .status-connecting {
-            background: var(--warning-orange);
+            background: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+            animation: pulse 1s infinite;
         }
-
-        .groot-container {
-            height: calc(100vh - 200px);
-            min-height: 600px;
-            border: 1px solid var(--atomic-cyan);
-            margin: 20px;
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .xml-editor {
+            width: 100%;
+            height: 400px;
+            background: #000;
+            color: #00ff41;
+            border: 1px solid #00ff41;
             border-radius: 5px;
-            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            resize: vertical;
+        }
+        
+        .groot2-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            background: #000;
             position: relative;
         }
-
-        .groot-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: var(--atomic-bg);
-        }
-
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--atomic-bg);
+        
+        .groot2-placeholder {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            height: 100%;
+            color: #666;
+            font-size: 1.2em;
         }
-
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid var(--grid-color);
-            border-top: 3px solid var(--atomic-cyan);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        
+        .behavior-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
+        
+        .action-item {
+            background: #1a1a1a;
+            border: 1px solid #333;
             border-radius: 5px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-
-        .notification.show {
-            transform: translateX(0);
+        
+        .action-item:hover {
+            border-color: #00ff41;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
         }
-
-        .notification.success {
-            background: var(--success-green);
+        
+        .action-item h3 {
+            margin: 0 0 10px 0;
+            color: #00ff41;
         }
-
-        .notification.error {
-            background: var(--error-red);
+        
+        .action-item p {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.8;
         }
-
-        .notification.warning {
-            background: var(--warning-orange);
+        
+        .log-area {
+            background: #000;
+            border: 1px solid #00ff41;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
         }
-
-        @media (max-width: 768px) {
-            .control-panel {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .control-group {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        
+        .log-info { color: #00ff41; }
+        .log-warning { color: #ffaa00; }
+        .log-error { color: #ff0040; }
+        .log-behavior { color: #00aaff; }
+        
+        .pipeline-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .status-item.active {
+            border-color: #00ff41;
+            background: rgba(0, 255, 65, 0.1);
+        }
+        
+        .status-item h4 {
+            margin: 0 0 5px 0;
+            color: #00ff41;
+        }
+        
+        .status-item p {
+            margin: 0;
+            font-size: 0.8em;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <div class="container">
         <div class="header">
-            <h1>LAIKA Behavior Tree Editor</h1>
-            <p>Design and monitor LAIKA's behavior patterns with Groot2</p>
+            <h1>🌳 LAIKA Behavior Tree Editor</h1>
+            <p>Design and edit LAIKA's autonomous behaviors using Groot2</p>
         </div>
-
-        <div class="control-panel">
-            <div class="control-group">
-                <label>Connection Status:</label>
-                <div>
-                    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
-                    <span id="connectionText">Disconnected</span>
+        
+        <div class="behavior-controls">
+            <button class="btn btn-success" onclick="startBehaviorTree()">🌳 Start Behavior Tree</button>
+            <button class="btn btn-danger" onclick="stopBehaviorTree()">🛑 Stop Behavior Tree</button>
+            <button class="btn" onclick="startRealTimeMonitoring()">📡 Start Real-time</button>
+            <button class="btn" onclick="stopRealTimeMonitoring()">⏹️ Stop Real-time</button>
+            <button class="btn" onclick="loadBehaviorTree()">📂 Load Tree</button>
+            <button class="btn" onclick="saveBehaviorTree()">💾 Save Tree</button>
+            <button class="btn" onclick="exportToGroot2()">📤 Export to Groot2</button>
+            <button class="btn" onclick="importFromGroot2()">📥 Import from Groot2</button>
+            <button class="btn btn-warning" onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <div class="main-content">
+            <!-- XML Editor -->
+            <div class="card">
+                <h2>📝 Behavior Tree XML</h2>
+                <textarea id="xmlEditor" class="xml-editor" placeholder="Enter behavior tree XML here...">
+<?xml version="1.0" encoding="UTF-8"?>
+<BehaviorTree ID="LAIKA_Main">
+    <Sequence name="root">
+        <Condition ID="is_human_present" />
+        <Selector name="behavior_selector">
+            <Sequence name="greeting_sequence">
+                <Condition ID="is_new_human" />
+                <Action ID="greeting" />
+            </Sequence>
+            <Sequence name="command_sequence">
+                <Condition ID="is_command_received" />
+                <Action ID="sit_command" />
+            </Sequence>
+            <Sequence name="play_sequence">
+                <Condition ID="is_play_time" />
+                <Action ID="play" />
+            </Sequence>
+            <Action ID="patrol" />
+        </Selector>
+    </Sequence>
+</BehaviorTree>
+                </textarea>
+            </div>
+            
+            <!-- Groot2 Visual Editor -->
+            <div class="card">
+                <h2>🎨 Groot2 Visual Editor</h2>
+                <div class="groot2-container">
+                    <div class="groot2-placeholder">
+                        <div>
+                            <h3>🌳 Groot2 Integration</h3>
+                            <p>Visual behavior tree editor</p>
+                            <p>Click "Export to Groot2" to open in Groot2</p>
+                            <p>Or use the XML editor above</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="control-group">
-                <label>Behavior Tree:</label>
-                <select id="treeSelector" class="btn">
-                    <option value="laika_advanced_behavior_tree.xml">Advanced LAIKA Tree</option>
-                    <option value="laika_behavior_tree.xml">Basic LAIKA Tree</option>
-                    <option value="default">Default Nav2 Tree</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label>LLM Integration:</label>
-                <div>
-                    <span class="status-indicator status-disconnected" id="llmStatus"></span>
-                    <span id="llmStatusText">Disconnected</span>
+        </div>
+        
+        <!-- Behavior Actions -->
+        <div class="card">
+            <h2>🎯 Available Behaviors</h2>
+            <div class="behavior-actions">
+                <div class="action-item" onclick="triggerBehavior('greeting')">
+                    <h3>👋 Greeting</h3>
+                    <p>Greet humans when detected</p>
+                </div>
+                <div class="action-item" onclick="triggerBehavior('sit_command')">
+                    <h3>🪑 Sit Command</h3>
+                    <p>Execute sit command</p>
+                </div>
+                <div class="action-item" onclick="triggerBehavior('patrol')">
+                    <h3>🚶 Patrol</h3>
+                    <p>Patrol the area</p>
+                </div>
+                <div class="action-item" onclick="triggerBehavior('follow')">
+                    <h3>👥 Follow</h3>
+                    <p>Follow human</p>
+                </div>
+                <div class="action-item" onclick="triggerBehavior('play')">
+                    <h3>🎮 Play</h3>
+                    <p>Play with human</p>
                 </div>
             </div>
-
-            <button class="btn" id="connectBtn" onclick="connectToGroot()">Connect to Groot2</button>
-            <button class="btn secondary" id="loadTreeBtn" onclick="loadBehaviorTree()">Load Tree</button>
-            <button class="btn secondary" id="saveTreeBtn" onclick="saveBehaviorTree()">Save Tree</button>
-            <button class="btn secondary" id="testLLMBtn" onclick="testLLMIntegration()">Test LLM Context</button>
-            <button class="btn danger" id="resetBtn" onclick="resetBehaviorTree()">Reset to Default</button>
         </div>
-
-        <div class="groot-container">
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="loading-spinner"></div>
+        
+        <!-- Pipeline Status -->
+        <div class="card">
+            <h2>🔗 Pipeline Status</h2>
+            <div class="pipeline-status">
+                <div class="status-item" id="sttStatus">
+                    <h4>🎤 STT</h4>
+                    <p>Inactive</p>
+                </div>
+                <div class="status-item" id="llmStatus">
+                    <h4>🧠 LLM</h4>
+                    <p>Inactive</p>
+                </div>
+                <div class="status-item" id="actStatus">
+                    <h4>🤖 ACT</h4>
+                    <p>Inactive</p>
+                </div>
+                <div class="status-item" id="ttsStatus">
+                    <h4>🗣️ TTS</h4>
+                    <p>Inactive</p>
+                </div>
+                <div class="status-item" id="behaviorStatus">
+                    <h4>🌳 Behavior</h4>
+                    <p>Inactive</p>
+                </div>
             </div>
-            <iframe id="grootFrame" class="groot-frame" src="about:blank"></iframe>
+        </div>
+        
+        <!-- Log -->
+        <div class="card">
+            <h2>📋 Behavior Log</h2>
+            <div id="logArea" class="log-area">
+                <div class="log-entry log-info">🌳 Behavior Tree Editor loaded</div>
+                <div class="log-entry log-info">📝 Ready to edit LAIKA's behaviors</div>
+            </div>
         </div>
     </div>
-
-    <div id="notification" class="notification"></div>
-
-    <script>
-        let isConnected = false;
-        let currentTree = 'laika_advanced_behavior_tree.xml';
-        let llmConnected = false;
-        let currentBehaviorContext = null;
-        const GROOT_URL = 'https://www.behaviortree.dev/groot/';
-        const ROS_BRIDGE_URL = 'ws://localhost:9090'; // WebSocket bridge for ROS2
-        const API_BASE_URL = 'http://localhost:5001'; // Behavior tree manager API
-
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeGroot();
-            setupEventListeners();
-        });
-
-        function initializeGroot() {
-            const frame = document.getElementById('grootFrame');
-            frame.src = GROOT_URL;
-            
-            frame.onload = function() {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                showNotification('Groot2 loaded successfully', 'success');
-            };
-        }
-
-        function setupEventListeners() {
-            document.getElementById('treeSelector').addEventListener('change', function(e) {
-                currentTree = e.target.value;
-                showNotification(`Selected tree: ${currentTree}`, 'success');
-            });
-            
-            // Check LLM integration status periodically
-            setInterval(checkLLMStatus, 5000);
-        }
-
-        function connectToGroot() {
-            const statusIndicator = document.getElementById('connectionStatus');
-            const connectionText = document.getElementById('connectionText');
-            const connectBtn = document.getElementById('connectBtn');
-
-            if (!isConnected) {
-                // Simulate connection to ROS2 bridge
-                statusIndicator.className = 'status-indicator status-connecting';
-                connectionText.textContent = 'Connecting...';
-                connectBtn.textContent = 'Connecting...';
-                connectBtn.disabled = true;
-
-                setTimeout(() => {
-                    isConnected = true;
-                    statusIndicator.className = 'status-indicator status-connected';
-                    connectionText.textContent = 'Connected';
-                    connectBtn.textContent = 'Disconnect';
-                    connectBtn.disabled = false;
-                    showNotification('Connected to LAIKA behavior tree', 'success');
-                }, 2000);
-            } else {
-                isConnected = false;
-                statusIndicator.className = 'status-indicator status-disconnected';
-                connectionText.textContent = 'Disconnected';
-                connectBtn.textContent = 'Connect to Groot2';
-                showNotification('Disconnected from behavior tree', 'warning');
-            }
-        }
-
-        function loadBehaviorTree() {
-            if (!isConnected) {
-                showNotification('Please connect to LAIKA first', 'error');
-                return;
-            }
-
-            showNotification(`Loading behavior tree: ${currentTree}`, 'success');
-            
-            // In a real implementation, this would load the tree from ROS2
-            // For now, we'll simulate the loading process
-            setTimeout(() => {
-                showNotification('Behavior tree loaded successfully', 'success');
-            }, 1000);
-        }
-
-        function saveBehaviorTree() {
-            if (!isConnected) {
-                showNotification('Please connect to LAIKA first', 'error');
-                return;
-            }
-
-            showNotification('Saving behavior tree...', 'success');
-            
-            // In a real implementation, this would save the tree to ROS2
-            setTimeout(() => {
-                showNotification('Behavior tree saved successfully', 'success');
-            }, 1000);
-        }
-
-        function resetBehaviorTree() {
-            if (!isConnected) {
-                showNotification('Please connect to LAIKA first', 'error');
-                return;
-            }
-
-            if (confirm('Are you sure you want to reset to the default behavior tree? This will override any custom changes.')) {
-                showNotification('Resetting to default behavior tree...', 'warning');
-                
-                setTimeout(() => {
-                    document.getElementById('treeSelector').value = 'default';
-                    currentTree = 'default';
-                    showNotification('Reset to default behavior tree', 'success');
-                }, 1000);
-            }
-        }
-
-        function checkLLMStatus() {
-            fetch(`${API_BASE_URL}/api/status`)
-                .then(response => response.json())
-                .then(data => {
-                    const llmStatusIndicator = document.getElementById('llmStatus');
-                    const llmStatusText = document.getElementById('llmStatusText');
-                    
-                    if (data.ros2 && data.ros2.ros2_running) {
-                        llmConnected = true;
-                        llmStatusIndicator.className = 'status-indicator status-connected';
-                        llmStatusText.textContent = 'Connected';
-                    } else {
-                        llmConnected = false;
-                        llmStatusIndicator.className = 'status-indicator status-disconnected';
-                        llmStatusText.textContent = 'Disconnected';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking LLM status:', error);
-                    llmConnected = false;
-                    const llmStatusIndicator = document.getElementById('llmStatus');
-                    const llmStatusText = document.getElementById('llmStatusText');
-                    llmStatusIndicator.className = 'status-indicator status-disconnected';
-                    llmStatusText.textContent = 'Error';
-                });
-        }
-
-        function testLLMIntegration() {
-            if (!llmConnected) {
-                showNotification('LLM integration not available', 'error');
-                return;
-            }
-
-            const testPrompt = "What are you currently doing?";
-            
-            showNotification('Testing LLM with behavior context...', 'success');
-            
-            // In a real implementation, this would send a test prompt to the LLM
-            // and show how the behavior tree context affects the response
-            setTimeout(() => {
-                const mockResponse = `Based on my current behavior tree context, I'm currently in an idle state. I'm ready to receive commands and can help you with navigation, voice commands, or social interactions. My battery level is at 85% and I'm waiting for your next instruction.`;
-                
-                showNotification('LLM Context Test Complete', 'success');
-                
-                // Show the test result in a modal or notification
-                alert(`Test Prompt: "${testPrompt}"\n\nLLM Response with Behavior Context:\n"${mockResponse}"`);
-            }, 2000);
-        }
-
-        function showNotification(message, type) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type}`;
-            notification.classList.add('show');
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        // Handle messages from Groot2 iframe (if needed)
-        window.addEventListener('message', function(event) {
-            if (event.origin === 'https://www.behaviortree.dev') {
-                console.log('Message from Groot2:', event.data);
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey || e.metaKey) {
-                switch(e.key) {
-                    case 's':
-                        e.preventDefault();
-                        saveBehaviorTree();
-                        break;
-                    case 'l':
-                        e.preventDefault();
-                        loadBehaviorTree();
-                        break;
-                    case 'r':
-                        e.preventDefault();
-                        resetBehaviorTree();
-                        break;
-                }
-            }
-        });
-    </script>
+    
+    <script src="js/behavior-tree-editor.js"></script>
 </body>
 </html>

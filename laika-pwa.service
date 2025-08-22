@@ -1,0 +1,31 @@
+[Unit]
+Description=LAIKA PWA Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/LAIKA/laika-pwa
+Environment=PATH=/home/pi/LAIKA/venv/bin
+ExecStart=/home/pi/LAIKA/venv/bin/python3 tron_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=laika-pwa
+
+# Environment variables
+Environment=FLASK_ENV=production
+Environment=PYTHONPATH=/home/pi/LAIKA
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/pi/LAIKA
+
+[Install]
+WantedBy=multi-user.target

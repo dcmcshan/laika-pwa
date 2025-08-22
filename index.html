@@ -474,6 +474,13 @@
                 inset 0 0 30px rgba(255, 165, 0, 0.2);
         }
 
+        .nav-card.behavior-card:hover {
+            border-color: #00FF00;
+            box-shadow: 
+                0 10px 30px rgba(0, 255, 0, 0.5),
+                inset 0 0 30px rgba(0, 255, 0, 0.2);
+        }
+
         .nav-card.voice-card:hover {
             border-color: var(--atomic-pink);
             box-shadow: 
@@ -610,27 +617,27 @@
 
         <!-- Navigation Container -->
         <div class="nav-container">
-                <!-- STT Control Panel -->
-                <a href="stt" class="nav-card stt-card">
+                <!-- STT Test -->
+                <a href="stt_test" class="nav-card stt-card">
                     <span class="nav-icon">🎤</span>
-                    <h3 class="nav-title">STT Control Panel</h3>
+                    <h3 class="nav-title">STT Test</h3>
                     <p class="nav-description">
-                        Configure and monitor LAIKA's Speech-to-Text system with ROS2 integration.
+                        Interactive speech recognition testing with wake word detection and real-time audio visualization.
                     </p>
                     <ul class="nav-features">
-                        <li>STT configuration</li>
-                        <li>Live transcript monitoring</li>
-                        <li>Wake word settings</li>
-                        <li>System status & logs</li>
+                        <li>Wake word detection</li>
+                        <li>Real-time recognition</li>
+                        <li>Multiple STT providers</li>
+                        <li>Audio visualization</li>
                     </ul>
                 </a>
 
-                <!-- LLM Interface -->
+                <!-- LLM Test -->
                 <a href="llm" class="nav-card llm-card">
                     <span class="nav-icon">🤖</span>
-                    <h3 class="nav-title">LLM Interface</h3>
+                    <h3 class="nav-title">LLM Test</h3>
                     <p class="nav-description">
-                        Interact with LAIKA's language model for commands, conversations, and robot actions.
+                        Test LAIKA's language model with direct commands and robot action execution.
                     </p>
                     <ul class="nav-features">
                         <li>Direct LLM commands</li>
@@ -640,12 +647,12 @@
                     </ul>
                 </a>
 
-                <!-- TTS Settings -->
+                <!-- TTS Test -->
                 <a href="tts" class="nav-card tts-card">
                     <span class="nav-icon">🗣️</span>
-                    <h3 class="nav-title">TTS Settings</h3>
+                    <h3 class="nav-title">TTS Test</h3>
                     <p class="nav-description">
-                        Configure and test LAIKA's text-to-speech with ElevenLabs Ekaterina voice and multiple providers.
+                        Test text-to-speech with ElevenLabs Ekaterina voice and multiple TTS providers.
                     </p>
                     <ul class="nav-features">
                         <li>ElevenLabs Ekaterina</li>
@@ -832,6 +839,21 @@
                         <li>ROS2 command integration</li>
                         <li>Bluetooth controller support</li>
                         <li>Emergency stop controls</li>
+                    </ul>
+                </a>
+
+                <!-- Behavior Tree Editor -->
+                <a href="behavior" class="nav-card behavior-card">
+                    <span class="nav-icon">🌳</span>
+                    <h3 class="nav-title">Behavior Tree Editor</h3>
+                    <p class="nav-description">
+                        Visual behavior tree editor with Groot2 integration. Design and manage LAIKA's autonomous behaviors.
+                    </p>
+                    <ul class="nav-features">
+                        <li>Visual tree editor</li>
+                        <li>Groot2 integration</li>
+                        <li>Real-time monitoring</li>
+                        <li>Behavior testing</li>
                     </ul>
                 </a>
 

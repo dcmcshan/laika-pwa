@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAIKA STT Control Panel</title>
+    <title>LAIKA Hybrid STT Control Panel</title>
     
     <!-- PWA Meta -->
     <meta name="theme-color" content="#00ffff">
@@ -206,6 +206,79 @@
         .log-warning { color: #ffff00; }
         .log-error { color: #ff4444; }
         
+        .music-status {
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .music-status.music-detected {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+        
+        .music-status.no-music {
+            background: rgba(128, 128, 128, 0.2);
+            border: 1px solid #666;
+            color: #666;
+        }
+        
+        .api-key-section {
+            margin-top: 15px;
+        }
+        
+        .api-key-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .api-key-group label {
+            min-width: 200px;
+            color: #00ffff;
+            font-weight: bold;
+        }
+        
+        .api-key-input {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        
+        .api-key-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        
+        .api-key-status.success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+        
+        .api-key-status.error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .api-key-status.info {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+        }
+        
         .ros2-status {
             position: fixed;
             top: 10px;
@@ -249,39 +322,50 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🎤 LAIKA STT Control Panel</h1>
-            <p>Configure and monitor LAIKA's Speech-to-Text system</p>
+            <h1>🎤 LAIKA Hybrid STT Control Panel</h1>
+            <p>Configure and monitor LAIKA's hybrid Speech-to-Text system with local processing.</p>
         </div>
         
         <!-- Main Grid -->
         <div class="grid">
-            <!-- STT Status -->
+            <!-- Real-time STT Recording -->
             <div class="card">
-                <h2>📊 STT System Status</h2>
+                <h2>🎤 Real-time STT Recording</h2>
                 <div style="margin-bottom: 15px;">
-                    <span class="status-indicator status-inactive" id="sttStatus"></span>
-                    <span id="sttStatusText">Checking...</span>
+                    <span class="status-indicator status-listening" id="sttStatus"></span>
+                    <span id="sttStatusText">Real-time STT is active and listening...</span>
                 </div>
                 
                 <div class="config-section">
-                    <h3>Current Configuration:</h3>
-                    <div class="config-row">
-                        <label>Wake Word:</label>
-                        <span id="currentWakeWord">Loading...</span>
-                    </div>
                     <div class="config-row">
                         <label>STT Provider:</label>
-                        <span id="currentSTTProvider">Loading...</span>
-                    </div>
-                    <div class="config-row">
-                        <label>Wake Detection:</label>
-                        <span id="currentWakeDetection">Loading...</span>
+                        <select id="sttProvider">
+                            <option value="openai_realtime">OpenAI Real-time</option>
+                            <option value="openai_whisper">OpenAI Whisper</option>
+                            <option value="local_whisper">Local Whisper</option>
+                            <option value="elevenlabs">ElevenLabs</option>
+                        </select>
                     </div>
                 </div>
                 
                 <div style="margin-top: 15px;">
-                    <button class="btn" onclick="refreshStatus()">🔄 Refresh Status</button>
-                    <button class="btn" onclick="testSTT()">🎤 Test STT</button>
+                    <div class="status-info">
+                        <small>🎤 Real-time STT is continuously processing audio...</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Real-time Transcripts -->
+            <div class="card">
+                <h2>📝 Real-time Transcripts</h2>
+                <div class="transcript-area" id="transcriptHistory">
+                    <div style="opacity: 0.5; text-align: center; padding: 20px;">
+                        Real-time transcripts will appear here...
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button class="btn" onclick="clearHistory()">🗑️ Clear History</button>
+                    <button class="btn" onclick="copyTranscript()">📋 Copy</button>
                 </div>
             </div>
             
@@ -290,59 +374,84 @@
                 <h2>⚙️ STT Configuration</h2>
                 <div class="config-section">
                     <div class="config-row">
-                        <label>Wake Word:</label>
-                        <input type="text" id="wakeWordInput" value="LAIKA" placeholder="Enter wake word">
-                    </div>
-                    <div class="config-row">
-                        <label>STT Priority:</label>
-                        <select id="sttPrioritySelect">
-                            <option value="openai_realtime">OpenAI Realtime (Primary)</option>
-                            <option value="openai_whisper">OpenAI Whisper (Primary)</option>
-                            <option value="local_whisper">Local Whisper (Primary)</option>
-                            <option value="elevenlabs">ElevenLabs STT (Primary)</option>
+                        <label>Primary Provider:</label>
+                        <select id="sttProvider">
+                            <option value="openai_realtime">OpenAI Real-time</option>
+                            <option value="openai_whisper">OpenAI Whisper</option>
+                            <option value="local_whisper">Local Whisper</option>
+                            <option value="elevenlabs">ElevenLabs</option>
                         </select>
                     </div>
                     <div class="config-row">
                         <label>
-                            <input type="checkbox" id="enableWakeDetection" checked>
-                            Enable Wake Word Detection
+                            <input type="checkbox" id="enableElevenlabs">
+                            Enable ElevenLabs STT
                         </label>
+                    </div>
+                    <div class="config-row">
+                        <label>Wake Word:</label>
+                        <input type="text" id="wakeWordInput" value="LAIKA" placeholder="Enter wake word">
                     </div>
                 </div>
                 
                 <div style="margin-top: 15px;">
-                    <button class="btn btn-success" onclick="saveConfiguration()">💾 Save Configuration</button>
-                    <button class="btn" onclick="resetConfiguration()">🔄 Reset to Default</button>
+                    <button class="btn btn-success" id="saveConfig">💾 Save Config</button>
+                    <button class="btn" id="resetConfig">🔄 Reset Config</button>
                 </div>
             </div>
             
-            <!-- Live Transcript -->
+            <!-- Music Analysis -->
             <div class="card">
-                <h2>📝 Live Transcript</h2>
-                <div class="transcript-area" id="transcriptArea">
-                    <div style="opacity: 0.5; text-align: center; padding: 20px;">
-                        STT results will appear here...
+                <h2>🎵 Music Analysis</h2>
+                <div style="margin-bottom: 15px;">
+                    <div id="musicStatus" class="music-status no-music">🔇 No music detected</div>
+                </div>
+                
+                <div class="config-section">
+                    <div class="config-row">
+                        <label>Beat Detection:</label>
+                        <span id="beatStatus">Inactive</span>
+                    </div>
+                    <div class="config-row">
+                        <label>Song ID:</label>
+                        <span id="songIdStatus">Ready</span>
                     </div>
                 </div>
-                <div style="margin-top: 10px;">
-                    <button class="btn" onclick="clearTranscript()">🗑️ Clear</button>
-                    <button class="btn" onclick="copyTranscript()">📋 Copy</button>
+                
+                <div style="margin-top: 15px;">
+                    <div class="music-info">
+                        <small>🎵 Real-time music analysis is active and listening for beats and songs...</small>
                 </div>
             </div>
-            
-            <!-- System Logs -->
-            <div class="card">
+        </div>
+        
+        <!-- API Key Configuration -->
+        <div class="card">
+            <h2>🔑 API Keys</h2>
+            <div class="api-key-section">
+                <div class="api-key-group">
+                    <label for="elevenlabs-api-key">ElevenLabs API Key (for STT):</label>
+                    <input type="password" id="elevenlabs-api-key" placeholder="Enter ElevenLabs API key" class="api-key-input">
+                    <button class="btn" onclick="saveApiKey('elevenlabs_api_key', 'elevenlabs-api-key')">💾 Save</button>
+                    <button class="btn" onclick="testApiKey('elevenlabs', 'elevenlabs-api-key')">🧪 Test</button>
+                </div>
+                <div class="api-key-status" id="elevenlabs-status"></div>
+            </div>
+        </div>
+        
+        <!-- System Logs -->
+        <div class="card">
                 <h2>🔍 System Logs</h2>
                 <div class="log-area" id="systemLog"></div>
-                <div style="margin-top: 10px;">
+            <div style="margin-top: 10px;">
                     <button class="btn" onclick="clearLog()">🗑️ Clear Log</button>
                     <button class="btn" onclick="exportLog()">📄 Export Log</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script src="js/ros2-bridge.js"></script>
-    <script src="js/stt-control.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="js/hybrid-stt-control.js"></script>
 </body>
 </html>
