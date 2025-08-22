@@ -5,18 +5,24 @@
 
 class TTSSettings {
     constructor() {
-        this.currentProvider = 'piper'; // Default to Piper
+        this.currentProvider = 'elevenlabs'; // Default to ElevenLabs
         this.currentVoice = null;
         this.elevenLabsApiKey = '';
         this.openaiApiKey = '';
         this.voices = {};
         this.audioPlayer = null;
         
+        // Default voice configuration
+        this.defaultElevenLabsVoice = 'GN4wbsbejSnGSa1AzjH5'; // Ekaterina voice ID
+        
         this.initializeEventListeners();
         this.initializeSliders();
         this.loadSettings();
         this.updateUI();
         this.initializeVoiceDropdowns();
+        
+        // Initialize search functionality
+        this.initializeVoiceSearch();
     }
 
     initializeEventListeners() {
@@ -347,9 +353,42 @@ class TTSSettings {
             this.voices.elevenlabs.forEach(voice => {
                 const option = document.createElement('option');
                 option.value = voice.voice_id;
-                option.textContent = `${voice.name} (${voice.labels?.accent || 'Unknown'})`;
+                
+                // Create descriptive text with labels
+                const labels = voice.labels || {};
+                const accent = labels.accent || '';
+                const gender = labels.gender || '';
+                const age = labels.age || '';
+                const useCase = labels.use_case || '';
+                
+                let description = voice.name;
+                if (accent) description += ` (${accent})`;
+                if (gender) description += ` - ${gender}`;
+                if (age) description += ` - ${age}`;
+                if (useCase) description += ` - ${useCase}`;
+                
+                option.textContent = description;
+                
+                // Store labels for search functionality
+                option.dataset.labels = `${accent} ${gender} ${age} ${useCase}`.toLowerCase();
+                
                 dropdown.appendChild(option);
             });
+            
+            // Auto-select Ekaterina if no voice is currently selected
+            if (!this.currentVoice && this.currentProvider === 'elevenlabs') {
+                const ekaterinaOption = Array.from(dropdown.options).find(option => 
+                    option.value === this.defaultElevenLabsVoice || 
+                    option.textContent.toLowerCase().includes('ekaterina')
+                );
+                
+                if (ekaterinaOption) {
+                    dropdown.value = ekaterinaOption.value;
+                    this.currentVoice = ekaterinaOption.value;
+                    this.updatePlayButton('elevenlabs-voice-dropdown');
+                    this.saveSettings();
+                }
+            }
         }
     }
 
@@ -551,7 +590,7 @@ class TTSSettings {
         try {
             const settings = JSON.parse(localStorage.getItem('laika_tts_settings') || '{}');
             
-            this.currentProvider = settings.provider || 'piper';
+            this.currentProvider = settings.provider || 'elevenlabs';
             this.currentVoice = settings.voice || null;
             this.elevenLabsApiKey = settings.elevenLabsApiKey || '';
             this.openaiApiKey = settings.openaiApiKey || '';
@@ -642,6 +681,123 @@ class TTSSettings {
         } catch (error) {
             console.error('Failed to export config:', error);
             this.showStatus('Failed to export configuration', 'error');
+        }
+    }
+
+    initializeVoiceSearch() {
+        // Add search input to voice selection sections
+        const providers = ['elevenlabs', 'openai', 'piper', 'system'];
+        providers.forEach(provider => {
+            const voiceSelection = document.querySelector(`[data-provider="${provider}"] .voice-selection`);
+            if (voiceSelection) {
+                this.addSearchInput(voiceSelection, provider);
+            }
+        });
+    }
+
+    addSearchInput(container, provider) {
+        // Create search input
+        const searchDiv = document.createElement('div');
+        searchDiv.className = 'voice-search-container';
+        searchDiv.innerHTML = `
+            <input type="text" 
+                   class="voice-search-input" 
+                   id="${provider}-voice-search" 
+                   placeholder="Search voices (e.g., 'Russian', 'Female', 'Deep')..."
+                   style="width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid var(--atomic-cyan); background: rgba(0,0,0,0.5); color: var(--text-cyan);">
+        `;
+        
+        // Insert search input before the dropdown
+        const dropdown = container.querySelector('.voice-dropdown');
+        if (dropdown) {
+            container.insertBefore(searchDiv, dropdown);
+            
+            // Add event listener for search
+            const searchInput = searchDiv.querySelector('.voice-search-input');
+            searchInput.addEventListener('input', (e) => {
+                this.filterVoices(provider, e.target.value);
+            });
+        }
+    }
+
+    filterVoices(provider, searchTerm) {
+        const dropdown = document.getElementById(`${provider}-voice-dropdown`);
+        if (!dropdown) return;
+
+        const options = dropdown.querySelectorAll('option');
+        const searchLower = searchTerm.toLowerCase();
+
+        options.forEach(option => {
+            if (option.value === '') return; // Skip placeholder option
+            
+            const voiceName = option.textContent.toLowerCase();
+            const voiceId = option.value.toLowerCase();
+            
+            // Check if voice matches search term
+            const matches = voiceName.includes(searchLower) || 
+                           voiceId.includes(searchLower) ||
+                           (option.dataset.labels && option.dataset.labels.toLowerCase().includes(searchLower));
+            
+            option.style.display = matches ? '' : 'none';
+        });
+
+        // Update dropdown display
+        if (searchTerm) {
+            dropdown.style.maxHeight = '200px';
+            dropdown.style.overflowY = 'auto';
+        } else {
+            dropdown.style.maxHeight = '';
+            dropdown.style.overflowY = '';
+        }
+    }
+
+    setDefaultVoice(provider) {
+        if (provider === 'elevenlabs') {
+            const dropdown = document.getElementById('elevenlabs-voice-dropdown');
+            if (dropdown) {
+                // Find Ekaterina voice
+                const ekaterinaOption = Array.from(dropdown.options).find(option => 
+                    option.value === this.defaultElevenLabsVoice || 
+                    option.textContent.toLowerCase().includes('ekaterina')
+                );
+                
+                if (ekaterinaOption) {
+                    dropdown.value = ekaterinaOption.value;
+                    this.currentVoice = ekaterinaOption.value;
+                    this.updatePlayButton('elevenlabs-voice-dropdown');
+                    this.saveSettings();
+                    this.showStatus('Set to default voice: Ekaterina', 'success');
+                } else {
+                    this.showStatus('Ekaterina voice not found. Please load voices first.', 'warning');
+                }
+            }
+        } else if (provider === 'openai') {
+            const dropdown = document.getElementById('openai-voice-dropdown');
+            if (dropdown) {
+                // Set to first available voice (usually 'alloy')
+                if (dropdown.options.length > 1) {
+                    dropdown.value = dropdown.options[1].value;
+                    this.currentVoice = dropdown.options[1].value;
+                    this.updatePlayButton('openai-voice-dropdown');
+                    this.saveSettings();
+                    this.showStatus('Set to default OpenAI voice', 'success');
+                }
+            }
+        } else if (provider === 'piper') {
+            const dropdown = document.getElementById('piper-voice-dropdown');
+            if (dropdown) {
+                // Set to Joe (English Male) as default
+                const joeOption = Array.from(dropdown.options).find(option => 
+                    option.textContent.toLowerCase().includes('joe')
+                );
+                if (joeOption) {
+                    dropdown.value = joeOption.value;
+                    this.currentVoice = joeOption.value;
+                    this.updatePlayButton('piper-voice-dropdown');
+                    this.saveSettings();
+                    this.showStatus('Set to default voice: Joe', 'success');
+                }
+            }
         }
     }
 }

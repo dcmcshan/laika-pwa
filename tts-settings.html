@@ -598,7 +598,51 @@
 
         .btn-primary {
             background: linear-gradient(45deg, var(--atomic-cyan), var(--dark-cyan));
-            color: var(--atomic-bg);
+        }
+
+        /* Voice Search Styles */
+        .voice-search-container {
+            margin-bottom: 15px;
+        }
+
+        .voice-search-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--atomic-cyan);
+            border-radius: 6px;
+            color: var(--text-cyan);
+            font-family: 'Exo 2', monospace;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .voice-search-input:focus {
+            outline: none;
+            border-color: var(--tron-cyan);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .voice-search-input::placeholder {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* Default Button Styles */
+        .btn-default {
+            background: var(--atomic-orange);
+            color: white;
+            border: 1px solid var(--atomic-orange);
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-default:hover {
+            background: #FF8C42;
+            border-color: #FF8C42;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
@@ -854,7 +898,7 @@
                     <!-- ElevenLabs Option -->
                     <div class="voice-option" data-provider="elevenlabs">
                         <div class="voice-provider">
-                            <input type="radio" name="provider" value="elevenlabs" id="provider-elevenlabs" class="provider-radio">
+                            <input type="radio" name="provider" value="elevenlabs" id="provider-elevenlabs" class="provider-radio" checked>
                             <label for="provider-elevenlabs" class="provider-label">ElevenLabs</label>
                             <span class="provider-badge premium">Premium</span>
                         </div>
@@ -874,6 +918,7 @@
                         <div class="voice-selection">
                             <h4>🎵 Voice Selection</h4>
                             <button class="btn btn-secondary" id="load-elevenlabs-voices">Load Voices</button>
+                            <button class="btn btn-default" onclick="window.ttsSettings.setDefaultVoice('elevenlabs')" style="background: var(--atomic-orange); color: white; margin-left: 10px;">🎯 Set Default (Ekaterina)</button>
                             <select class="voice-dropdown" id="elevenlabs-voice-dropdown">
                                 <option value="">Select a voice...</option>
                             </select>
@@ -904,6 +949,7 @@
                         <div class="voice-selection">
                             <h4>🎵 Voice Selection</h4>
                             <button class="btn btn-secondary" id="load-openai-voices">Load Voices</button>
+                            <button class="btn btn-default" onclick="window.ttsSettings.setDefaultVoice('openai')" style="background: var(--openai-green); color: white; margin-left: 10px;">🎯 Set Default</button>
                             <select class="voice-dropdown" id="openai-voice-dropdown">
                                 <option value="">Select a voice...</option>
                             </select>
@@ -914,7 +960,7 @@
                     <!-- Piper TTS Option -->
                     <div class="voice-option" data-provider="piper">
                         <div class="voice-provider">
-                            <input type="radio" name="provider" value="piper" id="provider-piper" class="provider-radio" checked>
+                            <input type="radio" name="provider" value="piper" id="provider-piper" class="provider-radio">
                             <label for="provider-piper" class="provider-label">Piper TTS</label>
                             <span class="provider-badge local">Local</span>
                         </div>
@@ -923,6 +969,7 @@
                         
                         <div class="voice-selection">
                             <h4>🎵 Voice Selection</h4>
+                            <button class="btn btn-default" onclick="window.ttsSettings.setDefaultVoice('piper')" style="background: var(--atomic-cyan); color: var(--atomic-bg); margin-bottom: 10px;">🎯 Set Default (Joe)</button>
                             <select class="voice-dropdown" id="piper-voice-dropdown">
                                 <option value="">Select a voice...</option>
                                 <option value="joe">Joe (English Male)</option>
