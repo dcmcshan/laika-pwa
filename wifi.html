@@ -151,12 +151,20 @@
             </div>
             
             <div class="wifi-card">
-                <h2 class="card-title">Available Networks</h2>
-                <div id="networkList">
-                    <p>Click "Scan Networks" to discover available WiFi networks</p>
+                <h2 class="card-title">Known Networks</h2>
+                <div id="knownNetworksList">
+                    <p>Loading known networks...</p>
                 </div>
-                <button class="btn" onclick="scanNetworks()">Scan Networks</button>
+                <button class="btn" onclick="loadKnownNetworks()">Refresh Known</button>
             </div>
+        </div>
+        
+        <div class="wifi-card">
+            <h2 class="card-title">Available Networks</h2>
+            <div id="networkList">
+                <p>Click "Scan Networks" to discover available WiFi networks</p>
+            </div>
+            <button class="btn" onclick="scanNetworks()">Scan Networks</button>
         </div>
         
         <div class="wifi-card">
@@ -179,6 +187,7 @@
             init() {
                 this.setupEventListeners();
                 this.refreshStatus();
+                this.loadKnownNetworks();
             }
             
             setupEventListeners() {
@@ -254,6 +263,39 @@
                 }
             }
             
+            async loadKnownNetworks() {
+                try {
+                    const response = await fetch('/api/wifi/known');
+                    const data = await response.json();
+                    
+                    if (data.networks) {
+                        this.updateKnownNetworksList(data.networks);
+                    } else {
+                        this.showMessage('Error loading known networks', 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Error loading known networks', 'error');
+                }
+            }
+            
+            async removeKnownNetwork(ssid) {
+                try {
+                    const response = await fetch(`/api/wifi/known/${encodeURIComponent(ssid)}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showMessage(`Removed ${ssid} from known networks`, 'success');
+                        this.loadKnownNetworks();
+                    } else {
+                        this.showMessage(`Failed to remove network: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Error removing network', 'error');
+                }
+            }
+            
             updateConnectionStatus(status) {
                 const statusElement = document.getElementById('connectionStatus');
                 const disconnectBtn = document.getElementById('disconnectBtn');
@@ -280,6 +322,39 @@
                         <strong>${network.ssid}</strong> - ${network.signal}% signal ${network.security ? '🔒' : '🔓'}
                     </div>
                 `).join('');
+            }
+            
+            updateKnownNetworksList(networks) {
+                const knownNetworksList = document.getElementById('knownNetworksList');
+                
+                if (networks.length === 0) {
+                    knownNetworksList.innerHTML = '<p>No known networks</p>';
+                    return;
+                }
+                
+                knownNetworksList.innerHTML = networks.map(network => {
+                    const lastConnected = network.last_connected ? 
+                        new Date(network.last_connected * 1000).toLocaleDateString() : 'Never';
+                    const connectionCount = network.connection_count || 0;
+                    const available = network.available ? '🟢' : '🔴';
+                    const signal = network.signal || 0;
+                    
+                    return `
+                        <div style="padding: 10px; border: 1px solid var(--atomic-cyan); margin: 5px 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${network.ssid}</strong> ${available}
+                                    <br><small>Last connected: ${lastConnected} (${connectionCount} times)</small>
+                                    <br><small>Signal: ${signal}% ${network.security ? '🔒' : '🔓'}</small>
+                                </div>
+                                <div>
+                                    <button class="btn" onclick="wifiManager.selectNetwork('${network.ssid}')" style="padding: 5px 10px; font-size: 12px; margin: 2px;">Connect</button>
+                                    <button class="btn" onclick="wifiManager.removeKnownNetwork('${network.ssid}')" style="padding: 5px 10px; font-size: 12px; margin: 2px; background: var(--error-red);">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
             
             selectNetwork(ssid) {
@@ -310,6 +385,7 @@
         function scanNetworks() { wifiManager.scanNetworks(); }
         function disconnectWiFi() { wifiManager.disconnectWiFi(); }
         function clearForm() { wifiManager.clearForm(); }
+        function loadKnownNetworks() { wifiManager.loadKnownNetworks(); }
         
         document.addEventListener('DOMContentLoaded', () => {
             wifiManager = new WiFiManager();

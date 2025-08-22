@@ -68,21 +68,6 @@ except ImportError:
     print("Warning: Sensor telemetry not available")
     TELEMETRY_AVAILABLE = False
 
-# Import modular API modules
-try:
-    from api_stt import init_stt_api, register_socketio_handlers as register_stt_handlers
-    STT_API_AVAILABLE = True
-except ImportError:
-    print("Warning: STT API module not available")
-    STT_API_AVAILABLE = False
-
-try:
-    from bhv_api import init_bhv_api, register_socketio_handlers as register_bhv_handlers
-    BHV_API_AVAILABLE = True
-except ImportError:
-    print("Warning: Behavior API module not available")
-    BHV_API_AVAILABLE = False
-
 try:
     from api_sensors import init_sensors_api, register_socketio_handlers as register_sensors_handlers
     SENSORS_API_AVAILABLE = True
@@ -674,6 +659,17 @@ def three_d_page():
     except Exception as e:
         print(f"❌ Error serving 3d.html: {e}")
         return f"Error serving 3D page: {str(e)}", 500
+
+@app.route('/architecture')
+def architecture_page():
+    """Serve the architecture visualization page"""
+    try:
+        print(f"🔍 Serving architecture.html from BASE_DIR: {BASE_DIR}")
+        print(f"🔍 File exists: {os.path.exists(os.path.join(BASE_DIR, 'architecture.html'))}")
+        return send_from_directory(BASE_DIR, 'architecture.html')
+    except Exception as e:
+        print(f"❌ Error serving architecture.html: {e}")
+        return f"Error serving architecture page: {str(e)}", 500
 
 # Static file serving
 @app.route('/css/<path:filename>')
@@ -1286,6 +1282,32 @@ def wifi_disconnect():
         return jsonify(result)
     except Exception as e:
         print(f"Error disconnecting from WiFi: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/wifi/known')
+def wifi_known_networks():
+    """Get list of known WiFi networks"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        networks = wifi_manager.get_known_networks()
+        return jsonify({"networks": networks})
+    except Exception as e:
+        print(f"Error getting known networks: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/wifi/known/<ssid>', methods=['DELETE'])
+def wifi_remove_known_network(ssid):
+    """Remove a network from known networks"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        result = wifi_manager.remove_known_network(ssid)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error removing known network: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 # ================================
