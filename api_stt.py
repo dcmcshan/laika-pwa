@@ -155,6 +155,39 @@ def api_stt_test():
         print(f"❌ Error testing STT: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@stt_bp.route('/simulate', methods=['POST'])
+def api_stt_simulate():
+    """Simulate real-time STT transcript"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data received'}), 400
+        
+        text = data.get('text', 'Simulated transcript from LAIKA STT')
+        provider = data.get('provider', 'openai_realtime')
+        
+        # Broadcast to SocketIO clients
+        if SOCKETIO_AVAILABLE and socketio_app:
+            socketio_app.emit('stt_response', {
+                'type': 'stt_response',
+                'subtype': 'transcript',
+                'text': text,
+                'provider': provider,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Simulated transcript sent',
+            'text': text,
+            'provider': provider,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error simulating STT: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @stt_bp.route('/transcript', methods=['POST'])
 def api_stt_transcript():
     """Receive transcript from STT service and broadcast to connected clients"""
@@ -367,6 +400,31 @@ def register_socketio_handlers(socketio):
     @socketio.on('stt_audio')
     def on_stt_audio(data):
         handle_stt_audio(data)
+    
+    @socketio.on('subscribe')
+    def on_subscribe(data):
+        """Handle subscription to STT events"""
+        channel = data.get('channel')
+        if channel == 'stt':
+            emit('stt_response', {
+                'type': 'status',
+                'subtype': 'status',
+                'message': 'Subscribed to STT events',
+                'timestamp': datetime.now().isoformat()
+            })
+            print(f"🎤 STT client subscribed to channel: {channel}")
+    
+    @socketio.on('stt_config')
+    def on_stt_config(data):
+        """Handle STT configuration updates"""
+        provider = data.get('provider', 'openai_realtime')
+        print(f"🎤 STT provider updated to: {provider}")
+        emit('stt_response', {
+            'type': 'status',
+            'subtype': 'status',
+            'message': f'STT provider updated to {provider}',
+            'timestamp': datetime.now().isoformat()
+        })
     
     @socketio.on('connect')
     def on_connect():

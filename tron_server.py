@@ -5099,7 +5099,14 @@ if __name__ == '__main__':
     # Initialize systems
     initialize_llm_systems()
     
-
+    # Initialize STT API
+    try:
+        init_stt_api(app, socketio_app)
+        if SOCKETIO_AVAILABLE and socketio_app:
+            register_stt_handlers(socketio_app)
+        print("✅ STT API initialized successfully")
+    except Exception as e:
+        print(f"❌ Failed to initialize STT API: {e}")
     
     # Initialize 3D integration
     if THREE_D_AVAILABLE:
