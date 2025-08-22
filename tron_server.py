@@ -1207,6 +1207,87 @@ def webble_page():
     """Serve the WebBLE WiFi setup page"""
     return send_file('webble.html')
 
+@app.route('/wifi')
+def wifi_page():
+    """Serve the WiFi management page"""
+    return send_file('wifi.html')
+
+# ================================
+# WIFI MANAGEMENT ENDPOINTS
+# ================================
+
+# Try to import WiFi API
+try:
+    from wifi_api import init_wifi_api, register_socketio_handlers as register_wifi_handlers
+    WIFI_API_AVAILABLE = True
+    wifi_manager = init_wifi_api()
+except ImportError:
+    print("Warning: WiFi API module not available")
+    WIFI_API_AVAILABLE = False
+    wifi_manager = None
+
+@app.route('/api/wifi/status')
+def wifi_status():
+    """Get current WiFi status"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        status = wifi_manager.get_wifi_status()
+        return jsonify(status)
+    except Exception as e:
+        print(f"Error getting WiFi status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/wifi/scan')
+def wifi_scan():
+    """Scan for available WiFi networks"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        networks = wifi_manager.scan_networks()
+        return jsonify({"networks": networks})
+    except Exception as e:
+        print(f"Error scanning WiFi networks: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/wifi/connect', methods=['POST'])
+def wifi_connect():
+    """Connect to a WiFi network"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data received"}), 400
+        
+        ssid = data.get('ssid')
+        password = data.get('password')
+        
+        if not ssid:
+            return jsonify({"success": False, "message": "SSID is required"}), 400
+        
+        result = wifi_manager.connect_to_wifi(ssid, password)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error connecting to WiFi: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/wifi/disconnect', methods=['POST'])
+def wifi_disconnect():
+    """Disconnect from current WiFi network"""
+    if not WIFI_API_AVAILABLE or not wifi_manager:
+        return jsonify({"error": "WiFi API not available"}), 503
+    
+    try:
+        result = wifi_manager.disconnect_wifi()
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error disconnecting from WiFi: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 # ================================
 # CONTROL & GAMEPAD ENDPOINTS
 # ================================
@@ -5097,8 +5178,6 @@ if __name__ == '__main__':
     print("💫 TRON Grid activated!")
     
     # Initialize systems
-    initialize_llm_systems()
-    
     # Initialize STT API
     try:
         init_stt_api(app, socketio_app)
@@ -5107,6 +5186,10 @@ if __name__ == '__main__':
         print("✅ STT API initialized successfully")
     except Exception as e:
         print(f"❌ Failed to initialize STT API: {e}")
+
+    initialize_llm_systems()
+    
+
     
     # Initialize 3D integration
     if THREE_D_AVAILABLE:

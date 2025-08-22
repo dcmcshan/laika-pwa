@@ -15,6 +15,10 @@ class HybridSTTControl {
         this.mediaStream = null;
         this.audioProcessor = null;
         this.chunkCount = 0; // For audio buffer commits
+        this.connectionRetries = 0;
+        this.maxRetries = 3;
+        this.connectionRetries = 0;
+        this.maxRetries = 3;
         
         // Music analysis
         this.musicAnalysis = {
@@ -27,15 +31,15 @@ class HybridSTTControl {
             beatHistory: []
         };
         
-        this.initializeUI();
+                this.initializeUI();
         this.loadCurrentConfiguration();
         this.setupEventListeners();
         
         // Connect to server for transcripts (no audio recording needed)
         this.connectToServer();
         
-                         // Start with empty transcript area
-                 this.updateStatus('Real-time STT system ready');
+        // Start with empty transcript area
+        this.updateStatus('Real-time STT system ready');
     }
 
     initializeUI() {
@@ -54,6 +58,40 @@ class HybridSTTControl {
 
         // Initialize status display
         this.updateStatus('Real-time STT is active and listening...');
+        
+        // Add restart service button to the UI
+        this.addRestartButton();
+    }
+
+    addRestartButton() {
+        // Find the STT Recording card and add a restart button
+        const sttCards = document.querySelectorAll('.card');
+        let sttCard = null;
+        
+        // Find the card with "Real-time STT Recording" heading
+        for (const card of sttCards) {
+            const heading = card.querySelector('h2');
+            if (heading && heading.textContent.includes('Real-time STT Recording')) {
+                sttCard = card;
+                break;
+            }
+        }
+        
+        if (sttCard) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.marginTop = '15px';
+            buttonContainer.innerHTML = `
+                <button class="btn btn-danger" id="restartService" style="background: linear-gradient(45deg, #ff4444, #cc0000);">
+                    🔄 Restart STT Service
+                </button>
+            `;
+            sttCard.appendChild(buttonContainer);
+            
+            // Add event listener
+            document.getElementById('restartService').addEventListener('click', () => {
+                this.restartSTTService();
+            });
+        }
     }
 
     setupEventListeners() {
@@ -85,6 +123,38 @@ class HybridSTTControl {
         const resetButton = document.getElementById('resetConfig');
         if (resetButton) {
             resetButton.addEventListener('click', () => this.resetConfiguration());
+        }
+        
+        // Restart service button
+        const restartButton = document.getElementById('restartService');
+        if (restartButton) {
+            restartButton.addEventListener('click', () => this.restartSTTService());
+        }
+    }
+
+    async restartSTTService() {
+        try {
+            this.addLogMessage('🔄 Attempting to restart STT service...', 'info');
+            this.updateStatus('Restarting STT service...');
+            
+            // Disconnect existing connections
+            this.stopRealtimeConnection();
+            
+            // Reset retry counter
+            this.connectionRetries = 0;
+            
+            // Wait a moment before reconnecting
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Attempt to reconnect
+            await this.connectToServer();
+            
+            this.addLogMessage('✅ STT service restart completed', 'success');
+            
+        } catch (error) {
+            console.error('Failed to restart STT service:', error);
+            this.addLogMessage('❌ Failed to restart STT service: ' + error.message, 'error');
+            this.updateStatus('Failed to restart STT service');
         }
     }
 
@@ -125,12 +195,14 @@ class HybridSTTControl {
 
             if (response.ok) {
                 this.updateStatus('Configuration saved successfully');
+                this.addLogMessage('✅ Configuration saved successfully', 'success');
             } else {
                 throw new Error('Failed to save configuration');
             }
         } catch (error) {
             console.error('Failed to save configuration:', error);
             this.updateStatus('Failed to save configuration');
+            this.addLogMessage('❌ Failed to save configuration: ' + error.message, 'error');
         }
     }
 
@@ -141,18 +213,21 @@ class HybridSTTControl {
                 this.currentProvider = 'openai_realtime';
                 document.getElementById('sttProvider').value = this.currentProvider;
                 this.updateStatus('Configuration reset to defaults');
+                this.addLogMessage('✅ Configuration reset to defaults', 'success');
             } else {
                 throw new Error('Failed to reset configuration');
             }
         } catch (error) {
             console.error('Failed to reset configuration:', error);
             this.updateStatus('Failed to reset configuration');
+            this.addLogMessage('❌ Failed to reset configuration: ' + error.message, 'error');
         }
     }
 
     async testSTT() {
         try {
             this.updateStatus('Testing STT...');
+            this.addLogMessage('🧪 Testing STT system...', 'info');
             
             // Add a test transcript immediately for testing
             this.addTranscript("This is a test transcript from the LAIKA hybrid STT system.", 'Test');
@@ -162,12 +237,14 @@ class HybridSTTControl {
                 const result = await response.json();
                 this.addTranscript(result.transcript, 'API Test');
                 this.updateStatus('Real-time STT is active and listening...');
+                this.addLogMessage('✅ STT test completed successfully', 'success');
             } else {
                 throw new Error('STT test failed');
             }
         } catch (error) {
             console.error('STT test failed:', error);
             this.updateStatus('STT test failed');
+            this.addLogMessage('❌ STT test failed: ' + error.message, 'error');
         }
     }
 
@@ -175,7 +252,8 @@ class HybridSTTControl {
         try {
             // No microphone access needed - LAIKA STT is always listening
             this.isRecording = true;
-            this.updateStatus('Connected to LAIKA STT (always listening)...');
+            this.updateStatus('Connecting to LAIKA STT service...');
+            this.addLogMessage('🔗 Connecting to STT service...', 'info');
             
             // Start WebSocket connection to receive transcripts
             this.startRealtimeConnection();
@@ -185,25 +263,70 @@ class HybridSTTControl {
             
         } catch (error) {
             console.error('Failed to connect to STT service:', error);
-            this.updateStatus('Failed to connect to STT service');
+            this.handleConnectionError(error);
+        }
+    }
+
+    handleConnectionError(error) {
+        this.connectionRetries++;
+        
+        if (this.connectionRetries <= this.maxRetries) {
+            const retryMessage = `Connection failed (attempt ${this.connectionRetries}/${this.maxRetries}). Retrying in 5 seconds...`;
+            this.updateStatus(retryMessage);
+            this.addLogMessage(`⚠️ ${retryMessage}`, 'warning');
+            
+            // Retry after 5 seconds
+            setTimeout(() => {
+                this.connectToServer();
+            }, 5000);
+        } else {
+            const errorMessage = 'Failed to connect to STT service after multiple attempts';
+            this.updateStatus(errorMessage);
+            this.addLogMessage(`❌ ${errorMessage}. Please check if the STT service is running.`, 'error');
             this.isRecording = false;
+            
+            // Show restart option
+            this.showRestartOption();
+        }
+    }
+
+    showRestartOption() {
+        const restartButton = document.getElementById('restartService');
+        if (restartButton) {
+            restartButton.style.display = 'inline-block';
+            restartButton.style.animation = 'pulse 1s infinite';
         }
     }
 
     async loadTranscriptHistory() {
         try {
             const response = await fetch('/api/stt/history?limit=50');
+            
+            if (!response.ok) {
+                if (response.status === 503) {
+                    throw new Error('STT service is currently unavailable');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            }
+            
             const data = await response.json();
             
             if (data.success && data.history) {
                 this.transcriptHistory = data.history;
                 this.updateTranscriptDisplay();
                 console.log(`Loaded ${data.history.length} transcript entries`);
-                this.addLogMessage(`Loaded ${data.history.length} transcript entries`, 'success');
+                this.addLogMessage(`📚 Loaded ${data.history.length} transcript entries`, 'success');
+            } else {
+                throw new Error('Invalid response format from STT service');
             }
         } catch (error) {
             console.error('Error loading transcript history:', error);
-            this.addLogMessage('Error loading transcript history', 'error');
+            this.addLogMessage('⚠️ Could not load transcript history: ' + error.message, 'warning');
+            
+            // Don't throw here - we can still function without history
+            this.transcriptHistory = [];
+            this.updateTranscriptDisplay();
         }
     }
 
@@ -217,11 +340,11 @@ class HybridSTTControl {
             if (data.success) {
                 this.transcriptHistory = [];
                 this.updateTranscriptDisplay();
-                this.addLogMessage(`Cleared ${data.cleared_count} transcript entries`, 'success');
+                this.addLogMessage(`🗑️ Cleared ${data.cleared_count} transcript entries`, 'success');
             }
         } catch (error) {
             console.error('Error clearing history:', error);
-            this.addLogMessage('Error clearing history', 'error');
+            this.addLogMessage('❌ Error clearing history: ' + error.message, 'error');
         }
     }
 
@@ -231,11 +354,12 @@ class HybridSTTControl {
             if (typeof io !== 'undefined') {
                 this.socket = io();
                 
-                                        this.socket.on('connect', () => {
-                            console.log('SocketIO connected to real-time STT service');
-                            this.updateStatus('Connected to real-time STT service');
-                            // No audio streaming needed - LAIKA STT handles audio
-                        });
+                this.socket.on('connect', () => {
+                    console.log('SocketIO connected to real-time STT service');
+                    this.updateStatus('Connected to real-time STT service');
+                    this.addLogMessage('✅ Connected to real-time STT service', 'success');
+                    this.connectionRetries = 0; // Reset retry counter on successful connection
+                });
                 
                 this.socket.on('stt_response', (data) => {
                     if (data.type === 'transcript') {
@@ -258,6 +382,16 @@ class HybridSTTControl {
                 this.socket.on('disconnect', () => {
                     console.log('SocketIO connection closed');
                     this.updateStatus('WebSocket connection closed');
+                    this.addLogMessage('⚠️ WebSocket connection closed', 'warning');
+                    
+                    // Show restart option if connection was lost
+                    this.showRestartOption();
+                });
+                
+                this.socket.on('connect_error', (error) => {
+                    console.error('SocketIO connection error:', error);
+                    this.addLogMessage('❌ SocketIO connection error: ' + error.message, 'error');
+                    this.handleConnectionError(error);
                 });
                 
             } else {
@@ -268,7 +402,8 @@ class HybridSTTControl {
                 this.websocket.onopen = () => {
                     console.log('WebSocket connected to real-time STT service');
                     this.updateStatus('Connected to real-time STT service');
-                    this.startAudioStreaming();
+                    this.addLogMessage('✅ WebSocket connected to real-time STT service', 'success');
+                    this.connectionRetries = 0; // Reset retry counter on successful connection
                 };
                 
                 this.websocket.onmessage = (event) => {
@@ -283,17 +418,20 @@ class HybridSTTControl {
                 this.websocket.onerror = (error) => {
                     console.error('WebSocket error:', error);
                     this.updateStatus('WebSocket connection error');
+                    this.addLogMessage('❌ WebSocket connection error', 'error');
                 };
                 
                 this.websocket.onclose = () => {
                     console.log('WebSocket connection closed');
                     this.updateStatus('WebSocket connection closed');
+                    this.addLogMessage('⚠️ WebSocket connection closed', 'warning');
                 };
             }
             
         } catch (error) {
             console.error('Failed to start connection:', error);
             this.updateStatus('Failed to connect to STT service');
+            this.addLogMessage('❌ Failed to start connection: ' + error.message, 'error');
         }
     }
 
@@ -477,9 +615,47 @@ class HybridSTTControl {
     }
 
     updateStatus(message) {
-        const statusElement = document.getElementById('sttStatus');
+        const statusElement = document.getElementById('sttStatusText');
         if (statusElement) {
             statusElement.textContent = message;
+            
+            // Update status indicator color based on message
+            const statusIndicator = document.getElementById('sttStatus');
+            if (statusIndicator) {
+                statusIndicator.className = 'status-indicator';
+                
+                if (message.includes('Failed') || message.includes('error') || message.includes('unavailable')) {
+                    statusIndicator.classList.add('status-error');
+                } else if (message.includes('Connected') || message.includes('ready')) {
+                    statusIndicator.classList.add('status-ready');
+                } else if (message.includes('listening') || message.includes('active')) {
+                    statusIndicator.classList.add('status-listening');
+                } else if (message.includes('Restarting') || message.includes('Connecting')) {
+                    statusIndicator.classList.add('status-processing');
+                } else {
+                    statusIndicator.classList.add('status-inactive');
+                }
+            }
+        }
+    }
+
+    addLogMessage(message, type = 'info') {
+        const logArea = document.getElementById('systemLog');
+        if (logArea) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            
+            // Auto-scroll to bottom
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            // Keep only last 100 log entries
+            const entries = logArea.querySelectorAll('.log-entry');
+            if (entries.length > 100) {
+                entries[0].remove();
+            }
         }
     }
 
@@ -576,6 +752,11 @@ class HybridSTTControl {
             
             if (data.success) {
                 // Populate API key fields with masked values
+                const openaiKey = data.api_keys.openai_api_key;
+                if (openaiKey && openaiKey !== '') {
+                    document.getElementById('openai-api-key').value = openaiKey;
+                }
+                
                 const elevenlabsKey = data.api_keys.elevenlabs_api_key;
                 if (elevenlabsKey && elevenlabsKey !== '') {
                     document.getElementById('elevenlabs-api-key').value = elevenlabsKey;
@@ -665,6 +846,26 @@ class HybridSTTControl {
             }, 5000);
         }
     }
+
+    addLogMessage(message, type = 'info') {
+        const logArea = document.getElementById('systemLog');
+        if (logArea) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logArea.appendChild(logEntry);
+            
+            // Auto-scroll to bottom
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            // Keep only last 100 log entries
+            const entries = logArea.querySelectorAll('.log-entry');
+            if (entries.length > 100) {
+                entries[0].remove();
+            }
+        }
+    }
 }
 
 // Global functions for API key management (called from HTML)
@@ -677,6 +878,50 @@ function saveApiKey(keyName, inputId) {
 function testApiKey(service, inputId) {
     if (window.sttControl) {
         window.sttControl.testApiKey(service, inputId);
+    }
+}
+
+// Global functions for log management
+function clearLog() {
+    const logArea = document.getElementById('systemLog');
+    if (logArea) {
+        logArea.innerHTML = '';
+        if (window.sttControl) {
+            window.sttControl.addLogMessage('🗑️ Log cleared', 'info');
+        }
+    }
+}
+
+function exportLog() {
+    const logArea = document.getElementById('systemLog');
+    if (logArea) {
+        const logText = logArea.innerText;
+        const blob = new Blob([logText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `laika-stt-log-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
+
+function copyTranscript() {
+    const historyContainer = document.getElementById('transcriptHistory');
+    if (historyContainer) {
+        const transcriptText = historyContainer.innerText;
+        navigator.clipboard.writeText(transcriptText).then(() => {
+            if (window.sttControl) {
+                window.sttControl.addLogMessage('📋 Transcript copied to clipboard', 'success');
+            }
+        }).catch(err => {
+            console.error('Failed to copy transcript:', err);
+            if (window.sttControl) {
+                window.sttControl.addLogMessage('❌ Failed to copy transcript', 'error');
+            }
+        });
     }
 }
 

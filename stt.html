@@ -7,6 +7,7 @@
     
     <!-- PWA Meta -->
     <meta name="theme-color" content="#00ffff">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
@@ -95,6 +96,31 @@
         .status-processing { background-color: #ff8800; }
         .status-error { background-color: #ff0000; }
         .status-inactive { background-color: #666; }
+        
+        .status-message {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        .status-message.error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .status-message.warning {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffff00;
+            color: #ffff00;
+        }
+        
+        .status-message.success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
         
         @keyframes pulse {
             0% { opacity: 1; }
@@ -430,6 +456,14 @@
             <h2>🔑 API Keys</h2>
             <div class="api-key-section">
                 <div class="api-key-group">
+                    <label for="openai-api-key">OpenAI API Key (for STT):</label>
+                    <input type="password" id="openai-api-key" placeholder="Enter OpenAI API key" class="api-key-input">
+                    <button class="btn" onclick="saveApiKey('openai_api_key', 'openai-api-key')">💾 Save</button>
+                    <button class="btn" onclick="testApiKey('openai', 'openai-api-key')">🧪 Test</button>
+                </div>
+                <div class="api-key-status" id="openai-status"></div>
+                
+                <div class="api-key-group" style="margin-top: 15px;">
                     <label for="elevenlabs-api-key">ElevenLabs API Key (for STT):</label>
                     <input type="password" id="elevenlabs-api-key" placeholder="Enter ElevenLabs API key" class="api-key-input">
                     <button class="btn" onclick="saveApiKey('elevenlabs_api_key', 'elevenlabs-api-key')">💾 Save</button>
